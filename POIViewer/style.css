@@ -1,0 +1,413 @@
+@import url('https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap');
+
+
+:root {
+    --color-bg: rgba(0, 0, 0, 0.539);
+    ;
+    --color-primary: #10b981;
+    /* Emerald 500 */
+    --color-primary-dark: #059669;
+    --color-accent: #fbbf24;
+    /* Amber 400 */
+    --color-text: #f8fafc;
+    --color-text-muted: #94a3b8;
+
+    --glass-bg: rgba(0, 0, 0, 0.539);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+
+
+    --z-map: 1;
+    --z-overlay: 1000;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "Google Sans", sans-serif;
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    overflow: hidden;
+    /* App-like feel */
+    height: 100vh;
+    width: 100vw;
+}
+
+#app-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+/* Map */
+#map {
+    width: 100%;
+    height: 100%;
+    z-index: var(--z-map);
+}
+
+/* Glassmorphism Utilities */
+.glass-panel {
+    background: var(--glass-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 16px;
+    box-shadow: var(--glass-shadow);
+    color: var(--color-text);
+}
+
+/* Macro Overlay (Top Left) */
+#macro-overlay {
+    position: absolute;
+    top: 20px;
+    left: 60px;
+    /* Offset for Leaflet controls */
+    width: 350px;
+    padding: 24px;
+    z-index: var(--z-overlay);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+#macro-overlay.hidden {
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-20px);
+}
+
+#macro-overlay header h1 {
+    font-family: "Google Sans", sans-serif;
+    font-weight: 700;
+    font-size: 1.5rem;
+    line-height: 1.2;
+    margin-bottom: 4px;
+    background: linear-gradient(135deg, var(--color-primary), var(--color-accent));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.subtitle {
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
+    font-weight: 400;
+    margin-bottom: 16px;
+}
+
+.instructions p {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+}
+
+/* Stats Grid */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.stat-item {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 12px;
+    border-radius: 8px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.stat-label {
+    font-size: 0.8rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Micro Sidebar (Right Side) */
+#micro-sidebar {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    bottom: 20px;
+    width: 400px;
+    max-width: 90vw;
+    z-index: var(--z-overlay);
+    display: flex;
+    flex-direction: column;
+    transform: translateX(120%);
+    /* Hidden by default */
+    transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+#micro-sidebar.visible {
+    transform: translateX(0);
+}
+
+.sidebar-header {
+    padding: 20px;
+    border-bottom: 1px solid var(--glass-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sidebar-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    color: var(--color-text-muted);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 4px;
+    transition: color 0.2s;
+}
+
+.icon-btn:hover {
+    color: var(--color-text);
+}
+
+.filters-container {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+#category-filter {
+    width: 100%;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    color: var(--color-text);
+    font-family: "Google Sans", sans-serif;
+    cursor: pointer;
+}
+
+/* POI List */
+.poi-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+}
+
+.poi-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.poi-list::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 3px;
+}
+
+.empty-state {
+    text-align: center;
+    color: var(--color-text-muted);
+    margin-top: 40px;
+}
+
+/* POI Card Styles */
+.poi-card {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 12px;
+    padding: 16px;
+    margin-bottom: 12px;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.poi-card:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: var(--color-primary);
+    transform: translateY(-2px);
+}
+
+.poi-category-tag {
+    display: inline-block;
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--color-primary);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    font-weight: 600;
+}
+
+.poi-name {
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin-bottom: 4px;
+}
+
+.poi-desc {
+    font-size: 0.85rem;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+}
+
+/* Leaflet Overrides for Dark Mode */
+.leaflet-container {
+    font-family: "Google Sans", sans-serif;
+}
+
+.leaflet-bar {
+    border: none;
+    box-shadow: var(--glass-shadow);
+}
+
+.leaflet-bar a {
+    background-color: var(--glass-bg);
+    color: var(--color-text);
+    border-bottom: 1px solid var(--glass-border);
+    backdrop-filter: blur(8px);
+}
+
+.leaflet-bar a:hover {
+    background-color: var(--color-primary);
+    color: white;
+}
+
+/* Draw Toolbar Icons - Invert or Force White */
+/* Draw Toolbar Icons */
+.leaflet-draw-toolbar a {
+    background-image: none !important;
+    background-color: var(--glass-bg) !important;
+    color: var(--color-text) !important;
+    border-color: var(--glass-border) !important;
+    display: flex !important;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none !important;
+    transition: all 0.2s;
+}
+
+.leaflet-draw-toolbar a:hover {
+    background-color: var(--color-primary) !important;
+    color: white !important;
+}
+
+/* Custom Unicode Icons */
+.leaflet-draw-draw-polygon::after {
+    content: '⬠';
+    font-size: 20px;
+}
+
+.leaflet-draw-draw-rectangle::after {
+    content: '▭';
+    font-size: 22px;
+    font-weight: bold;
+    margin-top: -2px;
+    /* Visual adjustment */
+}
+
+.leaflet-draw-edit-edit::after {
+    content: '✎';
+    font-size: 18px;
+}
+
+.leaflet-draw-edit-remove::after {
+    content: '🗑';
+    font-size: 18px;
+}
+
+/* Detail View Styles */
+.detail-view {
+    padding: 20px;
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+.detail-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.back-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    color: var(--color-text);
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: var(--font-main);
+    transition: background 0.2s;
+}
+
+.back-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+.detail-title {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--color-primary);
+    margin-bottom: 8px;
+}
+
+.detail-type {
+    display: inline-block;
+    font-size: 0.8rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--color-primary);
+    margin-bottom: 16px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.detail-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-row {
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.info-label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+}
+
+.info-value a {
+    color: var(--color-accent);
+    text-decoration: none;
+}
+
+.info-value a:hover {
+    text-decoration: underline;
+}

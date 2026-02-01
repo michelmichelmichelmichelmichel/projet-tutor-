@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Exploration Pyrénées - Tourisme Durable</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+        integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="app-container">
+        <!-- Map Container -->
+        <div id="map"></div>
+
+        <!-- Macro View Overlay (Statistics & Instructions) -->
+        <div id="macro-overlay" class="glass-panel visible">
+            <header>
+                <h1>Exploration des POIs</h1>
+                <p class="subtitle">Vers un tourisme plus durable</p>
+            </header>
+            <div class="instructions">
+                <p>📍 <strong>Mode Macro :</strong> Utilisez l'outil de dessin <span class="icon-draw">⬠</span> pour
+                    sélectionner une zone.</p>
+
+                <div class="filter-section" style="margin-top: 15px;">
+                    <button id="toggle-filters-btn" class="glass-btn"
+                        style="width: 100%; text-align: left; font-size: 0.9rem; padding: 8px;">🛠️ Choisir les
+                        catégories (Tout)</button>
+                    <div id="macro-filters-content"
+                        style="display: none; margin-top: 10px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                        <button id="deselect-all-btn" class="glass-btn small"
+                            style="width: 100%; margin-bottom: 8px; font-size: 0.8rem;">Toogle tout</button>
+                        <!-- Checkboxes injected here -->
+                    </div>
+                </div>
+
+                <div id="macro-stats" class="stats-grid">
+                    <!-- Stats will be injected here -->
+                    <div class="stat-item empty">
+                        <span class="stat-value">--</span>
+                        <span class="stat-label">Points d'Intérêt</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Micro View Sidebar (POI List & Details) -->
+        <aside id="micro-sidebar" class="glass-panel hidden">
+            <div class="sidebar-header">
+                <h2>Points d'Intérêt</h2>
+                <button id="close-micro-view" class="icon-btn" aria-label="Retour à la vue macro">✕</button>
+            </div>
+
+            <div class="filters-container">
+                <select id="category-filter">
+                    <option value="all">🌎 Toutes catégories</option>
+                    <option value="tourism">📷 Tourisme</option>
+                    <option value="sustenance">🍴 Restauration</option>
+                    <option value="accommodation">🛏️ Hébergement</option>
+                    <option value="leisure">🎡 Loisirs</option>
+                    <option value="sport">⚽ Sport</option>
+                    <option value="historic">🏛️ Histoire & Patrimoine</option>
+                    <option value="natural">🌳 Nature</option>
+                    <option value="shop">🛒 Commerces</option>
+                    <option value="amenity">🚻 Services Divers</option>
+                    <option value="transport">🚌 Transport</option>
+                    <option value="healthcare">⚕️ Santé</option>
+                    <option value="emergency">🚨 Urgence</option>
+                    <option value="office">💼 Bureaux</option>
+                    <option value="craft">🎨 Artisanat</option>
+                    <option value="man_made">🏗️ Infrastructures</option>
+                    <option value="power">⚡ Énergie</option>
+                    <option value="barrier">🚧 Barrières</option>
+                    <option value="place">📍 Lieux & Villes</option>
+                </select>
+            </div>
+
+            <div id="poi-list" class="poi-list">
+                <!-- POI Items will be injected here -->
+                <p class="empty-state">Sélectionnez une zone pour voir les lieux.</p>
+            </div>
+        </aside>
+
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <!-- Application Modules -->
+    <script type="module" src="app.js"></script>
+</body>
+
+</html>
