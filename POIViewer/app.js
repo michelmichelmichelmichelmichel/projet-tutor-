@@ -14,6 +14,7 @@ class App {
     init() {
         this.mapManager.init();
         this.uiRenderer.init();
+        this.uiRenderer.setApiService(this.apiService);
 
         // Bind Drawing Event
         this.mapManager.onPolygonCreated = async (layer) => {
@@ -94,13 +95,39 @@ class App {
 
         networks.forEach(net => {
             const latLngs = net.geometry.map(pt => [pt.lat, pt.lon]);
-            const style = this.getNetworkStyle(net.type);
+            const style = this.getNetworkStyle(net.type, net.tags, net.relationRef);
 
             L.polyline(latLngs, style).addTo(this.mapManager.networkGroup);
         });
     }
 
-    getNetworkStyle(type) {
+    getNetworkStyle(type, tags = {}, relationRef = null) {
+        // Priority: Relation (GR10/HRP) > Difficulty (sac_scale) > Highway Type
+
+        // 1. Relations (HRP, GR10, etc.)
+        if (type === 'relation' || (relationRef && (relationRef.includes('GR') || relationRef.includes('HRP')))) {
+            return { color: '#a855f7', weight: 4, opacity: 0.9 }; // Purple
+        }
+
+        // 2. Hiking Difficulty (sac_scale)
+        if (tags.sac_scale) {
+            switch (tags.sac_scale) {
+                case 'hiking': // T1
+                    return { color: '#facc15', weight: 3, opacity: 0.9, dashArray: null }; // Yellow
+                case 'mountain_hiking': // T2
+                case 'demanding_mountain_hiking': // T3
+                    return { color: '#ef4444', weight: 3, opacity: 0.9, dashArray: null }; // Red
+                case 'alpine_hiking': // T4
+                case 'demanding_alpine_hiking': // T5
+                case 'difficult_alpine_hiking': // T6
+                    return { color: '#000000', weight: 3, opacity: 0.9, dashArray: null }; // Black
+                default:
+                    // Unknown scale, fallback to path style but maybe darker?
+                    return { color: '#10b981', weight: 2, dashArray: '5,5', opacity: 0.7 };
+            }
+        }
+
+        // 3. Standard Highway Types
         switch (type) {
             case 'motorway':
             case 'trunk':

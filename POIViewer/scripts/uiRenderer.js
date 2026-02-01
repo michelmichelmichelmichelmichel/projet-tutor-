@@ -341,6 +341,10 @@ export class UiRenderer {
                 <h2 class="detail-title" style="color: ${color}">${this.getCategoryEmoji(poi.category)} ${poi.name}</h2>
                 <span class="detail-type" style="${typeStyle}">${this.translateType(poi.type)}</span>
                 
+                <div id="poi-image-container" style="width: 100%; height: 200px; background: #eee; border-radius: 8px; margin: 15px 0; display: none; overflow: hidden;">
+                    <img id="poi-image" src="" alt="${poi.name}" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+
                 <div class="detail-info">
                     ${address ? `
                     <div class="info-row">
@@ -381,6 +385,42 @@ export class UiRenderer {
             this.categoryFilter.parentElement.style.display = 'block';
             this.filterList(this.categoryFilter.value);
         });
+
+        // Fetch Image
+        const imgContainer = document.getElementById('poi-image-container');
+        const imgElement = document.getElementById('poi-image');
+
+        // We need access to apiService. Either pass it in constructor or assume global access/injected
+        // Since UiRenderer doesn't know about App's apiService, we can attach the fetcher or use a callback/global
+        // But cleaner is to let App handle it? Or pass apiService to UiRenderer?
+        // Let's assume we can trigger an event or just do it here if we had the service.
+        // Actually, UiRenderer is standalone. Let's make App pass the fetch function or expose it.
+        // OR: let's bind it in App.js? But renderPoiDetails is here.
+        // Best quick fix: add a method `setApiService(api)` to UiRenderer or similar.
+        // Or better: `this.apiService?.fetchPoiImage(...)` if we inject it.
+
+        // Wait, I didn't inject ApiService into UiRenderer. 
+        // I should probably inject it in App.js init() -> `this.uiRenderer.setApiService(this.apiService)`
+
+        if (this.apiService) {
+            imgContainer.style.display = 'block'; // Show placeholder or wait?
+            // Show "loading" state ideally
+            imgElement.style.opacity = '0.5';
+
+            this.apiService.fetchPoiImage(poi.lat, poi.lng).then(url => {
+                if (url) {
+                    imgElement.src = url;
+                    imgElement.style.opacity = '1';
+                    imgContainer.style.display = 'block';
+                } else {
+                    imgContainer.style.display = 'none';
+                }
+            });
+        }
+    }
+
+    setApiService(apiService) {
+        this.apiService = apiService;
     }
 
     formatAddress(tags) {

@@ -52,6 +52,7 @@ export class ApiService {
             (
               node[~"^(${keysRegex})$"~"."](poly:"${polyCoords}");
               way["highway"](poly:"${polyCoords}");
+              relation["route"="hiking"](poly:"${polyCoords}");
             );
             out geom;
         `;
@@ -99,7 +100,27 @@ export class ApiService {
                 networks.push({
                     id: el.id,
                     type: el.tags.highway,
+                    tags: el.tags, // Pass all tags for styling (sac_scale, etc.)
                     geometry: el.geometry // Array of {lat, lon}
+                });
+            } else if (el.type === 'relation' && el.tags && el.members) {
+                // For relations, we need geometry. Overpass 'out geom' on relation returns geometry in members
+                // We'll treat relation segments as networks or specialized
+                // Extract geometry from members that are ways
+                const relationGeometry = [];
+                el.members.forEach(m => {
+                    if (m.type === 'way' && m.geometry) {
+                        // Push each way segment as a separate network item, or combine?
+                        // Easiest is to push them as separate items but with relation tags
+                        networks.push({
+                            id: m.ref || el.id + '_' + Math.random(), // Unique ID
+                            type: 'relation',
+                            relationName: el.tags.name,
+                            relationRef: el.tags.ref, // e.g. "GR 10"
+                            tags: el.tags,
+                            geometry: m.geometry
+                        });
+                    }
                 });
                 console.log(networks);
             }
@@ -109,8 +130,10 @@ export class ApiService {
     }
 
     detectCategoryAndType(tags) {
+        // ... existing code ...
         // Order matters for priority
         if (tags.tourism) return { category: 'tourism', type: tags.tourism };
+        // ... (abbreviated for context, actually just appending method to class)
         if (tags.historic) return { category: 'historic', type: tags.historic };
         if (tags.natural) return { category: 'natural', type: tags.natural };
         if (tags.leisure) return { category: 'leisure', type: tags.leisure };
@@ -138,5 +161,26 @@ export class ApiService {
         if (tags.place && ['village', 'hamlet', 'city', 'town', 'locality'].includes(tags.place)) return { category: 'place', type: tags.place };
 
         return { category: 'unknown', type: 'unknown' };
+    }
+
+    async fetchPoiImage(lat, lng) {
+        // ggsnamespace=6 restricts search to 'File:' namespace (Images/Medias)
+        const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=geosearch&ggscoord=${lat}|${lng}&ggsradius=1000&ggsnamespace=6&prop=imageinfo&iiprop=url&format=json&origin=*&ggslimit=1`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.query && data.query.pages) {
+                const pageId = Object.keys(data.query.pages)[0];
+                const page = data.query.pages[pageId];
+                if (page.imageinfo && page.imageinfo[0] && page.imageinfo[0].url) {
+                    return page.imageinfo[0].url;
+                }
+            }
+        } catch (error) {
+            console.warn("Wikimedia Image Fetch Error:", error);
+        }
+        return null;
     }
 }
