@@ -29,6 +29,11 @@ class App {
             }
         };
 
+        // Bind POI Selection (List Click)
+        this.uiRenderer.onPoiSelected = (poi) => {
+            this.mapManager.zoomToLocation(poi.lat, poi.lng);
+        };
+
         this.mapManager.onPolygonCleared = () => {
             this.currentPOIs = [];
             this.currentLayer = null;
@@ -142,6 +147,7 @@ class App {
             marker.on('click', () => {
                 this.uiRenderer.renderPoiDetails(poi);
                 this.uiRenderer.toggleMicroSidebar(true);
+                this.mapManager.zoomToLocation(poi.lat, poi.lng);
             });
 
             // Marker tooltip is fine, but click should do more now

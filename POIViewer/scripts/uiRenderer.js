@@ -12,6 +12,7 @@ export class UiRenderer {
         this.macroFiltersContent = document.getElementById('macro-filters-content');
 
         this.onFilterChange = null;
+        this.onPoiSelected = null;
 
         // Categories Definition
         this.categories = [
@@ -260,7 +261,10 @@ export class UiRenderer {
             card.addEventListener('click', () => {
                 const poiId = card.getAttribute('data-id');
                 const poi = this.lastPois.find(p => p.id == poiId);
-                if (poi) this.renderPoiDetails(poi);
+                if (poi) {
+                    this.renderPoiDetails(poi);
+                    if (this.onPoiSelected) this.onPoiSelected(poi);
+                }
             });
         });
     }

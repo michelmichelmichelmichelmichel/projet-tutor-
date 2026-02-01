@@ -145,4 +145,11 @@ export class MapManager {
         }
         return null;
     }
+
+    zoomToLocation(lat, lng, zoomLevel = 18) {
+        this.map.flyTo([lat, lng], zoomLevel, {
+            animate: true,
+            duration: 1.5
+        });
+    }
 }
