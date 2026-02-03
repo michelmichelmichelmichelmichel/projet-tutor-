@@ -5,7 +5,17 @@ export class ApiService {
 
     async fetchPOIs(latLngs, selectedCategories = []) {
         // Convert Leaflet LatLngs to Overpass Poly String: "lat1 lon1 lat2 lon2 ..."
-        const polyCoords = latLngs.map(pt => `${pt.lat} ${pt.lng}`).join(' ');
+        // Ensure the polygon is closed (first point == last point)
+        const points = [...latLngs];
+        if (points.length > 0) {
+            const first = points[0];
+            const last = points[points.length - 1];
+            if (first.lat !== last.lat || first.lng !== last.lng) {
+                points.push(first);
+            }
+        }
+
+        const polyCoords = points.map(pt => `${pt.lat} ${pt.lng}`).join(' ');
 
         if (selectedCategories.length === 1 && selectedCategories[0] === 'none') {
             return { pois: [], networks: [] };
@@ -60,6 +70,9 @@ export class ApiService {
         try {
             const response = await fetch(this.overpassUrl, {
                 method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
                 body: `data=${encodeURIComponent(query)}`
             });
 
