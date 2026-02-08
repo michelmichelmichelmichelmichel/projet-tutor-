@@ -1,3 +1,4 @@
+ù
 <!DOCTYPE html>
 <html lang="fr">
 
@@ -41,13 +42,34 @@
                 <div class="filter-section" style="margin-top: 15px;">
                     <button id="toggle-filters-btn" class="glass-btn"
                         style="width: 100%; text-align: left; font-size: 0.9rem; padding: 8px;">🛠️ Choisir les
-                        catégories (Tout)</button>
+                        catégories POIs (Tout)</button>
                     <div id="macro-filters-content"
                         style="display: none; margin-top: 10px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
                         <button id="deselect-all-btn" class="glass-btn small"
                             style="width: 100%; margin-bottom: 8px; font-size: 0.8rem;">Tout cocher/décocher</button>
-                        <!-- Checkboxes injected here -->
                     </div>
+                </div>
+
+                <div class="filter-section" style="margin-top: 10px;">
+                    <button id="toggle-path-filters-btn" class="glass-btn"
+                        style="width: 100%; text-align: left; font-size: 0.9rem; padding: 8px;">🗺️ Choisir les chemins
+                        (Tout)</button>
+                    <div id="path-filters-content"
+                        style="display: none; margin-top: 10px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
+                        <button id="deselect-all-paths-btn" class="glass-btn small"
+                            style="width: 100%; margin-bottom: 8px; font-size: 0.8rem;">Tout cocher/décocher</button>
+                        <!-- Path Checkboxes injected here -->
+                    </div>
+                </div>
+
+                <div class="filter-section" style="margin-top: 10px;">
+                    <label
+                        style="color: #fff; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between;">
+                        <span>Épaisseur des tracés</span>
+                        <span id="path-weight-value">100%</span>
+                    </label>
+                    <input type="range" id="path-weight-slider" min="50" max="300" value="100" step="10"
+                        style="width: 100%; margin-top: 5px;">
                 </div>
 
                 <div id="macro-stats" class="stats-grid">
@@ -96,6 +118,15 @@
                 <p class="empty-state">Sélectionnez une zone pour voir les lieux.</p>
             </div>
         </aside>
+
+
+        <!-- Preset Polygons Bar -->
+        <div id="preset-polygons-bar">
+            <h3>📍 Parcs Nationaux</h3>
+            <div class="presets-list">
+                <!-- Buttons injected here -->
+            </div>
+        </div>
 
     </div>
 

@@ -9,6 +9,8 @@ class App {
         this.uiRenderer = new UiRenderer();
 
         this.currentPOIs = [];
+        this.currentNetworks = [];
+        this.pathWeight = 1;
     }
 
     init() {
@@ -24,9 +26,15 @@ class App {
         // Bind Filter Change
         this.uiRenderer.onFilterChange = () => {
             if (this.currentLayer) {
-                // Determine if this is a "valid" layer to refresh
-                // handleAreaSelection re-fetches data.
                 this.handleAreaSelection(this.currentLayer);
+            }
+        };
+
+        // Bind Path Filter Change (Client-side filtering only)
+        this.uiRenderer.onPathFilterChange = () => {
+            if (this.currentNetworks) {
+                console.log("Path filter changed, re-rendering networks...");
+                this.renderNetworks(this.currentNetworks);
             }
         };
 
@@ -41,6 +49,41 @@ class App {
             this.uiRenderer.clear();
             if (this.mapManager.networkGroup) this.mapManager.networkGroup.clearLayers();
             if (this.mapManager.markerGroup) this.mapManager.markerGroup.clearLayers();
+            this.currentNetworks = [];
+        };
+
+        this.uiRenderer.onPathWeightChange = (weight) => {
+            this.pathWeight = weight;
+            if (this.currentNetworks && this.currentNetworks.length > 0) {
+                this.renderNetworks(this.currentNetworks);
+            }
+        };
+
+        // Initialize Presets
+        this.uiRenderer.initPresets();
+        this.uiRenderer.onPresetSelected = async (park) => {
+            this.uiRenderer.showLoading(true);
+            let layer = null;
+
+            if (park.relationId) {
+                // Try fetching precise boundary
+                const geoJson = await this.apiService.fetchParkBoundary(park.relationId);
+                if (geoJson) {
+                    layer = this.mapManager.drawBoundary(geoJson);
+                }
+            }
+
+            // Fallback to bounds if fetch failed or no ID
+            if (!layer && park.bounds) {
+                console.log("Fallback to bounding box for", park.name);
+                layer = this.mapManager.drawRectangle(park.bounds);
+            }
+
+            if (layer) {
+                this.handleAreaSelection(layer);
+            } else {
+                this.uiRenderer.showLoading(false);
+            }
         };
     }
 
@@ -58,6 +101,7 @@ class App {
                 // Fetch Data with Filters
                 const { pois, networks } = await this.apiService.fetchPOIs(latLngs, selectedCategories);
                 this.currentPOIs = pois;
+                this.currentNetworks = networks;
 
                 // Render Networks
                 this.renderNetworks(networks);
@@ -80,7 +124,7 @@ class App {
 
             } catch (err) {
                 console.error("Error handling selection", err);
-                alert("Erreur lors de la récupération des données.");
+                // alert("Erreur lors de la récupération des données."); // Too noisy for user
             } finally {
                 this.uiRenderer.showLoading(false);
             }
@@ -93,63 +137,207 @@ class App {
         }
         this.mapManager.networkGroup.clearLayers();
 
+        const selectedCategories = this.uiRenderer.getSelectedPathCategories ? this.uiRenderer.getSelectedPathCategories() : [];
+        const showAll = selectedCategories.length === 0 || selectedCategories.includes('all');
+
         networks.forEach(net => {
+            const netCat = this.getNetworkCategory(net.type, net.tags, net.relationRef, net.relationRoute);
+
+            // Check visibility
+            if (!showAll && !selectedCategories.includes(netCat)) {
+                return; // Skip if not selected
+            }
+
             const latLngs = net.geometry.map(pt => [pt.lat, pt.lon]);
-            const style = this.getNetworkStyle(net.type, net.tags, net.relationRef);
+            const style = this.getNetworkStyle(net.type, net.tags, net.relationRef, net.relationRoute);
 
             L.polyline(latLngs, style).addTo(this.mapManager.networkGroup);
         });
     }
 
-    getNetworkStyle(type, tags = {}, relationRef = null) {
-        // Priority: Relation (GR10/HRP) > Difficulty (sac_scale) > Highway Type
-
-        // 1. Relations (HRP, GR10, etc.)
+    getNetworkCategory(type, tags = {}, relationRef = null, relationRoute = null) {
+        // Priority must match getNetworkStyle logic
         if (type === 'relation' || (relationRef && (relationRef.includes('GR') || relationRef.includes('HRP')))) {
-            return { color: '#a855f7', weight: 4, opacity: 0.9 }; // Purple
+            if (relationRoute === 'bicycle' || relationRoute === 'mtb') return 'bicycle_routes';
+            return 'hiking_routes';
         }
 
-        // 2. Hiking Difficulty (sac_scale)
+        // Check for specific tags relative to climbing/via ferrata
+        if (tags.highway === 'via_ferrata' || tags.sport === 'via_ferrata' || tags.sport === 'climbing') return 'via_ferrata';
+        if (type === 'via_ferrata') return 'via_ferrata';
+
         if (tags.sac_scale) {
             switch (tags.sac_scale) {
-                case 'hiking': // T1
-                    return { color: '#facc15', weight: 3, opacity: 0.9, dashArray: null }; // Yellow
-                case 'mountain_hiking': // T2
-                case 'demanding_mountain_hiking': // T3
-                    return { color: '#ef4444', weight: 3, opacity: 0.9, dashArray: null }; // Red
-                case 'alpine_hiking': // T4
-                case 'demanding_alpine_hiking': // T5
-                case 'difficult_alpine_hiking': // T6
-                    return { color: '#000000', weight: 3, opacity: 0.9, dashArray: null }; // Black
-                default:
-                    // Unknown scale, fallback to path style but maybe darker?
-                    return { color: '#10b981', weight: 2, dashArray: '5,5', opacity: 0.7 };
+                case 'hiking': return 'hiking_easy';
+                case 'mountain_hiking':
+                case 'demanding_mountain_hiking': return 'hiking_medium';
+                default: return 'hiking_hard';
             }
         }
 
-        // 3. Standard Highway Types
         switch (type) {
-            case 'motorway':
-            case 'trunk':
-            case 'primary':
-                return { color: '#f59e0b', weight: 4, opacity: 0.8 }; // Amber
-            case 'secondary':
-            case 'tertiary':
-                return { color: '#ffffff', weight: 3, opacity: 0.6 };
-            case 'residential':
-            case 'unclassified':
-            case 'service':
-                return { color: '#cbd5e1', weight: 2, opacity: 0.5 };
+            case 'cycleway': return 'cycleways';
+            case 'track': return 'tracks';
+            case 'bridleway': return 'bridleways';
+            case 'steps':
+            case 'corridor':
+            case 'platform': return 'others';
             case 'path':
-            case 'track':
             case 'footway':
-            case 'cycleway':
-                return { color: '#10b981', weight: 2, dashArray: '5,5', opacity: 0.7 }; // Emerald dashed
+            case 'pedestrian':
+            case 'living_street': return 'paths';
+
+            // Aerialways
+            case 'cable_car':
+            case 'gondola':
+            case 'chair_lift':
+            case 'drag_lift':
+            case 't-bar':
+            case 'j-bar':
+            case 'platter':
+            case 'rope_tow':
+            case 'magic_carpet':
+            case 'zip_line':
+            case 'goods':
+            case 'mixed_lift': return 'aerialways';
+
+            // Pistes
+            case 'downhill':
+            case 'nordic':
+            case 'skitour':
+            case 'sled':
+            case 'hike': // piste:type=hike sometimes exists
+            case 'sleigh': return 'pistes';
+
+            // Railways
+            case 'rail':
+            case 'narrow_gauge':
+            case 'funicular':
+            case 'subway':
+            case 'light_rail':
+            case 'preserved':
+            case 'monorail': return 'railways';
+
             default:
-                return { color: '#64748b', weight: 1, opacity: 0.5 };
+                if (tags.railway) return 'railways';
+                if (tags.aerialway) return 'aerialways';
+                if (tags['piste:type']) return 'pistes';
+                if (tags.waterway) return 'waterways';
+                return 'others';
         }
     }
 
+    getNetworkStyle(type, tags = {}, relationRef = null, relationRoute = null) {
+        // Priority: Relation (GR10/HRP) > Difficulty (sac_scale) > Highway Type
+        const scale = (w) => w * (this.pathWeight || 1);
+
+        // 1. Relations (HRP, GR10, etc.)
+        if (type === 'relation' || (relationRef && (relationRef.includes('GR') || relationRef.includes('HRP')))) {
+            if (relationRoute === 'bicycle' || relationRoute === 'mtb') {
+                return { color: '#f97316', weight: scale(4), opacity: 0.9 }; // Orange
+            }
+            return { color: '#a855f7', weight: scale(4), opacity: 0.9 }; // Purple
+        }
+
+        // 2. Climbing / Via Ferrata
+        if (tags.highway === 'via_ferrata' || tags.sport === 'via_ferrata' || tags.sport === 'climbing' || type === 'via_ferrata') {
+            return { color: '#57534e', weight: scale(2.5), opacity: 1, dashArray: '2, 5' }; // Stone Grey Dashed
+        }
+
+        // 3. Hiking Difficulty (sac_scale)
+        if (tags.sac_scale) {
+            switch (tags.sac_scale) {
+                case 'hiking': // T1
+                    return { color: '#facc15', weight: scale(3), opacity: 0.9, dashArray: null }; // Yellow
+                case 'mountain_hiking': // T2
+                case 'demanding_mountain_hiking': // T3
+                    return { color: '#ef4444', weight: scale(3), opacity: 0.9, dashArray: null }; // Red
+                case 'alpine_hiking': // T4
+                case 'demanding_alpine_hiking': // T5
+                case 'difficult_alpine_hiking': // T6
+                    return { color: '#000000', weight: scale(3), opacity: 0.9, dashArray: null }; // Black
+                default:
+                    // Unknown scale, fallback to path style but maybe darker?
+                    return { color: '#10b981', weight: scale(2), dashArray: '5,5', opacity: 0.7 };
+            }
+        }
+
+        // 4. Standard Highway & Other Types
+        switch (type) {
+            // -- Aerialways --
+            case 'cable_car':
+            case 'gondola':
+            case 'chair_lift':
+            case 'drag_lift':
+            case 't-bar':
+            case 'j-bar':
+            case 'platter':
+            case 'rope_tow':
+            case 'magic_carpet':
+            case 'zip_line':
+            case 'goods':
+            case 'mixed_lift':
+                return { color: '#1e293b', weight: scale(2), opacity: 1, dashArray: '1, 3' }; // Dark Slate Blue Dotted
+
+            // -- Pistes --
+            case 'downhill':
+            case 'nordic':
+            case 'skitour':
+            case 'sled':
+            case 'hike':
+            case 'sleigh':
+                // Check difficulty if available? (piste:difficulty) - for now unified
+                if (tags['piste:difficulty'] === 'novice') return { color: '#22c55e', weight: scale(3), opacity: 0.8 }; // Green
+                if (tags['piste:difficulty'] === 'easy') return { color: '#3b82f6', weight: scale(3), opacity: 0.8 }; // Blue (Europe)
+                if (tags['piste:difficulty'] === 'intermediate') return { color: '#ef4444', weight: scale(3), opacity: 0.8 }; // Red
+                if (tags['piste:difficulty'] === 'advanced' || tags['piste:difficulty'] === 'expert') return { color: '#000000', weight: scale(3), opacity: 0.8 }; // Black
+                return { color: '#0ea5e9', weight: scale(3), opacity: 0.7 }; // Sky Blue default
+
+            case 'motorway':
+            case 'trunk':
+            case 'primary':
+                return { color: '#f59e0b', weight: scale(4), opacity: 0.8 }; // Amber
+            case 'secondary':
+            case 'tertiary':
+                return { color: '#ffffff', weight: scale(3), opacity: 0.6 };
+            case 'residential':
+            case 'unclassified':
+            case 'service':
+                return { color: '#cbd5e1', weight: scale(2), opacity: 0.5 };
+            case 'cycleway':
+                return { color: '#3b82f6', weight: scale(2), opacity: 0.8 }; // Blue
+            case 'track':
+                return { color: '#854d0e', weight: scale(1.5), opacity: 0.8 }; // Brown
+            case 'bridleway':
+                return { color: '#d97706', weight: scale(1.5), opacity: 0.8, dashArray: '5, 5' }; // Amber Dashed
+            case 'steps':
+                return { color: '#94a3b8', weight: scale(2), opacity: 0.8, dashArray: '2, 2' }; // Slate Dashed
+            case 'path':
+            case 'footway':
+            case 'pedestrian':
+            case 'living_street':
+            case 'corridor':
+            case 'platform':
+                return { color: '#059669', weight: scale(1.5), opacity: 0.8 }; // Emerald Solid
+
+            // -- Railways --
+            case 'rail':
+            case 'narrow_gauge':
+            case 'funicular':
+            case 'subway':
+            case 'light_rail':
+            case 'preserved':
+            case 'monorail':
+                return { color: '#4b5563', weight: scale(2), opacity: 1, dashArray: '10, 10' }; // Dark Gray Dashed
+
+            default:
+                if (tags.railway) return { color: '#4b5563', weight: scale(2), opacity: 1, dashArray: '10, 10' };
+                if (tags.aerialway) return { color: '#1e293b', weight: scale(2), opacity: 1, dashArray: '1, 3' };
+                if (tags['piste:type']) return { color: '#0ea5e9', weight: scale(3), opacity: 0.7 };
+                if (tags.waterway) return { color: '#06b6d4', weight: scale(3), opacity: 0.6 }; // Cyan
+                return { color: '#64748b', weight: scale(0.5), opacity: 0.5 };
+        }
+    }
     addMarkersToMap(pois) {
         // Remove existing markers if any (need to track them)
         // For this simple version, we'll let MapManager handle a marker layer if we want

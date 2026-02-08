@@ -146,13 +146,44 @@ export class MapManager {
     }
 
     getBoundsFromLayer(layer) {
-        // Helper to get bounding box string for Overpass (south, west, north, east)
+        if (!layer) return null;
+
+        let polygon = null;
         if (layer instanceof L.Polygon || layer instanceof L.Rectangle) {
-            // Overpass needs a polygon string usually, but bounds are easier for simple queries.
-            // For exact polygon query we need a poly string.
-            // Let's rely on simple bbox for now or poly filter if needed.
-            // Returning raw LatLngs for API module to handle.
-            return layer.getLatLngs()[0];
+            polygon = layer;
+        } else if (layer instanceof L.FeatureGroup || layer instanceof L.GeoJSON) {
+            // Find first polygon layer
+            layer.eachLayer((l) => {
+                if (!polygon && (l instanceof L.Polygon || l instanceof L.Rectangle)) {
+                    polygon = l;
+                }
+            });
+        }
+
+        if (polygon) {
+            const latlngs = polygon.getLatLngs();
+            // Leaflet Polygons:
+            // - Simple polygon: [ [lat,lng], [lat,lng]... ] -> actually wrapped in one array: [ [ [lat,lng]... ] ]
+            // - With holes: [ [outer], [hole], ... ]
+            // - MultiPolygon: [ [[outer], [hole]], [[outer]...] ]
+
+            // We want the outer ring of the main polygon
+            if (Array.isArray(latlngs) && latlngs.length > 0) {
+                if (Array.isArray(latlngs[0]) && latlngs[0].length > 0) {
+                    // Check if it's directly an array of LatLng objects (L.LatLng or {lat, lng})
+                    // Leaflet usually nests: [ [LatLng, LatLng...] ] for simple polygon
+                    if ('lat' in latlngs[0] || ('lat' in latlngs[0][0])) {
+                        // It is [ [LatLng...] ] or [ LatLng... ]
+                        // We want the flat array of coordinates
+                        return Array.isArray(latlngs[0]) ? latlngs[0] : latlngs;
+                    }
+                    if (Array.isArray(latlngs[0][0])) {
+                        // MultiPolygon structure: [ [ [LatLng...] ] ]
+                        return latlngs[0][0];
+                    }
+                }
+            }
+            return latlngs; // Fallback
         }
         return null;
     }
@@ -162,5 +193,37 @@ export class MapManager {
             animate: true,
             duration: 1.5
         });
+    }
+    drawRectangle(bounds) {
+        // bounds: [[lat1, lng1], [lat2, lng2]]
+        const layer = L.rectangle(bounds, {
+            color: "#3388ff",
+            weight: 4
+        });
+
+        this.drawnItems.clearLayers();
+        this.drawnItems.addLayer(layer);
+        this.map.fitBounds(bounds);
+
+        return layer;
+    }
+
+    drawBoundary(geoJson) {
+        // Create a GeoJSON layer
+        const layer = L.geoJSON(geoJson, {
+            style: {
+                color: "#3388ff",
+                weight: 4,
+                fillOpacity: 0.1
+            }
+        });
+
+        this.drawnItems.clearLayers();
+        this.drawnItems.addLayer(layer);
+
+        const bounds = layer.getBounds();
+        this.map.fitBounds(bounds);
+
+        return layer;
     }
 }

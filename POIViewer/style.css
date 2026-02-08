@@ -411,3 +411,47 @@ body {
 .info-value a:hover {
     text-decoration: underline;
 }
+
+/* Preset Polygons Bar */
+#preset-polygons-bar {
+    position: absolute;
+    bottom: 30px;
+    left: 20px;
+    z-index: var(--z-overlay);
+    padding: 15px;
+    width: 300px;
+    max-height: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#preset-polygons-bar h3 {
+    font-size: 1rem;
+    color: var(--color-primary);
+    margin-bottom: 5px;
+}
+
+.presets-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    overflow-y: auto;
+}
+
+.preset-btn {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--glass-border);
+    color: var(--color-text);
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+}
+
+.preset-btn:hover {
+    background: var(--color-primary);
+    color: white;
+    border-color: var(--color-primary);
+}

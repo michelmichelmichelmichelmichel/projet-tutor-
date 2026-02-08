@@ -10,6 +10,8 @@ export class UiRenderer {
         this.deselectAllBtn = document.getElementById('deselect-all-btn');
         this.macroFiltersContent = document.getElementById('macro-filters-content');
 
+        this.deselectAllPathsBtn = document.getElementById('deselect-all-paths-btn');
+
         this.onFilterChange = null;
         this.onPoiSelected = null;
 
@@ -35,6 +37,38 @@ export class UiRenderer {
         ];
 
         this.lastPois = [];
+
+        // Definir les parcs nationaux (Coordonnées approximatives des bounding boxes + OSM Relation ID)
+        this.nationalParks = [
+            { name: "Pyrénées", relationId: 1024513, bounds: [[42.70, -0.70], [43.00, 0.10]] },
+            { name: "Vanoise", relationId: 1024507, bounds: [[45.20, 6.60], [45.55, 7.10]] },
+            { name: "Écrins", relationId: 1024508, bounds: [[44.50, 6.00], [45.10, 6.60]] },
+            { name: "Mercantour", relationId: 1024511, bounds: [[43.90, 6.80], [44.40, 7.20]] },
+            { name: "Cévennes", relationId: 1024512, bounds: [[44.00, 3.40], [44.50, 4.00]] },
+            { name: "Calanques", relationId: 3080199, bounds: [[43.15, 5.30], [43.25, 5.60]] },
+            { name: "Port-Cros", relationId: 1776695, bounds: [[42.98, 6.35], [43.03, 6.45]] }
+        ];
+
+        this.onPresetSelected = null;
+    }
+
+    initPresets() {
+        // Find container
+        const container = document.querySelector('#preset-polygons-bar .presets-list');
+        if (!container) return;
+
+        container.innerHTML = '';
+        this.nationalParks.forEach(park => {
+            const btn = document.createElement('button');
+            btn.className = 'preset-btn';
+            btn.textContent = park.name;
+            btn.addEventListener('click', () => {
+                if (this.onPresetSelected) {
+                    this.onPresetSelected(park);
+                }
+            });
+            container.appendChild(btn);
+        });
     }
 
     // --- NOUVELLE MÉTHODE POUR L'EFFET DE DÉGRADÉ ---
@@ -61,6 +95,18 @@ export class UiRenderer {
         if (this.categoryFilter) {
             this.categoryFilter.addEventListener('change', (e) => {
                 this.filterList(e.target.value);
+            });
+        }
+
+        const slider = document.getElementById('path-weight-slider');
+        const valueLabel = document.getElementById('path-weight-value');
+        if (slider && valueLabel) {
+            slider.addEventListener('input', (e) => {
+                const val = e.target.value;
+                valueLabel.textContent = val + '%';
+                if (this.onPathWeightChange) {
+                    this.onPathWeightChange(parseInt(val, 10) / 100);
+                }
             });
         }
 
@@ -107,6 +153,104 @@ export class UiRenderer {
                 if (this.onFilterChange) this.onFilterChange();
             });
         }
+
+        if (this.deselectAllPathsBtn) {
+            this.deselectAllPathsBtn.addEventListener('click', () => {
+                const inputs = document.getElementById('path-filters-content').querySelectorAll('input[type="checkbox"]');
+                const anyChecked = Array.from(inputs).some(i => i.checked);
+                inputs.forEach(input => input.checked = !anyChecked);
+                this.updatePathFilterButtonText();
+                if (this.onPathFilterChange) this.onPathFilterChange();
+            });
+        }
+
+        // --- PATH FILTERS INITIALIZATION ---
+        const pathFiltersContent = document.getElementById('path-filters-content');
+        const togglePathFiltersBtn = document.getElementById('toggle-path-filters-btn');
+
+        this.pathCategories = [
+            { id: 'hiking_routes', label: 'Randonnée (GR)', color: '#a855f7' },
+            { id: 'hiking_hard', label: 'Rando Difficile (T4+)', color: '#000000' },
+            { id: 'hiking_medium', label: 'Rando Interm. (T2/T3)', color: '#ef4444' },
+            { id: 'hiking_easy', label: 'Rando Facile (T1)', color: '#facc15' },
+            { id: 'paths', label: 'Sentier / Piéton', color: '#059669' },
+            { id: 'bicycle_routes', label: 'VTT / Vélo', color: '#f97316' },
+            { id: 'cycleways', label: 'Piste Cyclable', color: '#3b82f6' },
+            { id: 'tracks', label: 'Piste (Track)', color: '#854d0e' },
+            { id: 'railways', label: 'Chemin de fer', color: '#4b5563' },
+            { id: 'aerialways', label: 'Remontées (Ski/Télé)', color: '#1e293b' },
+            { id: 'pistes', label: 'Piste de Ski', color: '#0ea5e9' },
+            { id: 'via_ferrata', label: 'Via Ferrata / Escalade', color: '#57534e' },
+            { id: 'bridleways', label: 'Cavaliers', color: '#d97706' },
+            { id: 'waterways', label: 'Voie d\'Eau', color: '#06b6d4' },
+            { id: 'others', label: 'Autres / Inconnu', color: '#94a3b8' }
+        ];
+
+        if (pathFiltersContent && togglePathFiltersBtn) {
+            this.pathCategories.forEach(cat => {
+                const div = document.createElement('div');
+                div.style.marginBottom = '6px';
+                const label = document.createElement('label');
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.gap = '8px';
+                label.style.fontSize = '0.9rem';
+                label.style.cursor = 'pointer';
+                label.style.color = 'var(--color-text)';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.value = cat.id;
+                checkbox.checked = true;
+                checkbox.style.accentColor = 'var(--color-primary)';
+                checkbox.addEventListener('change', () => {
+                    this.updatePathFilterButtonText();
+                    if (this.onPathFilterChange) this.onPathFilterChange(); // Use same callback or distinct?
+                    // Ideally distinct or generic "onFilterChange"
+                    // For now lets assume app binds to onPathFilterSelectionChange or reuses onFilterChange
+                    if (this.onFilterChange) this.onFilterChange();
+                });
+
+                // Color Indicator
+                const colorBox = document.createElement('span');
+                colorBox.style.width = '15px';
+                colorBox.style.height = '15px';
+                colorBox.style.borderRadius = '3px';
+                colorBox.style.background = cat.color;
+                if (cat.id === 'railways') {
+                    colorBox.style.border = '1px dashed #fff';
+                }
+
+                label.appendChild(checkbox);
+                label.appendChild(colorBox);
+                label.appendChild(document.createTextNode(`${cat.label}`));
+                div.appendChild(label);
+                pathFiltersContent.appendChild(div);
+            });
+
+            togglePathFiltersBtn.addEventListener('click', () => {
+                const isHidden = pathFiltersContent.style.display === 'none';
+                pathFiltersContent.style.display = isHidden ? 'block' : 'none';
+            });
+            this.updatePathFilterButtonText();
+        }
+    }
+
+    updatePathFilterButtonText() {
+        const btn = document.getElementById('toggle-path-filters-btn');
+        const content = document.getElementById('path-filters-content');
+        if (!btn || !content) return;
+        const checkedCount = content.querySelectorAll('input:checked').length;
+        const total = this.pathCategories.length;
+        btn.textContent = `🗺️ Choisir les chemins (${checkedCount}/${total})`;
+    }
+
+    getSelectedPathCategories() {
+        const content = document.getElementById('path-filters-content');
+        if (!content) return []; // If not init, assume all? or none?
+        const checkboxes = content.querySelectorAll('input[type="checkbox"]:checked');
+        if (checkboxes.length === 0) return ['none'];
+        return Array.from(checkboxes).map(cb => cb.value);
     }
 
     updateFilterButtonText() {
@@ -227,9 +371,66 @@ export class UiRenderer {
         const config = { responsive: true, displayModeBar: false };
 
         this.macroStats.innerHTML = '';
-        this.macroStats.style.height = '350px';
 
-        Plotly.newPlot(this.macroStats, data, layout, config);
+        // --- LEGEND ADDITION ---
+        const legendDiv = document.createElement('div');
+        legendDiv.className = 'network-legend';
+        legendDiv.style.marginBottom = '15px';
+        legendDiv.style.padding = '10px';
+        legendDiv.style.background = 'rgba(255, 255, 255, 0.1)';
+        legendDiv.style.borderRadius = '8px';
+        legendDiv.style.fontSize = '0.85rem';
+        legendDiv.style.color = '#fff';
+
+        legendDiv.innerHTML = `
+            <div style="font-weight: bold; margin-bottom: 8px;">Légende des Chemins</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 15px; height: 3px; background: #a855f7; display: inline-block;"></span>
+                    <span>Randonnée (GR)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 15px; height: 3px; background: #f97316; display: inline-block;"></span>
+                    <span>VTT / Vélo</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 15px; height: 3px; background: #059669; display: inline-block;"></span>
+                    <span>Sentier / Piéton</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 15px; height: 3px; background: #854d0e; display: inline-block;"></span>
+                    <span>Piste (Track)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 15px; height: 3px; background: #3b82f6; display: inline-block;"></span>
+                    <span>Piste Cyclable</span>
+                </div>
+                 <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 15px; height: 3px; background: #facc15; display: inline-block;"></span>
+                    <span>Rando Facile (T1)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 15px; height: 3px; background: #ef4444; display: inline-block;"></span>
+                    <span>Rando Interm. (T2/T3)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 15px; height: 3px; background: #000000; display: inline-block;"></span>
+                    <span>Rando Difficile (T4+)</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px;">
+                    <span style="width: 15px; height: 3px; background: #4b5563; border-top: 1px dashed #fff; display: inline-block;"></span>
+                    <span>Chemin de fer</span>
+                </div>
+            </div>
+        `;
+        this.macroStats.appendChild(legendDiv);
+
+        this.macroStats.style.height = 'auto'; // Let it grow
+        const chartDiv = document.createElement('div');
+        chartDiv.style.height = '350px';
+        this.macroStats.appendChild(chartDiv);
+
+        Plotly.newPlot(chartDiv, data, layout, config);
         this.lastPois = pois;
     }
 

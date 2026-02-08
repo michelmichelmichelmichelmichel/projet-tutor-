@@ -17,10 +17,6 @@ export class ApiService {
 
         const polyCoords = points.map(pt => `${pt.lat} ${pt.lng}`).join(' ');
 
-        if (selectedCategories.length === 1 && selectedCategories[0] === 'none') {
-            return { pois: [], networks: [] };
-        }
-
         // Map categories to Overpass Keys
         const categoryToKeys = {
             'tourism': ['tourism'],
@@ -45,24 +41,31 @@ export class ApiService {
 
         // Determine which keys to query
         const keysToFetch = new Set();
+        // If 'none' is in the list, we don't fetch any POI keys, but we still want networks
+        const explicitlyNone = selectedCategories.length === 1 && selectedCategories[0] === 'none';
+
         if (selectedCategories.length === 0) {
             // Fallback if empty (api call without args) -> fetch all
             Object.values(categoryToKeys).flat().forEach(k => keysToFetch.add(k));
-        } else {
+        } else if (!explicitlyNone) {
             selectedCategories.forEach(cat => {
                 if (categoryToKeys[cat]) categoryToKeys[cat].forEach(k => keysToFetch.add(k));
             });
         }
 
         const keysRegex = Array.from(keysToFetch).join('|');
+        const nodeQuery = keysRegex ? `node[~"^(${keysRegex})$"~"."](poly:"${polyCoords}");` : '';
 
         // POI Query (Nodes) + Network Query (Ways with Geometry)
         const query = `
             [out:json][timeout:60];
             (
-              node[~"^(${keysRegex})$"~"."](poly:"${polyCoords}");
+              ${nodeQuery}
               way["highway"](poly:"${polyCoords}");
-              relation["route"="hiking"](poly:"${polyCoords}");
+              way["railway"](poly:"${polyCoords}");
+              way["aerialway"](poly:"${polyCoords}");
+              way["piste:type"](poly:"${polyCoords}");
+              relation["route"~"hiking|foot|bicycle|mtb|ski|piste"](poly:"${polyCoords}");
             );
             out geom;
         `;
@@ -112,7 +115,7 @@ export class ApiService {
             } else if (el.type === 'way' && el.tags && el.geometry) {
                 networks.push({
                     id: el.id,
-                    type: el.tags.highway,
+                    type: el.tags.highway || el.tags.railway || el.tags.aerialway || el.tags['piste:type'] || 'unknown',
                     tags: el.tags, // Pass all tags for styling (sac_scale, etc.)
                     geometry: el.geometry // Array of {lat, lon}
                 });
@@ -130,6 +133,7 @@ export class ApiService {
                             type: 'relation',
                             relationName: el.tags.name,
                             relationRef: el.tags.ref, // e.g. "GR 10"
+                            relationRoute: el.tags.route,
                             tags: el.tags,
                             geometry: m.geometry
                         });
@@ -195,5 +199,20 @@ export class ApiService {
             console.warn("Wikimedia Image Fetch Error:", error);
         }
         return null;
+    }
+
+
+    async fetchParkBoundary(relationId) {
+        // Fetch simplified GeoJSON from polygons.openstreetmap.fr
+        // params=0 means default simplification
+        const url = `http://polygons.openstreetmap.fr/get_geojson.py?id=${relationId}&params=0`;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Network response was not ok");
+            return await response.json();
+        } catch (error) {
+            console.error("Error fetching park boundary:", error);
+            return null;
+        }
     }
 }
