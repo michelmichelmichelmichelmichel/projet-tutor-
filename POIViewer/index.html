@@ -75,6 +75,13 @@
                         style="width: 100%; margin-top: 5px;">
                 </div>
 
+                <div class="filter-section"
+                    style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
+                    <label style="color: #fff; font-size: 0.9rem;">Couleur du tracé de zone</label>
+                    <input type="color" id="polygon-color-picker" value="#3388ff"
+                        style="cursor: pointer; border: none; width: 30px; height: 30px; padding: 0; background: none;">
+                </div>
+
                 <div id="macro-stats" class="stats-grid">
                     <!-- Stats will be injected here -->
                     <div class="stat-item empty">
@@ -114,6 +121,10 @@
                     <option value="barrier">🚧 Barrières</option>
                     <option value="place">📍 Lieux & Villes</option>
                 </select>
+                <input type="text" id="poi-search-input" placeholder="Rechercher par nom..." class="search-input"
+                    style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white;">
+                <div id="sub-category-filter-container"
+                    style="margin-top: 10px; display: flex; flex-wrap: wrap; gap: 5px;"></div>
             </div>
 
             <div id="poi-list" class="poi-list">

@@ -59,6 +59,10 @@ class App {
             }
         };
 
+        this.uiRenderer.onPolygonColorChange = (color) => {
+            this.mapManager.setPolygonColor(color);
+        };
+
         // Initialize Presets
         this.uiRenderer.initPresets();
         this.uiRenderer.onPresetSelected = async (park) => {
@@ -154,7 +158,11 @@ class App {
             const latLngs = net.geometry.map(pt => [pt.lat, pt.lon]);
             const style = this.getNetworkStyle(net.type, net.tags, net.relationRef, net.relationRoute);
 
-            L.polyline(latLngs, style).addTo(this.mapManager.networkGroup);
+            if (net.tags.natural === 'water' || net.tags.landuse === 'reservoir' || net.tags.landuse === 'basin') {
+                L.polygon(latLngs, style).addTo(this.mapManager.networkGroup);
+            } else {
+                L.polyline(latLngs, style).addTo(this.mapManager.networkGroup);
+            }
         });
     }
 
@@ -226,6 +234,8 @@ class App {
                 if (tags.aerialway) return 'aerialways';
                 if (tags['piste:type']) return 'pistes';
                 if (tags.waterway) return 'waterways';
+                if (tags.waterway) return 'waterways';
+                if (tags.natural === 'water' || tags.landuse === 'reservoir' || tags.landuse === 'basin') return 'waterways';
                 return 'others';
         }
     }
@@ -337,7 +347,17 @@ class App {
                 if (tags.railway) return { color: '#4b5563', weight: scale(2), opacity: 1, dashArray: '10, 10' };
                 if (tags.aerialway) return { color: '#1e293b', weight: scale(2), opacity: 1, dashArray: '1, 3' };
                 if (tags['piste:type']) return { color: '#0ea5e9', weight: scale(3), opacity: 0.7 };
-                if (tags.waterway) return { color: '#06b6d4', weight: scale(3), opacity: 0.6 }; // Cyan
+
+                if (tags.waterway || tags.natural === 'water' || tags.landuse === 'reservoir' || tags.landuse === 'basin') {
+                    if (tags.natural === 'water' || tags.landuse === 'reservoir' || tags.landuse === 'basin') {
+                        return { color: '#0ea5e9', weight: 1, opacity: 0.6, fillColor: '#0ea5e9', fillOpacity: 0.3 };
+                    }
+                    if (tags.waterway === 'river') return { color: '#06b6d4', weight: scale(4), opacity: 0.8 };
+                    if (tags.waterway === 'stream') return { color: '#06b6d4', weight: scale(2), opacity: 0.7, dashArray: '2, 3' };
+                    if (tags.waterway === 'canal') return { color: '#0891b2', weight: scale(3), opacity: 0.8 };
+                    return { color: '#06b6d4', weight: scale(3), opacity: 0.6 }; // Cyan default
+                }
+
                 return { color: '#64748b', weight: scale(0.5), opacity: 0.5 };
         }
     }

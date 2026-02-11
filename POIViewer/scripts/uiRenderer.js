@@ -12,6 +12,10 @@ export class UiRenderer {
 
         this.deselectAllPathsBtn = document.getElementById('deselect-all-paths-btn');
 
+        this.poiSearchInput = document.getElementById('poi-search-input');
+        this.subCategoryContainer = document.getElementById('sub-category-filter-container');
+        this.selectedSubCategory = null;
+
         this.onFilterChange = null;
         this.onPoiSelected = null;
 
@@ -218,7 +222,15 @@ export class UiRenderer {
 
         if (this.categoryFilter) {
             this.categoryFilter.addEventListener('change', (e) => {
-                this.filterList(e.target.value);
+                this.selectedSubCategory = null; // Reset sub-cat when main cat changes
+                this.filterList();
+                this.updateSidebarFilterOptions(this.lastPois); // Refresh sub-cats
+            });
+        }
+
+        if (this.poiSearchInput) {
+            this.poiSearchInput.addEventListener('input', () => {
+                this.filterList();
             });
         }
 
@@ -230,6 +242,15 @@ export class UiRenderer {
                 valueLabel.textContent = val + '%';
                 if (this.onPathWeightChange) {
                     this.onPathWeightChange(parseInt(val, 10) / 100);
+                }
+            });
+        }
+
+        const colorPicker = document.getElementById('polygon-color-picker');
+        if (colorPicker) {
+            colorPicker.addEventListener('input', (e) => {
+                if (this.onPolygonColorChange) {
+                    this.onPolygonColorChange(e.target.value);
                 }
             });
         }
@@ -601,6 +622,63 @@ export class UiRenderer {
         } else {
             this.categoryFilter.value = 'all';
         }
+
+        this.renderSubCategoryFilters(pois, this.categoryFilter.value);
+    }
+
+    renderSubCategoryFilters(pois, category) {
+        if (!this.subCategoryContainer) return;
+
+        // Filter POIs by standard category first to get relevant types
+        let filteredPois = pois;
+        if (category !== 'all') {
+            filteredPois = pois.filter(p => p.category === category);
+        }
+
+        // Count Types
+        const typeCounts = {};
+        filteredPois.forEach(p => {
+            if (!typeCounts[p.type]) typeCounts[p.type] = 0;
+            typeCounts[p.type]++;
+        });
+
+        // Convert to array and sort
+        const sortedTypes = Object.entries(typeCounts)
+            .map(([type, count]) => ({ type, count }))
+            .sort((a, b) => b.count - a.count);
+
+        this.subCategoryContainer.innerHTML = '';
+
+        // "All" Chip
+        const allBtn = document.createElement('button');
+        allBtn.className = `preset-btn ${this.selectedSubCategory === null ? 'active' : ''}`;
+        allBtn.style.fontSize = '0.75rem';
+        allBtn.style.padding = '4px 8px';
+        allBtn.textContent = `Tout (${filteredPois.length})`;
+        allBtn.addEventListener('click', () => {
+            this.selectedSubCategory = null;
+            this.filterList();
+            this.renderSubCategoryFilters(pois, category); // Re-render to update active state
+        });
+        this.subCategoryContainer.appendChild(allBtn);
+
+        // Type Chips
+        sortedTypes.forEach(item => {
+            const btn = document.createElement('button');
+            const isActive = this.selectedSubCategory === item.type;
+            btn.className = `preset-btn ${isActive ? 'active' : ''}`;
+            btn.style.fontSize = '0.75rem';
+            btn.style.padding = '4px 8px';
+            // Use translation
+            const label = this.translateType(item.type);
+            btn.textContent = `${label} (${item.count})`;
+            btn.addEventListener('click', () => {
+                this.selectedSubCategory = isActive ? null : item.type; // Toggle
+                this.filterList();
+                this.renderSubCategoryFilters(pois, category); // Re-render to update active state
+            });
+            this.subCategoryContainer.appendChild(btn);
+        });
     }
 
     createPoiCard(poi) {
@@ -637,10 +715,15 @@ export class UiRenderer {
                     <img id="poi-image" src="" alt="${poi.name}" style="width: 100%; height: 100%; object-fit: cover;">
                 </div>
                 <div class="detail-info">
+                    ${poi.tags.description ? `<div class="info-row"><span class="info-label">Description (OSM)</span><span class="info-value" id="poi-description-text">${poi.tags.description}</span></div>` : `<div id="poi-description-text"></div>`}
                     ${address ? `<div class="info-row"><span class="info-label">Adresse</span><span class="info-value">${address}</span></div>` : ''}
                     ${phone ? `<div class="info-row"><span class="info-label">Téléphone</span><span class="info-value"><a href="tel:${phone}" style="color:${color}">${phone}</a></span></div>` : ''}
                     ${openingHours ? `<div class="info-row"><span class="info-label">Horaires</span><span class="info-value">${openingHours}</span></div>` : ''}
                     ${wheelchair ? `<div class="info-row"><span class="info-label">Accessibilité</span><span class="info-value">${wheelchair === 'yes' ? 'Accessible Fauteuil' : 'Non spécifié'}</span></div>` : ''}
+                    ${poi.tags.ele ? `<div class="info-row"><span class="info-label">Altitude</span><span class="info-value">${poi.tags.ele} m</span></div>` : ''}
+                    ${poi.tags.capacity ? `<div class="info-row"><span class="info-label">Capacité</span><span class="info-value">${poi.tags.capacity} personnes</span></div>` : ''}
+                    ${poi.tags.start_date ? `<div class="info-row"><span class="info-label">Date de création</span><span class="info-value">${poi.tags.start_date}</span></div>` : ''}
+                     ${poi.tags.wikipedia ? `<div class="info-row"><span class="info-label">Wikipedia</span><span class="info-value"><a href="https://fr.wikipedia.org/wiki/${poi.tags.wikipedia.replace(/^fr:/, '')}" target="_blank">Voir l'article</a></span></div>` : ''}
                     <div class="info-row"><span class="info-label">Coordonnées</span><span class="info-value">${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}</span></div>
                 </div>
             </div>
@@ -649,21 +732,74 @@ export class UiRenderer {
         this.poiList.innerHTML = html;
         document.getElementById('back-to-list').addEventListener('click', () => {
             this.categoryFilter.parentElement.style.display = 'block';
-            this.filterList(this.categoryFilter.value);
+            this.filterList();
         });
 
         const imgContainer = document.getElementById('poi-image-container');
         const imgElement = document.getElementById('poi-image');
+
+        // --- 1. Load Image (Wikimedia Commons via GeoSearch or Wikidata) ---
+        // Defaults to existing geosearch if no specific wikidata image is found later
         if (this.apiService) {
-            imgContainer.style.display = 'block';
-            imgElement.style.opacity = '0.5';
             this.apiService.fetchPoiImage(poi.lat, poi.lng).then(url => {
-                if (url) {
+                if (url && !imgElement.src.startsWith('http')) { // Only if not already set by wikidata
                     imgElement.src = url;
                     imgElement.style.opacity = '1';
                     imgContainer.style.display = 'block';
-                } else {
-                    imgContainer.style.display = 'none';
+                }
+            });
+        }
+
+        // --- 2. Fetch Wikidata & Enrich OSM Details ---
+        if (poi.tags.wikidata && this.apiService) {
+            // Show loading indicator in description or similar?
+            // For now, we update asynchronously
+            this.apiService.fetchWikidata(poi.tags.wikidata).then(data => {
+                if (!data) return;
+
+                // A. Description
+                if (data.description) {
+                    const descEl = document.getElementById('poi-description-text');
+                    if (descEl) descEl.textContent = data.description.charAt(0).toUpperCase() + data.description.slice(1);
+                    else {
+                        // Inject description if logic allows
+                        const container = document.querySelector('.detail-info');
+                        const div = document.createElement('div');
+                        div.className = 'info-row';
+                        div.innerHTML = `<span class="info-label">Description (Wikidata)</span><span class="info-value">${data.description}</span>`;
+                        container.prepend(div);
+                    }
+                }
+
+                // B. Website
+                if (data.website && !website) { // Only if not already in OSM
+                    const container = document.querySelector('.detail-header');
+                    const link = document.createElement('a');
+                    link.href = data.website;
+                    link.target = "_blank";
+                    link.className = "icon-btn";
+                    link.title = "Site Officiel (Wikidata)";
+                    link.textContent = "🌐";
+                    container.appendChild(link);
+                }
+
+                // C. Image (Wikidata P18 often better than GeoSearch)
+                if (data.image) {
+                    imgElement.src = data.image;
+                    imgElement.style.opacity = '1';
+                    imgContainer.style.display = 'block';
+                }
+
+                // D. Wikipedia Link
+                if (data.wikipedia) {
+                    const container = document.querySelector('.detail-header');
+                    const link = document.createElement('a');
+                    link.href = data.wikipedia;
+                    link.target = "_blank";
+                    link.className = "icon-btn";
+                    link.title = "Article Wikipédia";
+                    link.textContent = "📖"; // Book emoji for Wikipedia
+                    container.appendChild(link);
                 }
             });
         }
@@ -682,9 +818,32 @@ export class UiRenderer {
         return parts.length > 0 ? parts.join(', ') : null;
     }
 
-    filterList(category) {
-        if (category === 'all') this.renderMicroList(this.lastPois);
-        else this.renderMicroList(this.lastPois.filter(p => p.category === category));
+    filterList() {
+        const category = this.categoryFilter ? this.categoryFilter.value : 'all';
+        const searchQuery = this.poiSearchInput ? this.poiSearchInput.value.toLowerCase() : '';
+        const subCat = this.selectedSubCategory;
+
+        let filtered = this.lastPois;
+
+        // 1. Category
+        if (category !== 'all') {
+            filtered = filtered.filter(p => p.category === category);
+        }
+
+        // 2. Sub-Category
+        if (subCat) {
+            filtered = filtered.filter(p => p.type === subCat);
+        }
+
+        // 3. Search
+        if (searchQuery.length > 0) {
+            filtered = filtered.filter(p =>
+                p.name.toLowerCase().includes(searchQuery) ||
+                (p.tags.type && p.tags.type.toLowerCase().includes(searchQuery))
+            );
+        }
+
+        this.renderMicroList(filtered);
     }
 
     getCategoryEmoji(category) {

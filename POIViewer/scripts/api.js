@@ -65,6 +65,13 @@ export class ApiService {
               way["railway"](poly:"${polyCoords}");
               way["aerialway"](poly:"${polyCoords}");
               way["piste:type"](poly:"${polyCoords}");
+              way["waterway"](poly:"${polyCoords}");
+              relation["waterway"](poly:"${polyCoords}");
+              way["natural"="water"](poly:"${polyCoords}");
+              relation["natural"="water"](poly:"${polyCoords}");
+              way["landuse"="reservoir"](poly:"${polyCoords}");
+              relation["landuse"="reservoir"](poly:"${polyCoords}");
+              way["landuse"="basin"](poly:"${polyCoords}");
               relation["route"~"hiking|foot|bicycle|mtb|ski|piste"](poly:"${polyCoords}");
             );
             out geom;
@@ -466,7 +473,7 @@ export class ApiService {
                     fullName: `${props.nom} (${props.codesPostaux ? props.codesPostaux[0] : props.code})`,
                     type: 'city',
                     code: props.code,
-                    geometry: geometry,
+                    geometry: geometry, // GeoJSON Geometry Object (Polygon/MultiPolygon)
                     bounds: [[minLat, minLon], [maxLat, maxLon]],
                     lat: (minLat + maxLat) / 2, // Centroid approx
                     lon: (minLon + maxLon) / 2
@@ -476,6 +483,49 @@ export class ApiService {
         } catch (error) {
             console.error("Erreur recherche commune:", error);
             return [];
+        }
+    }
+
+    async fetchWikidata(wikidataId) {
+        if (!wikidataId) return null;
+        const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikidataId}&format=json&props=descriptions|claims|sitelinks&languages=fr&origin=*`;
+
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            const entity = data.entities[wikidataId];
+            if (!entity) return null;
+
+            const description = entity.descriptions && entity.descriptions.fr ? entity.descriptions.fr.value : null;
+
+            // Claims: P856 (Official Website), P18 (Image)
+            let website = null;
+            if (entity.claims && entity.claims.P856 && entity.claims.P856[0].mainsnak.datavalue) {
+                website = entity.claims.P856[0].mainsnak.datavalue.value;
+            }
+
+            let image = null;
+            if (entity.claims && entity.claims.P18 && entity.claims.P18[0].mainsnak.datavalue) {
+                const imageName = entity.claims.P18[0].mainsnak.datavalue.value.replace(/ /g, '_');
+                // Construct Wikimedia Commons URL
+                // MD5 hash structure: https://upload.wikimedia.org/wikipedia/commons/[a]/[ab]/[filename]
+                // But it's easier to use the special redirector or mediawiki API for image info
+                // Let's use a simpler approach or rely on fetchPoiImage if this is too complex url construction
+                // Actually, let's use the special commons file path
+                // https://commons.wikimedia.org/wiki/Special:FilePath/Filename.jpg?width=600
+                image = `https://commons.wikimedia.org/wiki/Special:FilePath/${imageName}?width=600`;
+            }
+
+            let wikipedia = null;
+            if (entity.sitelinks && entity.sitelinks.frwiki) {
+                wikipedia = entity.sitelinks.frwiki.url || `https://fr.wikipedia.org/wiki/${entity.sitelinks.frwiki.title.replace(/ /g, '_')}`;
+            }
+
+            return { description, website, image, wikipedia };
+
+        } catch (error) {
+            console.warn("Wikidata fetch error:", error);
+            return null;
         }
     }
 }

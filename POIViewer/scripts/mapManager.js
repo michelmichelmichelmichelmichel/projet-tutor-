@@ -9,6 +9,7 @@ export class MapManager {
         this.layers = [];
         this.currentLayerIndex = 0;
         this.currentTileLayer = null;
+        this.polygonColor = "#3388ff"; // Default color
     }
 
     init() {
@@ -197,7 +198,7 @@ export class MapManager {
     drawRectangle(bounds) {
         // bounds: [[lat1, lng1], [lat2, lng2]]
         const layer = L.rectangle(bounds, {
-            color: "#3388ff",
+            color: this.polygonColor,
             weight: 4
         });
 
@@ -212,7 +213,7 @@ export class MapManager {
         // Create a GeoJSON layer
         const layer = L.geoJSON(geoJson, {
             style: {
-                color: "#3388ff",
+                color: this.polygonColor,
                 weight: 4,
                 fillOpacity: 0.1
             }
@@ -225,5 +226,18 @@ export class MapManager {
         this.map.fitBounds(bounds);
 
         return layer;
+    }
+
+    setPolygonColor(color) {
+        this.polygonColor = color;
+        this.drawnItems.eachLayer((layer) => {
+            if (layer.setStyle) {
+                layer.setStyle({ color: color });
+            } else if (layer.eachLayer) { // GeoJSON feature group
+                layer.eachLayer((l) => {
+                    if (l.setStyle) l.setStyle({ color: color });
+                });
+            }
+        });
     }
 }
