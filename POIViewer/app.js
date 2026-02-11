@@ -71,6 +71,9 @@ class App {
                 if (geoJson) {
                     layer = this.mapManager.drawBoundary(geoJson);
                 }
+            } else if (park.geometry) {
+                // City geometry from GeoAPI (Polygon)
+                layer = this.mapManager.drawBoundary(park.geometry);
             }
 
             // Fallback to bounds if fetch failed or no ID

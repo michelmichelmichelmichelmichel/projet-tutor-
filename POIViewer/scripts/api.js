@@ -215,4 +215,267 @@ export class ApiService {
             return null;
         }
     }
+
+    async fetchParksFromCollection(collectionId) {
+        const query = `
+            [out:json][timeout:25];
+            relation(${collectionId});
+            relation(r);
+            out tags bb;
+        `;
+
+        try {
+            const response = await fetch(this.overpassUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `data=${encodeURIComponent(query)}`
+            });
+
+            if (!response.ok) throw new Error(`Overpass API Error: ${response.statusText}`);
+
+            const data = await response.json();
+
+            const parks = data.elements.map(el => ({
+                name: el.tags.name,
+                relationId: el.id,
+                bounds: [
+                    [el.bounds.minlat, el.bounds.minlon],
+                    [el.bounds.maxlat, el.bounds.maxlon]
+                ]
+            }));
+
+            // Sort by name
+            return parks.sort((a, b) => a.name.localeCompare(b.name));
+
+        } catch (error) {
+            console.error("Error fetching parks from collection:", error);
+            return [];
+        }
+    }
+
+    async fetchFrenchPNRs() {
+        const CACHE_KEY = 'pnr_cache_v1';
+        const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 heures
+
+        // 1. Vérification du cache
+        const cached = localStorage.getItem(CACHE_KEY);
+        if (cached) {
+            try {
+                const { timestamp, data } = JSON.parse(cached);
+                if (Date.now() - timestamp < CACHE_DURATION) {
+                    console.log("✅ Chargement des PNR depuis le cache local");
+                    return data;
+                }
+            } catch (e) {
+                console.warn("Cache invalide");
+            }
+        }
+
+        // 2. Requête API (si pas de cache valide)
+        const query = `
+            [out:json][timeout:25];
+            relation(9091001); 
+            relation(r); 
+            out tags bb;
+        `;
+
+        try {
+            console.log("🌍 Téléchargement de la liste des PNR depuis Overpass...");
+            const response = await fetch(this.overpassUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `data=${encodeURIComponent(query)}`
+            });
+
+            if (response.status === 429) {
+                console.warn("⚠️ Trop de requêtes (429). Utilisation du cache si possible.");
+                if (cached) return JSON.parse(cached).data;
+                throw new Error("API Limit Reached");
+            }
+
+            if (!response.ok) throw new Error(`Erreur Overpass: ${response.status}`);
+
+            const data = await response.json();
+
+            const pnrs = data.elements.map(el => ({
+                name: el.tags.name,
+                relationId: el.id,
+                bounds: [
+                    [el.bounds.minlat, el.bounds.minlon],
+                    [el.bounds.maxlat, el.bounds.maxlon]
+                ]
+            })).sort((a, b) => a.name.localeCompare(b.name));
+
+            // 3. Sauvegarde dans le cache
+            localStorage.setItem(CACHE_KEY, JSON.stringify({
+                timestamp: Date.now(),
+                data: pnrs
+            }));
+
+            return pnrs;
+
+        } catch (error) {
+            console.error("Erreur chargement PNR:", error);
+            // En dernier recours, on renvoie le cache même vieux s'il existe
+            if (cached) return JSON.parse(cached).data;
+            return [];
+        }
+    }
+
+    async fetchFrenchRegions() {
+        const CACHE_KEY = 'regions_cache_v1';
+        return this._fetchAdminArea(CACHE_KEY, '4');
+    }
+
+    async fetchFrenchDepartments() {
+        const CACHE_KEY = 'depts_cache_v1';
+        return this._fetchAdminArea(CACHE_KEY, '6');
+    }
+
+    // Helper for Regions/Departments
+    async _fetchAdminArea(cacheKey, adminLevel) {
+        // ... (existing code) ...
+        // (Keeping existing code identical, just appending new method after it or before end of class)
+        const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 jours (ça change rarement)
+
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+            try {
+                const { timestamp, data } = JSON.parse(cached);
+                if (Date.now() - timestamp < CACHE_DURATION) {
+                    console.log(`✅ Chargement admin_level=${adminLevel} depuis le cache local`);
+                    return data;
+                }
+            } catch (e) {
+                console.warn("Cache invalide");
+            }
+        }
+
+        // OPTIMISATION: Utiliser searchArea "France Métropolitaine" (ID 1403916 => Area 3601403916)
+        // Plutôt que la BBox qui est lourde.
+        // On augmente le timeout à 90s pour éviter les 504.
+        const query = `
+            [out:json][timeout:90];
+            area(3601403916)->.searchArea;
+            relation["boundary"="administrative"]["admin_level"="${adminLevel}"]["ref:INSEE"](area.searchArea);
+            out tags bb;
+        `;
+
+        try {
+            console.log(`🌍 Téléchargement admin_level=${adminLevel} depuis Overpass (Area)...`);
+            const response = await fetch(this.overpassUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `data=${encodeURIComponent(query)}`
+            });
+
+            if (response.status === 429) {
+                console.warn("⚠️ Trop de requêtes (429).");
+                if (cached) return JSON.parse(cached).data;
+                throw new Error("API Limit Reached");
+            }
+            if (response.status === 504) {
+                console.warn("⚠️ Timeout Overpass (504).");
+                if (cached) return JSON.parse(cached).data;
+                throw new Error("API Timeout");
+            }
+            if (!response.ok) throw new Error(`Erreur Overpass: ${response.status}`);
+
+            const data = await response.json();
+
+            const results = data.elements
+                .filter(el => el.tags && el.tags.name)
+                .map(el => ({
+                    name: el.tags.name,
+                    ref: el.tags['ref:INSEE'] || el.tags.ref,
+                    relationId: el.id,
+                    bounds: [
+                        [el.bounds.minlat, el.bounds.minlon],
+                        [el.bounds.maxlat, el.bounds.maxlon]
+                    ]
+                }))
+                .sort((a, b) => a.name.localeCompare(b.name));
+
+            localStorage.setItem(cacheKey, JSON.stringify({
+                timestamp: Date.now(),
+                data: results
+            }));
+
+            return results;
+
+        } catch (error) {
+            console.error(`Erreur chargement admin_level=${adminLevel}:`, error);
+            if (cached) return JSON.parse(cached).data;
+            return [];
+        }
+    }
+
+    async searchCommunes(query) {
+        if (!query || query.length < 3) return [];
+
+        // Utilisation de l'API GéoGouv au format GeoJSON pour avoir le contour précis
+        const url = `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(query)}&format=geojson&geometry=contour&boost=population&limit=10`;
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("GeoAPI Error");
+            const data = await response.json(); // data is a FeatureCollection
+
+            if (!data.features) return [];
+
+            return data.features.map(feature => {
+                const props = feature.properties;
+                const geometry = feature.geometry;
+
+                // Calculate bounds from geometry (Polygon or MultiPolygon)
+                let latLngs = [];
+                // Simple helper to extract coords
+                const extractCoords = (coords) => {
+                    if (typeof coords[0] === 'number') return [coords]; // Point [lon, lat]
+                    return coords.reduce((acc, val) => acc.concat(extractCoords(val)), []);
+                };
+
+                // For Polygon: [[ [lon, lat], ... ]]
+                // For MultiPolygon: [[[ [lon, lat], ... ]]]
+                // Leaflet expects [lat, lon], GeoJSON is [lon, lat]
+
+                // Quick bounds calculation
+                let minLat = Infinity, minLon = Infinity, maxLat = -Infinity, maxLon = -Infinity;
+                const flatCoords = extractCoords(geometry.coordinates);
+
+                // flatCoords will be array of [lon, lat] (or single numbers if I messed up recursion, but reduce handles arrays)
+                // Actually recursion above flattens to [lon, lat, lon, lat...] ? No.
+                // Let's use specific logic for Polygon/MultiPolygon
+                const allPoints = [];
+                if (geometry.type === 'Polygon') {
+                    geometry.coordinates[0].forEach(p => allPoints.push(p));
+                } else if (geometry.type === 'MultiPolygon') {
+                    geometry.coordinates.forEach(poly => poly[0].forEach(p => allPoints.push(p)));
+                }
+
+                allPoints.forEach(pt => {
+                    const [lon, lat] = pt;
+                    if (lon < minLon) minLon = lon;
+                    if (lon > maxLon) maxLon = lon;
+                    if (lat < minLat) minLat = lat;
+                    if (lat > maxLat) maxLat = lat;
+                });
+
+                return {
+                    name: props.nom,
+                    fullName: `${props.nom} (${props.codesPostaux ? props.codesPostaux[0] : props.code})`,
+                    type: 'city',
+                    code: props.code,
+                    geometry: geometry,
+                    bounds: [[minLat, minLon], [maxLat, maxLon]],
+                    lat: (minLat + maxLat) / 2, // Centroid approx
+                    lon: (minLon + maxLon) / 2
+                };
+            });
+
+        } catch (error) {
+            console.error("Erreur recherche commune:", error);
+            return [];
+        }
+    }
 }

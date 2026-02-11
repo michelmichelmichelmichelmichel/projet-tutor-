@@ -31,9 +31,12 @@
 
         <!-- Macro View Overlay (Statistics & Instructions) -->
         <div id="macro-overlay" class="glass-panel visible">
-            <header>
-                <h1>Exploration des POIs</h1>
-                <p class="subtitle">Vers un tourisme plus durable</p>
+            <header style="display: flex; justify-content: space-between; align-items: start;">
+                <div>
+                    <h1>Exploration des POIs</h1>
+                    <p class="subtitle">Vers un tourisme plus durable</p>
+                </div>
+                <button id="minimize-macro-btn" class="icon-btn minimize-btn" title="Réduire/Agrandir">−</button>
             </header>
             <div class="instructions">
                 <p>📍 <strong>Mode Macro :</strong> Utilisez l'outil de dessin <span class="icon-draw">⬠</span> pour
@@ -120,11 +123,56 @@
         </aside>
 
 
-        <!-- Preset Polygons Bar -->
-        <div id="preset-polygons-bar">
-            <h3>📍 Parcs Nationaux</h3>
-            <div class="presets-list">
-                <!-- Buttons injected here -->
+        <!-- Presets Panel (Tabbed) -->
+        <div id="presets-panel" class="glass-panel">
+            <div class="presets-tabs"
+                style="display: flex; justify-content: space-between; align-items: center; padding-right: 10px;">
+                <div style="display: flex; flex: 1; overflow-x: auto;">
+                    <button class="tab-btn active" data-tab="national">Parcs Nationaux</button>
+                    <button class="tab-btn" data-tab="regional">Parcs Régionaux</button>
+                    <button class="tab-btn" data-tab="regions">Régions</button>
+                    <button class="tab-btn" data-tab="departments">Départements</button>
+                    <button class="tab-btn" data-tab="cities">Villes</button>
+                </div>
+                <button id="minimize-presets-btn" class="icon-btn minimize-btn" title="Réduire/Agrandir"
+                    style="padding: 4px 8px;">−</button>
+            </div>
+
+            <div id="national-content" class="tab-content active">
+                <div id="national-list" class="presets-list">
+                    <!-- National Parks injected here -->
+                </div>
+            </div>
+
+            <div id="regional-content" class="tab-content">
+                <div id="regional-list" class="presets-list">
+                    <!-- Regional Parks injected here -->
+                </div>
+            </div>
+
+            <div id="regions-content" class="tab-content">
+                <div id="regions-list" class="presets-list">
+                    <!-- Regions injected here -->
+                </div>
+            </div>
+
+            <div id="departments-content" class="tab-content">
+                <div id="departments-list" class="presets-list">
+                    <!-- Departments injected here -->
+                </div>
+            </div>
+
+            <div id="cities-content" class="tab-content">
+                <div class="search-container" style="padding: 10px 0;">
+                    <input type="text" id="city-search-input" placeholder="Rechercher une commune..."
+                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
+                </div>
+                <div id="cities-results" class="presets-list">
+                    <!-- Search results injected here -->
+                    <p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Tapez le nom
+                        d'une
+                        ville...</p>
+                </div>
             </div>
         </div>
 

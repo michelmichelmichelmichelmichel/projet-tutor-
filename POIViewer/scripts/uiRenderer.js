@@ -52,23 +52,131 @@ export class UiRenderer {
         this.onPresetSelected = null;
     }
 
-    initPresets() {
-        // Find container
-        const container = document.querySelector('#preset-polygons-bar .presets-list');
+    async initPresets() {
+        // --- Tab Logic ---
+        const tabs = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all
+                tabs.forEach(t => t.classList.remove('active'));
+                contents.forEach(c => c.classList.remove('active'));
+
+                // Add active to clicked
+                tab.classList.add('active');
+                const targetId = tab.getAttribute('data-tab');
+                document.getElementById(`${targetId}-content`).classList.add('active');
+            });
+        });
+
+
+        // --- 1. Parcs Nationaux (Statique) ---
+        const nationalContainer = document.getElementById('national-list');
+        if (nationalContainer) {
+            nationalContainer.innerHTML = '';
+            this.nationalParks.forEach(park => {
+                const btn = document.createElement('button');
+                btn.className = 'preset-btn';
+                btn.textContent = park.name;
+                btn.addEventListener('click', () => {
+                    if (this.onPresetSelected) this.onPresetSelected(park);
+                });
+                nationalContainer.appendChild(btn);
+            });
+        }
+
+        // --- 2. Parcs Régionaux (Dynamique) ---
+        this._populateDynamicList('regional-list', () => this.apiService.fetchFrenchPNRs());
+
+        // --- 3. Régions (Dynamique) ---
+        this._populateDynamicList('regions-list', () => this.apiService.fetchFrenchRegions());
+
+        // --- 4. Départements (Dynamique) ---
+        this._populateDynamicList('departments-list', () => this.apiService.fetchFrenchDepartments());
+
+        // --- 5. Villes (Recherche) ---
+        this.initCitySearch();
+    }
+
+    initCitySearch() {
+        const input = document.getElementById('city-search-input');
+        const resultsContainer = document.getElementById('cities-results');
+
+        if (!input || !resultsContainer) return;
+
+        // Debounce input
+        let timeout;
+        input.addEventListener('input', (e) => {
+            const query = e.target.value;
+            clearTimeout(timeout);
+            timeout = setTimeout(async () => {
+                if (query.length < 3) {
+                    resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Tapez au moins 3 caractères...</p>';
+                    return;
+                }
+
+                resultsContainer.innerHTML = '<span class="loading-text" style="color:var(--color-text-muted); font-size:0.9rem;">Recherche...</span>';
+
+                try {
+                    const results = await this.apiService.searchCommunes(query);
+                    resultsContainer.innerHTML = '';
+
+                    if (results.length === 0) {
+                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucune ville trouvée.</p>';
+                        return;
+                    }
+
+                    results.forEach(city => {
+                        const btn = document.createElement('button');
+                        btn.className = 'preset-btn';
+                        btn.style.width = '100%';
+                        btn.style.textAlign = 'left';
+                        btn.style.display = 'block';
+                        btn.innerHTML = `<strong>${city.name}</strong><br><span style="font-size:0.75rem; opacity:0.7">${city.fullName}</span>`;
+
+                        btn.addEventListener('click', () => {
+                            if (this.onPresetSelected) this.onPresetSelected(city);
+                        });
+                        resultsContainer.appendChild(btn);
+                    });
+
+                } catch (e) {
+                    console.error(e);
+                    resultsContainer.innerHTML = '<p class="empty-state" style="color:var(--color-danger)">Erreur de recherche.</p>';
+                }
+            }, 500); // 500ms debounce
+        });
+    }
+
+    async _populateDynamicList(containerId, fetchMethod) {
+        const container = document.getElementById(containerId);
         if (!container) return;
 
+        // Show loading state
+        container.innerHTML = '<span class="loading-text" style="color:var(--color-text-muted); font-size:0.9rem;">Chargement...</span>';
+
+        let items = [];
+        if (this.apiService) {
+            items = await fetchMethod();
+        } else {
+            console.warn(`ApiService not available for ${containerId}`);
+        }
+
         container.innerHTML = '';
-        this.nationalParks.forEach(park => {
-            const btn = document.createElement('button');
-            btn.className = 'preset-btn';
-            btn.textContent = park.name;
-            btn.addEventListener('click', () => {
-                if (this.onPresetSelected) {
-                    this.onPresetSelected(park);
-                }
+        if (items.length === 0) {
+            container.innerHTML = '<span class="loading-text" style="color:var(--color-text-muted); font-size:0.9rem;">Aucun élément trouvé (ou erreur).</span>';
+        } else {
+            items.forEach(item => {
+                const btn = document.createElement('button');
+                btn.className = 'preset-btn';
+                btn.textContent = item.name;
+                btn.addEventListener('click', () => {
+                    if (this.onPresetSelected) this.onPresetSelected(item);
+                });
+                container.appendChild(btn);
             });
-            container.appendChild(btn);
-        });
+        }
     }
 
     // --- NOUVELLE MÉTHODE POUR L'EFFET DE DÉGRADÉ ---
@@ -86,6 +194,22 @@ export class UiRenderer {
     }
 
     init() {
+        // --- MINIMIZE LOGIC ---
+        const setupMinimize = (btnId, panelId) => {
+            const btn = document.getElementById(btnId);
+            const panel = document.getElementById(panelId);
+            if (btn && panel) {
+                btn.addEventListener('click', () => {
+                    panel.classList.toggle('minimized');
+                    const isMin = panel.classList.contains('minimized');
+                    btn.textContent = isMin ? '+' : '−';
+                });
+            }
+        };
+
+        setupMinimize('minimize-macro-btn', 'macro-overlay');
+        setupMinimize('minimize-presets-btn', 'presets-panel');
+
         if (this.closeMicroBtn) {
             this.closeMicroBtn.addEventListener('click', () => {
                 this.toggleMicroSidebar(false);
