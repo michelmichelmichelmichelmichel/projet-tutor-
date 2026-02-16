@@ -1,5 +1,9 @@
 export class UiRenderer {
     constructor() {
+        // --- FULL SCREEN CHART CONTAINERS ---
+        this.fsOverlay = null; // Will be created in init
+        this.fsChartContainer = null;
+
         this.macroStats = document.getElementById('macro-stats');
         this.poiList = document.getElementById('poi-list');
         this.microSidebar = document.getElementById('micro-sidebar');
@@ -214,6 +218,9 @@ export class UiRenderer {
         setupMinimize('minimize-macro-btn', 'macro-overlay');
         setupMinimize('minimize-presets-btn', 'presets-panel');
 
+        // --- INIT FULL SCREEN OVERLAY ---
+        this._initFullScreenOverlay();
+
         if (this.closeMicroBtn) {
             this.closeMicroBtn.addEventListener('click', () => {
                 this.toggleMicroSidebar(false);
@@ -308,6 +315,9 @@ export class UiRenderer {
                 if (this.onPathFilterChange) this.onPathFilterChange();
             });
         }
+
+        // --- INIT FULL SCREEN OVERLAY ---
+        this._initFullScreenOverlay();
 
         // --- PATH FILTERS INITIALIZATION ---
         const pathFiltersContent = document.getElementById('path-filters-content');
@@ -571,8 +581,36 @@ export class UiRenderer {
         this.macroStats.appendChild(legendDiv);
 
         this.macroStats.style.height = 'auto'; // Let it grow
+
+        // Header for Chart + Maximize Button
+        const chartHeader = document.createElement('div');
+        chartHeader.style.display = 'flex';
+        chartHeader.style.justifyContent = 'space-between';
+        chartHeader.style.alignItems = 'center';
+        chartHeader.style.marginBottom = '5px';
+
+        const chartTitle = document.createElement('span');
+        chartTitle.style.fontSize = '0.9rem';
+        chartTitle.style.fontWeight = '600';
+        chartTitle.style.color = '#fff';
+        chartTitle.textContent = 'Répartition';
+
+        const maxBtn = document.createElement('button');
+        maxBtn.className = 'maximize-btn';
+        maxBtn.innerHTML = '⤢ Agrandir';
+        maxBtn.title = 'Voir en plein écran';
+        maxBtn.addEventListener('click', () => {
+            this._toggleFullScreenChart(data, layout);
+        });
+
+        chartHeader.appendChild(chartTitle);
+        chartHeader.appendChild(maxBtn);
+        this.macroStats.appendChild(chartHeader);
+
         const chartDiv = document.createElement('div');
         chartDiv.style.height = '350px';
+        // Give it an ID to easily identify it
+        chartDiv.id = 'mini-chart-div';
         this.macroStats.appendChild(chartDiv);
 
         Plotly.newPlot(chartDiv, data, layout, config);
@@ -897,5 +935,54 @@ export class UiRenderer {
             'healthcare': '#f43f5e', 'power': '#a8a29e', 'barrier': '#57534e', 'other': '#94a3b8'
         };
         return colors[category] || colors['other'];
+    }
+
+    _initFullScreenOverlay() {
+        if (document.getElementById('fullscreen-chart-overlay')) return;
+
+        const overlay = document.createElement('div');
+        overlay.id = 'fullscreen-chart-overlay';
+        overlay.innerHTML = `
+            <div class="header">
+                 <div class="title">Statistiques Détaillées (Treemap)</div>
+                 <button id="fullscreen-chart-button-close">Fermer ✕</button>
+            </div>
+            <div id="fullscreen-chart-container" class="chart-container"></div>
+        `;
+        document.body.appendChild(overlay);
+
+        this.fsOverlay = overlay;
+        this.fsChartContainer = document.getElementById('fullscreen-chart-container');
+
+        document.getElementById('fullscreen-chart-button-close').addEventListener('click', () => {
+            this.fsOverlay.classList.remove('visible');
+            setTimeout(() => {
+                this.fsOverlay.style.display = 'none';
+            }, 300);
+        });
+
+        // Close on escape
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && this.fsOverlay.style.display === 'flex') {
+                document.getElementById('fullscreen-chart-button-close').click();
+            }
+        });
+    }
+
+    _toggleFullScreenChart(data, layout) {
+        if (!this.fsOverlay) this._initFullScreenOverlay();
+
+        this.fsOverlay.style.display = 'flex';
+        // Force reflow
+        void this.fsOverlay.offsetWidth;
+        this.fsOverlay.classList.add('visible');
+
+        const fsLayout = {
+            ...layout,
+            font: { ...layout.font, size: 16 }, // Bigger font
+            margin: { t: 0, l: 0, r: 0, b: 0 }
+        };
+
+        Plotly.newPlot(this.fsChartContainer, data, fsLayout, { responsive: true, displayModeBar: false });
     }
 }
