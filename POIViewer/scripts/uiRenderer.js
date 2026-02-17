@@ -89,6 +89,7 @@ export class UiRenderer {
                 btn.textContent = park.name;
                 btn.addEventListener('click', () => {
                     if (this.onPresetSelected) this.onPresetSelected(park);
+                    this.minimizePresetsPanel();
                 });
                 nationalContainer.appendChild(btn);
             });
@@ -145,6 +146,7 @@ export class UiRenderer {
 
                         btn.addEventListener('click', () => {
                             if (this.onPresetSelected) this.onPresetSelected(city);
+                            this.minimizePresetsPanel();
                         });
                         resultsContainer.appendChild(btn);
                     });
@@ -181,6 +183,7 @@ export class UiRenderer {
                 btn.textContent = item.name;
                 btn.addEventListener('click', () => {
                     if (this.onPresetSelected) this.onPresetSelected(item);
+                    this.minimizePresetsPanel();
                 });
                 container.appendChild(btn);
             });
@@ -199,6 +202,15 @@ export class UiRenderer {
         b = Math.min(255, Math.max(0, b + amount));
 
         return `#${((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1)}`;
+    }
+
+    minimizePresetsPanel() {
+        const panel = document.getElementById('presets-panel');
+        const btn = document.getElementById('minimize-presets-btn');
+        if (panel && btn) {
+            panel.classList.add('minimized');
+            btn.textContent = '+';
+        }
     }
 
     init() {
