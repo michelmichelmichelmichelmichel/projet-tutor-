@@ -94,7 +94,8 @@ body {
 }
 
 #macro-overlay::-webkit-scrollbar-thumb:hover {
-    background: var(--color-primary); /* Utilise votre couleur émeraude au survol */
+    background: var(--color-primary);
+    /* Utilise votre couleur émeraude au survol */
 }
 
 /* Version standard pour Firefox */
@@ -611,14 +612,17 @@ body {
     border-color: var(--color-primary) !important;
     background: rgba(255, 255, 255, 0.1) !important;
     box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-}/* Full Screen Chart Overlay */
+}
+
+/* Full Screen Chart Overlay */
 #fullscreen-chart-overlay {
     position: fixed;
     top: 0;
     left: 0;
     width: 100vw;
     height: 100vh;
-    z-index: 2000; /* Above everything */
+    z-index: 2000;
+    /* Above everything */
     background: rgba(0, 0, 0, 0.95);
     backdrop-filter: blur(10px);
     display: none;
@@ -637,7 +641,7 @@ body {
     width: 95%;
     height: 90%;
     /* Ensure Plotly resizes correctly inside flex item */
-    flex: 1; 
+    flex: 1;
     min-height: 0;
 }
 
@@ -673,18 +677,52 @@ body {
 
 .maximize-btn {
     background: none;
-    border: 1px solid rgba(255,255,255,0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: var(--color-text-muted);
     cursor: pointer;
     padding: 4px 8px;
     border-radius: 4px;
     font-size: 0.8rem;
-    margin-left: auto; /* Push to right if in flex container */
+    margin-left: auto;
+    /* Push to right if in flex container */
     transition: all 0.2s;
 }
 
 .maximize-btn:hover {
-    background: rgba(255,255,255,0.1);
+    background: rgba(255, 255, 255, 0.1);
     color: var(--color-text);
-    border-color: rgba(255,255,255,0.4);
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+/* Loading Spinner */
+.spinner {
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+    border-bottom-color: var(--color-primary);
+    border-radius: 50%;
+    display: inline-block;
+    box-sizing: border-box;
+    animation: rotation 1s linear infinite;
+    vertical-align: middle;
+}
+
+@keyframes rotation {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 20px;
+    color: var(--color-text-muted);
+    font-size: 0.9rem;
 }

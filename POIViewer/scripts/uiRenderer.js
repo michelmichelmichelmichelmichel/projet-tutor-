@@ -125,7 +125,7 @@ export class UiRenderer {
                     return;
                 }
 
-                resultsContainer.innerHTML = '<span class="loading-text" style="color:var(--color-text-muted); font-size:0.9rem;">Recherche...</span>';
+                resultsContainer.innerHTML = '<div class="loading-container"><span class="spinner"></span><span>Recherche...</span></div>';
 
                 try {
                     const results = await this.apiService.searchCommunes(query);
@@ -164,7 +164,7 @@ export class UiRenderer {
         if (!container) return;
 
         // Show loading state
-        container.innerHTML = '<span class="loading-text" style="color:var(--color-text-muted); font-size:0.9rem;">Chargement...</span>';
+        container.innerHTML = '<div class="loading-container"><span class="spinner"></span><span>Chargement...</span></div>';
 
         let items = [];
         if (this.apiService) {
@@ -441,8 +441,8 @@ export class UiRenderer {
 
     showLoading(isLoading) {
         if (isLoading) {
-            this.macroStats.innerHTML = '<div class="stat-item"><span class="stat-value">...</span><span class="stat-label">Chargement</span></div>';
-            this.poiList.innerHTML = '<p class="empty-state">Chargement des données...</p>';
+            this.macroStats.innerHTML = '<div class="stat-item"><div class="loading-container"><span class="spinner"></span><span>Chargement</span></div></div>';
+            this.poiList.innerHTML = '<div class="loading-container"><span class="spinner"></span><span>Chargement des données...</span></div>';
         }
     }
 
