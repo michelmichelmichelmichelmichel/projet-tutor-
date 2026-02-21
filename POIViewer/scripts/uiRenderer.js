@@ -19,8 +19,10 @@ export class UiRenderer {
         this.poiSearchInput = document.getElementById('poi-search-input');
         this.subCategoryContainer = document.getElementById('sub-category-filter-container');
         this.selectedSubCategory = null;
+        this.excludedSubCategories = new Set();
 
         this.onFilterChange = null;
+        this.onSubCategoryFilterChange = null;
         this.onPoiSelected = null;
 
         this.categories = [
@@ -276,8 +278,26 @@ export class UiRenderer {
 
         if (this.macroFiltersContent && this.toggleFiltersBtn) {
             this.categories.forEach(cat => {
-                const div = document.createElement('div');
-                div.style.marginBottom = '6px';
+                const wrapper = document.createElement('div');
+                wrapper.style.marginBottom = '6px';
+                wrapper.dataset.catId = cat.id;
+
+                const headerRow = document.createElement('div');
+                headerRow.style.display = 'flex';
+                headerRow.style.alignItems = 'center';
+                headerRow.style.gap = '4px';
+
+                // Expand arrow
+                const arrow = document.createElement('span');
+                arrow.textContent = '▸';
+                arrow.style.cursor = 'pointer';
+                arrow.style.fontSize = '0.8rem';
+                arrow.style.color = 'var(--color-text-muted)';
+                arrow.style.width = '12px';
+                arrow.style.userSelect = 'none';
+                arrow.style.transition = 'transform 0.2s';
+                arrow.className = 'sub-cat-arrow';
+
                 const label = document.createElement('label');
                 label.style.display = 'flex';
                 label.style.alignItems = 'center';
@@ -285,6 +305,7 @@ export class UiRenderer {
                 label.style.fontSize = '0.9rem';
                 label.style.cursor = 'pointer';
                 label.style.color = 'var(--color-text)';
+                label.style.flex = '1';
 
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
@@ -293,13 +314,47 @@ export class UiRenderer {
                 checkbox.style.accentColor = 'var(--color-primary)';
                 checkbox.addEventListener('change', () => {
                     this.updateFilterButtonText();
+                    // When unchecking a parent, also exclude all sub-cats visually
+                    const subContainer = wrapper.querySelector('.sub-cat-list');
+                    if (subContainer) {
+                        subContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                            cb.checked = checkbox.checked;
+                            if (!checkbox.checked) {
+                                this.excludedSubCategories.add(cb.value);
+                            } else {
+                                this.excludedSubCategories.delete(cb.value);
+                            }
+                        });
+                    }
                     if (this.onFilterChange) this.onFilterChange();
                 });
 
                 label.appendChild(checkbox);
                 label.appendChild(document.createTextNode(`${this.getCategoryEmoji(cat.id)} ${cat.label}`));
-                div.appendChild(label);
-                this.macroFiltersContent.appendChild(div);
+
+                // Sub-category container (initially hidden and empty)
+                const subContainer = document.createElement('div');
+                subContainer.className = 'sub-cat-list';
+                subContainer.dataset.catId = cat.id;
+                subContainer.style.display = 'none';
+                subContainer.style.marginLeft = '28px';
+                subContainer.style.marginTop = '4px';
+                subContainer.style.paddingLeft = '8px';
+                subContainer.style.borderLeft = '2px solid rgba(255,255,255,0.15)';
+
+                arrow.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isHidden = subContainer.style.display === 'none';
+                    subContainer.style.display = isHidden ? 'block' : 'none';
+                    arrow.textContent = isHidden ? '▾' : '▸';
+                    arrow.style.transform = isHidden ? 'none' : 'none';
+                });
+
+                headerRow.appendChild(arrow);
+                headerRow.appendChild(label);
+                wrapper.appendChild(headerRow);
+                wrapper.appendChild(subContainer);
+                this.macroFiltersContent.appendChild(wrapper);
             });
 
             this.toggleFiltersBtn.addEventListener('click', () => {
@@ -422,16 +477,124 @@ export class UiRenderer {
 
     updateFilterButtonText() {
         if (!this.macroFiltersContent) return;
-        const checkedCount = this.macroFiltersContent.querySelectorAll('input:checked').length;
+        // Count only main category checkboxes (not sub-cat ones)
+        const mainCheckboxes = this.macroFiltersContent.querySelectorAll(':scope > div > div > label > input[type="checkbox"]');
+        const checkedCount = Array.from(mainCheckboxes).filter(cb => cb.checked).length;
         const total = this.categories.length;
         this.toggleFiltersBtn.textContent = `🛠️ Choisir les catégories (${checkedCount}/${total})`;
     }
 
     getSelectedCategories() {
         if (!this.macroFiltersContent) return [];
-        const checkboxes = this.macroFiltersContent.querySelectorAll('input[type="checkbox"]:checked');
-        if (checkboxes.length === 0) return ['none'];
-        return Array.from(checkboxes).map(cb => cb.value);
+        // Only main category checkboxes (direct children of wrapper > headerRow > label)
+        const mainCheckboxes = this.macroFiltersContent.querySelectorAll(':scope > div > div > label > input[type="checkbox"]');
+        const checked = Array.from(mainCheckboxes).filter(cb => cb.checked);
+        if (checked.length === 0) return ['none'];
+        return checked.map(cb => cb.value);
+    }
+
+    populateSubCategoryCheckboxes(pois) {
+        if (!this.macroFiltersContent) return;
+
+        // Reset excluded sub-categories
+        this.excludedSubCategories.clear();
+
+        // Count types per category
+        const typesByCategory = {};
+        pois.forEach(p => {
+            if (!typesByCategory[p.category]) typesByCategory[p.category] = {};
+            if (!typesByCategory[p.category][p.type]) typesByCategory[p.category][p.type] = 0;
+            typesByCategory[p.category][p.type]++;
+        });
+
+        // Populate each sub-category container
+        const subContainers = this.macroFiltersContent.querySelectorAll('.sub-cat-list');
+        subContainers.forEach(container => {
+            const catId = container.dataset.catId;
+            container.innerHTML = '';
+
+            const types = typesByCategory[catId];
+            if (!types || Object.keys(types).length === 0) {
+                container.innerHTML = '<span style="font-size: 0.75rem; color: var(--color-text-muted); opacity: 0.6;">Aucun POI</span>';
+                return;
+            }
+
+            // Sort by count descending
+            const sortedTypes = Object.entries(types)
+                .sort((a, b) => b[1] - a[1]);
+
+            // "Tout" toggle button
+            const allDiv = document.createElement('div');
+            allDiv.style.marginBottom = '4px';
+            const allLabel = document.createElement('label');
+            allLabel.style.display = 'flex';
+            allLabel.style.alignItems = 'center';
+            allLabel.style.gap = '6px';
+            allLabel.style.fontSize = '0.8rem';
+            allLabel.style.cursor = 'pointer';
+            allLabel.style.color = 'var(--color-text-muted)';
+            allLabel.style.fontStyle = 'italic';
+
+            const allCb = document.createElement('input');
+            allCb.type = 'checkbox';
+            allCb.checked = true;
+            allCb.style.accentColor = 'var(--color-primary)';
+            allCb.addEventListener('change', () => {
+                const subCbs = container.querySelectorAll('input[type="checkbox"].sub-cat-cb');
+                subCbs.forEach(cb => {
+                    cb.checked = allCb.checked;
+                    if (!allCb.checked) {
+                        this.excludedSubCategories.add(cb.value);
+                    } else {
+                        this.excludedSubCategories.delete(cb.value);
+                    }
+                });
+                if (this.onSubCategoryFilterChange) this.onSubCategoryFilterChange();
+            });
+
+            allLabel.appendChild(allCb);
+            allLabel.appendChild(document.createTextNode('Tout'));
+            allDiv.appendChild(allLabel);
+            container.appendChild(allDiv);
+
+            sortedTypes.forEach(([typeName, count]) => {
+                const div = document.createElement('div');
+                div.style.marginBottom = '2px';
+
+                const label = document.createElement('label');
+                label.style.display = 'flex';
+                label.style.alignItems = 'center';
+                label.style.gap = '6px';
+                label.style.fontSize = '0.8rem';
+                label.style.cursor = 'pointer';
+                label.style.color = 'var(--color-text)';
+
+                const cb = document.createElement('input');
+                cb.type = 'checkbox';
+                cb.className = 'sub-cat-cb';
+                cb.value = typeName;
+                cb.checked = true;
+                cb.style.accentColor = 'var(--color-primary)';
+                cb.addEventListener('change', () => {
+                    if (!cb.checked) {
+                        this.excludedSubCategories.add(typeName);
+                    } else {
+                        this.excludedSubCategories.delete(typeName);
+                    }
+                    if (this.onSubCategoryFilterChange) this.onSubCategoryFilterChange();
+                });
+
+                const translated = this.translateType(typeName);
+                label.appendChild(cb);
+                label.appendChild(document.createTextNode(`${translated} (${count})`));
+                div.appendChild(label);
+                container.appendChild(div);
+            });
+        });
+    }
+
+    getExcludedSubCategories() {
+        return this.excludedSubCategories;
     }
 
     toggleMicroSidebar(show) {

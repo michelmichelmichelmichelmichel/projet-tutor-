@@ -38,6 +38,16 @@ class App {
             }
         };
 
+        // Bind Sub-Category Filter Change (Client-side only, no API refetch)
+        this.uiRenderer.onSubCategoryFilterChange = () => {
+            if (this.currentPOIs && this.currentPOIs.length > 0) {
+                const filtered = this.getFilteredPOIs();
+                this.uiRenderer.renderMacroStats(filtered);
+                this.uiRenderer.renderMicroList(filtered);
+                this.addMarkersToMap(filtered);
+            }
+        };
+
         // Bind POI Selection (List Click)
         this.uiRenderer.onPoiSelected = (poi) => {
             this.mapManager.zoomToLocation(poi.lat, poi.lng);
@@ -113,17 +123,23 @@ class App {
                 // Render Networks
                 this.renderNetworks(networks);
 
+                // Populate sub-category checkboxes from loaded POIs
+                this.uiRenderer.populateSubCategoryCheckboxes(this.currentPOIs);
+
+                // Get filtered POIs (respecting sub-category exclusions)
+                const filteredPOIs = this.getFilteredPOIs();
+
                 // Update UI (Macro Stats)
-                this.uiRenderer.renderMacroStats(this.currentPOIs);
+                this.uiRenderer.renderMacroStats(filteredPOIs);
 
                 // Update UI (Micro List)
-                this.uiRenderer.renderMicroList(this.currentPOIs);
+                this.uiRenderer.renderMicroList(filteredPOIs);
 
                 // Add Markers to Map (Micro support)
-                this.addMarkersToMap(this.currentPOIs);
+                this.addMarkersToMap(filteredPOIs);
 
                 // Show Sidebar
-                if (this.currentPOIs.length > 0) {
+                if (filteredPOIs.length > 0) {
                     this.uiRenderer.toggleMicroSidebar(true);
                 } else {
                     this.uiRenderer.toggleMicroSidebar(true);
@@ -136,6 +152,12 @@ class App {
                 this.uiRenderer.showLoading(false);
             }
         }
+    }
+
+    getFilteredPOIs() {
+        const excluded = this.uiRenderer.getExcludedSubCategories();
+        if (excluded.size === 0) return this.currentPOIs;
+        return this.currentPOIs.filter(p => !excluded.has(p.type));
     }
 
     renderNetworks(networks) {
