@@ -21,6 +21,11 @@
     --z-overlay: 1000;
 }
 
+/* Utility: hide any element */
+.hidden {
+    display: none !important;
+}
+
 * {
     margin: 0;
     padding: 0;

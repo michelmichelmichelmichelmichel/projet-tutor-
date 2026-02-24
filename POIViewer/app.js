@@ -20,8 +20,14 @@ class App {
 
         // Bind Drawing Event
         this.mapManager.onPolygonCreated = async (layer) => {
+            this.uiRenderer.closeSettings(); // Ferme le panneau dès qu'une zone est validée
             this.handleAreaSelection(layer);
         };
+
+        // Fermer le panneau dès que l'utilisateur commence à dessiner
+        this.mapManager.map.on('draw:drawstart', () => {
+            this.uiRenderer.closeSettings();
+        });
 
         // Bind Filter Change
         this.uiRenderer.onFilterChange = () => {

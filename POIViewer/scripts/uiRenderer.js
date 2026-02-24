@@ -232,6 +232,43 @@ export class UiRenderer {
         setupMinimize('minimize-macro-btn', 'macro-overlay');
         setupMinimize('minimize-presets-btn', 'presets-panel');
 
+        // --- APPEARANCE SETTINGS PANEL (floating) ---
+        const settingsBtn = document.getElementById('settings-toggle-btn');
+        const settingsPanel = document.getElementById('appearance-settings-panel');
+        const closeSettingsBtn = document.getElementById('close-settings');
+
+        if (settingsBtn && settingsPanel) {
+            settingsBtn.addEventListener('click', () => {
+                const isOpening = settingsPanel.classList.contains('hidden');
+                settingsPanel.classList.toggle('hidden');
+
+                // Feedback visuel actif sur le bouton (Point 2)
+                if (isOpening) {
+                    settingsBtn.style.background = 'var(--color-primary)';
+                    settingsBtn.style.color = 'white';
+                    settingsBtn.style.borderColor = 'var(--color-primary)';
+                } else {
+                    settingsBtn.style.background = '';
+                    settingsBtn.style.color = '';
+                    settingsBtn.style.borderColor = '';
+                }
+            });
+
+            // Fermeture au clic extérieur (Point 1)
+            document.addEventListener('click', (e) => {
+                if (!settingsPanel.classList.contains('hidden') &&
+                    !settingsPanel.contains(e.target) &&
+                    !settingsBtn.contains(e.target)) {
+                    this.closeSettings();
+                }
+            });
+        }
+        if (closeSettingsBtn && settingsPanel) {
+            closeSettingsBtn.addEventListener('click', () => {
+                this.closeSettings();
+            });
+        }
+
         // --- INIT FULL SCREEN OVERLAY ---
         this._initFullScreenOverlay();
 
@@ -455,6 +492,18 @@ export class UiRenderer {
                 pathFiltersContent.style.display = isHidden ? 'block' : 'none';
             });
             this.updatePathFilterButtonText();
+        }
+    }
+
+    // Ferme le panneau d'apparence et réinitialise le style du bouton
+    closeSettings() {
+        const settingsBtn = document.getElementById('settings-toggle-btn');
+        const settingsPanel = document.getElementById('appearance-settings-panel');
+        if (settingsPanel) settingsPanel.classList.add('hidden');
+        if (settingsBtn) {
+            settingsBtn.style.background = '';
+            settingsBtn.style.color = '';
+            settingsBtn.style.borderColor = '';
         }
     }
 

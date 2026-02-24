@@ -28,6 +28,36 @@
         <!-- Map Container -->
         <div id="map"></div>
 
+        <!-- ⚙️ Floating Appearance Button + Panel -->
+        <button id="settings-toggle-btn" class="glass-btn icon-btn"
+            style="position: absolute; top: 20px; left: 420px; z-index: 1001; width: 45px; height: 45px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; transition: all 0.3s ease;">⚙️</button>
+
+        <div id="appearance-settings-panel" class="glass-panel hidden"
+            style="position: absolute; top: 75px; left: 420px; width: 280px; padding: 20px; z-index: 1001; transition: all 0.3s ease;">
+            <h3
+                style="font-size: 0.9rem; margin-bottom: 12px; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
+                🎨 Apparence
+                <span id="close-settings" style="cursor:pointer; opacity: 0.6; font-size: 1.2rem;">✕</span>
+            </h3>
+
+            <div class="filter-section">
+                <label
+                    style="color: #fff; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+                    <span>Épaisseur des tracés</span>
+                    <span id="path-weight-value" style="color: var(--color-primary); font-weight: bold;">100%</span>
+                </label>
+                <input type="range" id="path-weight-slider" min="50" max="300" value="100" step="10"
+                    style="width: 100%; margin-top: 8px; cursor: pointer; accent-color: var(--color-primary);">
+            </div>
+
+            <div class="filter-section"
+                style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between;">
+                <label style="color: #fff; font-size: 0.85rem;">Couleur de la zone</label>
+                <input type="color" id="polygon-color-picker" value="#3388ff"
+                    style="cursor: pointer; border: none; width: 40px; height: 25px; padding: 0; background: none; border-radius: 4px;">
+            </div>
+        </div>
+
         <!-- Macro View Overlay (Statistics & Instructions) -->
         <div id="macro-overlay" class="glass-panel visible">
             <header style="display: flex; justify-content: space-between; align-items: start;">
@@ -64,23 +94,6 @@
                     </div>
                 </div>
 
-                <div class="filter-section" style="margin-top: 10px;">
-                    <label
-                        style="color: #fff; font-size: 0.9rem; display: flex; align-items: center; justify-content: space-between;">
-                        <span>Épaisseur des tracés</span>
-                        <span id="path-weight-value">100%</span>
-                    </label>
-                    <input type="range" id="path-weight-slider" min="50" max="300" value="100" step="10"
-                        style="width: 100%; margin-top: 5px;">
-                </div>
-
-                <div class="filter-section"
-                    style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between;">
-                    <label style="color: #fff; font-size: 0.9rem;">Couleur du tracé de zone</label>
-                    <input type="color" id="polygon-color-picker" value="#3388ff"
-                        style="cursor: pointer; border: none; width: 30px; height: 30px; padding: 0; background: none;">
-                </div>
-
                 <div id="macro-stats" class="stats-grid">
                     <!-- Stats will be injected here -->
                     <div class="stat-item empty">
@@ -88,6 +101,7 @@
                         <span class="stat-label">Points d'Intérêt</span>
                     </div>
                 </div>
+
             </div>
         </div>
 
