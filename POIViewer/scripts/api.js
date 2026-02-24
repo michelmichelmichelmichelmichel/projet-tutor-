@@ -97,56 +97,86 @@ export class ApiService {
         }
     }
 
+    // Calcule la distance en mètres entre deux points (Formule de Haversine)
+    calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371e3; // Rayon de la terre en mètres
+        const φ1 = lat1 * Math.PI / 180;
+        const φ2 = lat2 * Math.PI / 180;
+        const Δφ = (lat2 - lat1) * Math.PI / 180;
+        const Δλ = (lon2 - lon1) * Math.PI / 180;
+
+        const a = Math.sin(Δφ / 2) * Math.sin(Δφ / 2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ / 2) * Math.sin(Δλ / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+    }
+
     processData(elements, selectedCategories = []) {
         const pois = [];
         const networks = [];
 
+        // Dictionnaire de dédoublonnage géographique
+        // Structure : { "nom_catégorie": [{lat, lng}, ...], ... }
+        const seenPois = {};
+
         elements.forEach(el => {
             if (el.type === 'node' && el.tags) {
                 const info = this.detectCategoryAndType(el.tags);
-
-                // Filter by Category if specific categories were requested
                 const isSelected = selectedCategories.length === 0 || selectedCategories.includes(info.category);
 
                 if (info.category !== 'unknown' && isSelected) {
-                    pois.push({
-                        id: el.id,
-                        lat: el.lat,
-                        lng: el.lon,
-                        name: el.tags.name || info.type.replace(/_/g, ' ') || "Lieu sans nom",
-                        category: info.category,
-                        type: info.type,
-                        tags: el.tags
-                    });
+                    const poiName = el.tags.name || info.type.replace(/_/g, ' ') || "Lieu sans nom";
+                    // Clé unique = nom (minuscule) + catégorie
+                    // Évite de comparer une boulangerie et une pharmacie homonymes
+                    const uniqueKey = `${poiName.toLowerCase()}_${info.category}`;
+
+                    // Logique de dédoublonnage géographique (seuil : 500 m)
+                    let isTooClose = false;
+                    if (seenPois[uniqueKey]) {
+                        isTooClose = seenPois[uniqueKey].some(existingLoc => {
+                            const dist = this.calculateDistance(el.lat, el.lon, existingLoc.lat, existingLoc.lng);
+                            return dist < 500;
+                        });
+                    }
+
+                    if (!isTooClose) {
+                        if (!seenPois[uniqueKey]) seenPois[uniqueKey] = [];
+                        seenPois[uniqueKey].push({ lat: el.lat, lng: el.lon });
+
+                        pois.push({
+                            id: el.id,
+                            lat: el.lat,
+                            lng: el.lon,
+                            name: poiName,
+                            category: info.category,
+                            type: info.type,
+                            tags: el.tags
+                        });
+                    }
                 }
             } else if (el.type === 'way' && el.tags && el.geometry) {
                 networks.push({
                     id: el.id,
                     type: el.tags.highway || el.tags.railway || el.tags.aerialway || el.tags['piste:type'] || 'unknown',
-                    tags: el.tags, // Pass all tags for styling (sac_scale, etc.)
-                    geometry: el.geometry // Array of {lat, lon}
+                    tags: el.tags,
+                    geometry: el.geometry
                 });
             } else if (el.type === 'relation' && el.tags && el.members) {
-                // For relations, we need geometry. Overpass 'out geom' on relation returns geometry in members
-                // We'll treat relation segments as networks or specialized
-                // Extract geometry from members that are ways
-                const relationGeometry = [];
                 el.members.forEach(m => {
                     if (m.type === 'way' && m.geometry) {
-                        // Push each way segment as a separate network item, or combine?
-                        // Easiest is to push them as separate items but with relation tags
                         networks.push({
-                            id: m.ref || el.id + '_' + Math.random(), // Unique ID
+                            id: m.ref || el.id + '_' + Math.random(),
                             type: 'relation',
                             relationName: el.tags.name,
-                            relationRef: el.tags.ref, // e.g. "GR 10"
+                            relationRef: el.tags.ref,
                             relationRoute: el.tags.route,
                             tags: el.tags,
                             geometry: m.geometry
                         });
                     }
                 });
-                console.log(networks);
             }
         });
 
