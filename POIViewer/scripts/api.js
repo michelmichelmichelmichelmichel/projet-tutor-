@@ -127,6 +127,10 @@ export class ApiService {
                 const isSelected = selectedCategories.length === 0 || selectedCategories.includes(info.category);
 
                 if (info.category !== 'unknown' && isSelected) {
+                    // FILTRE : On ignore les entités administratives (villes, villages...)
+                    // dans la liste des POIs car ce ne sont pas des points d'intérêt.
+                    if (info.category === 'place') return;
+
                     const poiName = el.tags.name || info.type.replace(/_/g, ' ') || "Lieu sans nom";
                     // Clé unique = nom (minuscule) + catégorie
                     // Évite de comparer une boulangerie et une pharmacie homonymes
