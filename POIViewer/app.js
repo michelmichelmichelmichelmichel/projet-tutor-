@@ -11,6 +11,7 @@ class App {
         this.currentPOIs = [];
         this.currentNetworks = [];
         this.pathWeight = 1;
+        this.activeZone = null; // Contexte de la zone administrative active
     }
 
     init() {
@@ -62,9 +63,11 @@ class App {
         this.mapManager.onPolygonCleared = () => {
             this.currentPOIs = [];
             this.currentLayer = null;
+            this.activeZone = null;
             this.uiRenderer.clear();
             if (this.mapManager.networkGroup) this.mapManager.networkGroup.clearLayers();
             if (this.mapManager.markerGroup) this.mapManager.markerGroup.clearLayers();
+            this.mapManager.clearNeighborZones();
             this.currentNetworks = [];
         };
 
@@ -85,25 +88,40 @@ class App {
             this.uiRenderer.showLoading(true);
             let layer = null;
 
-            if (park.relationId) {
-                // Try fetching precise boundary
-                const geoJson = await this.apiService.fetchParkBoundary(park.relationId);
-                if (geoJson) {
-                    layer = this.mapManager.drawBoundary(geoJson);
-                }
-            } else if (park.geometry) {
-                // City geometry from GeoAPI (Polygon)
+            // Déterminer le type de zone et sauvegarder le contexte
+            if (park.geometry) {
+                // Commune (via GéoAPI)
+                this.activeZone = {
+                    type: 'commune',
+                    code: park.code,
+                    codeDepartement: park.codeDepartement || (park.code ? park.code.substring(0, 2) : null),
+                    name: park.name
+                };
                 layer = this.mapManager.drawBoundary(park.geometry);
+            } else if (park.relationId) {
+                // Parc national/régional (pas de voisins administratifs)
+                this.activeZone = null;
+                const geoJson = await this.apiService.fetchParkBoundary(park.relationId);
+                if (geoJson) layer = this.mapManager.drawBoundary(geoJson);
+            } else if (park.adminType === 'dept') {
+                this.activeZone = { type: 'dept', code: park.ref || park.code, name: park.name };
+                layer = park.bounds ? this.mapManager.drawRectangle(park.bounds) : null;
+            } else if (park.adminType === 'region') {
+                this.activeZone = { type: 'region', code: park.ref || park.code, name: park.name };
+                layer = park.bounds ? this.mapManager.drawRectangle(park.bounds) : null;
+            } else {
+                this.activeZone = null;
             }
 
-            // Fallback to bounds if fetch failed or no ID
+            // Fallback to bounds
             if (!layer && park.bounds) {
-                console.log("Fallback to bounding box for", park.name);
                 layer = this.mapManager.drawRectangle(park.bounds);
             }
 
             if (layer) {
-                this.handleAreaSelection(layer);
+                await this.handleAreaSelection(layer);
+                // Charger les voisins après le chargement des POIs
+                this.loadNeighbors();
             } else {
                 this.uiRenderer.showLoading(false);
             }
@@ -389,6 +407,54 @@ class App {
                 return { color: '#64748b', weight: scale(0.5), opacity: 0.5 };
         }
     }
+    /**
+     * Charge et affiche les zones voisines selon le type de zone active.
+     * Ne fait rien si aucune zone administrative n'est active.
+     */
+    async loadNeighbors() {
+        if (!this.activeZone) return;
+
+        const mapBounds = this.mapManager.map.getBounds();
+        const screenBounds = {
+            minLat: mapBounds.getSouth(),
+            maxLat: mapBounds.getNorth(),
+            minLng: mapBounds.getWest(),
+            maxLng: mapBounds.getEast()
+        };
+
+        try {
+            let neighbors = [];
+            const { type, code, codeDepartement } = this.activeZone;
+
+            if (type === 'commune') {
+                const deptCode = codeDepartement || (code ? code.substring(0, 2) : null);
+                if (deptCode) {
+                    neighbors = await this.apiService.fetchNeighborCommunes(deptCode, screenBounds, code);
+                }
+            } else if (type === 'dept') {
+                neighbors = await this.apiService.fetchNeighborDepts(screenBounds, code);
+            } else if (type === 'region') {
+                neighbors = await this.apiService.fetchNeighborRegions(screenBounds, code);
+            }
+
+            if (neighbors.length === 0) return;
+
+            this.mapManager.drawNeighborZones(neighbors, (neighbor) => {
+                // Clic sur un voisin → charger comme un nouveau preset
+                const neighborAsPreset = {
+                    name: neighbor.name,
+                    code: neighbor.code,
+                    codeDepartement: neighbor.codeDepartement,
+                    geometry: neighbor.geometry,
+                    adminType: neighbor.type === 'commune' ? undefined : neighbor.type
+                };
+                this.uiRenderer.onPresetSelected(neighborAsPreset);
+            });
+        } catch (err) {
+            console.warn('Erreur chargement voisins:', err);
+        }
+    }
+
     addMarkersToMap(pois) {
         // Remove existing markers if any (need to track them)
         // For this simple version, we'll let MapManager handle a marker layer if we want

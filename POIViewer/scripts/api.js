@@ -455,7 +455,7 @@ export class ApiService {
         if (!query || query.length < 3) return [];
 
         // Utilisation de l'API GéoGouv au format GeoJSON pour avoir le contour précis
-        const url = `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(query)}&format=geojson&geometry=contour&boost=population&limit=10`;
+        const url = `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(query)}&fields=nom,code,codeDepartement,codesPostaux&format=geojson&geometry=contour&boost=population&limit=10`;
 
         try {
             const response = await fetch(url);
@@ -507,6 +507,7 @@ export class ApiService {
                     fullName: `${props.nom} (${props.codesPostaux ? props.codesPostaux[0] : props.code})`,
                     type: 'city',
                     code: props.code,
+                    codeDepartement: props.codeDepartement || null,
                     geometry: geometry, // GeoJSON Geometry Object (Polygon/MultiPolygon)
                     bounds: [[minLat, minLon], [maxLat, maxLon]],
                     lat: (minLat + maxLat) / 2, // Centroid approx
@@ -561,5 +562,93 @@ export class ApiService {
             console.warn("Wikidata fetch error:", error);
             return null;
         }
+    }
+
+    // ---- VOISINS ----
+
+    /**
+     * Récupère les communes du même département et retourne celles qui
+     * intersectent la vue écran.
+     * @param {string} deptCode  Code département (ex: "64")
+     * @param {object} screenBounds  { minLat, minLng, maxLat, maxLng }
+     * @param {string} excludeCode  Code INSEE de la commune active à exclure
+     */
+    async fetchNeighborCommunes(deptCode, screenBounds, excludeCode = null) {
+        const url = `https://geo.api.gouv.fr/departements/${deptCode}/communes?fields=nom,code,codeDepartement&format=geojson&geometry=contour`;
+        return this._fetchAndFilterNeighbors(url, screenBounds, excludeCode, 'commune');
+    }
+
+    /**
+     * Récupère tous les départements et retourne ceux qui intersectent la vue écran.
+     * @param {object} screenBounds  { minLat, minLng, maxLat, maxLng }
+     * @param {string} excludeCode  Code du département actif à exclure
+     */
+    async fetchNeighborDepts(screenBounds, excludeCode = null) {
+        const url = `https://geo.api.gouv.fr/departements?fields=nom,code&format=geojson&geometry=contour`;
+        return this._fetchAndFilterNeighbors(url, screenBounds, excludeCode, 'dept');
+    }
+
+    /**
+     * Récupère toutes les régions et retourne celles qui intersectent la vue écran.
+     * @param {object} screenBounds  { minLat, minLng, maxLat, maxLng }
+     * @param {string} excludeCode  Code de la région active à exclure
+     */
+    async fetchNeighborRegions(screenBounds, excludeCode = null) {
+        const url = `https://geo.api.gouv.fr/regions?fields=nom,code&format=geojson&geometry=contour`;
+        return this._fetchAndFilterNeighbors(url, screenBounds, excludeCode, 'region');
+    }
+
+    /** Fetch un FeatureCollection GéoGouv et filtre par bbox écran. */
+    async _fetchAndFilterNeighbors(url, screenBounds, excludeCode, type) {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error(`GéoGouv error: ${response.status}`);
+            const data = await response.json();
+            if (!data.features) return [];
+
+            return data.features
+                .filter(feature => {
+                    const props = feature.properties;
+                    if (excludeCode && props.code === excludeCode) return false;
+
+                    const coords = this._extractAllCoords(feature.geometry);
+                    if (coords.length === 0) return false;
+
+                    let minLat = Infinity, maxLat = -Infinity;
+                    let minLng = Infinity, maxLng = -Infinity;
+                    coords.forEach(([lng, lat]) => {
+                        if (lat < minLat) minLat = lat;
+                        if (lat > maxLat) maxLat = lat;
+                        if (lng < minLng) minLng = lng;
+                        if (lng > maxLng) maxLng = lng;
+                    });
+
+                    // Test d'intersection de bbox
+                    return !(maxLat < screenBounds.minLat ||
+                        minLat > screenBounds.maxLat ||
+                        maxLng < screenBounds.minLng ||
+                        minLng > screenBounds.maxLng);
+                })
+                .map(feature => ({
+                    name: feature.properties.nom,
+                    code: feature.properties.code,
+                    codeDepartement: feature.properties.codeDepartement || null,
+                    type: type,
+                    geometry: feature.geometry
+                }));
+        } catch (error) {
+            console.error('Erreur fetchNeighbors:', error);
+            return [];
+        }
+    }
+
+    /** Extrait tous les points [lng, lat] d'une géométrie GeoJSON. */
+    _extractAllCoords(geometry) {
+        if (!geometry) return [];
+        const flatten = (arr) => {
+            if (!Array.isArray(arr[0])) return [arr]; // Point [lng, lat]
+            return arr.reduce((acc, val) => acc.concat(flatten(val)), []);
+        };
+        return flatten(geometry.coordinates);
     }
 }

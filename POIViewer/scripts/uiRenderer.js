@@ -175,6 +175,11 @@ export class UiRenderer {
             console.warn(`ApiService not available for ${containerId}`);
         }
 
+        // Déduire le type administratif selon le conteneur pour les voisins
+        const adminType = containerId === 'departments-list' ? 'dept'
+            : containerId === 'regions-list' ? 'region'
+                : null;
+
         container.innerHTML = '';
         if (items.length === 0) {
             container.innerHTML = '<span class="loading-text" style="color:var(--color-text-muted); font-size:0.9rem;">Aucun élément trouvé (ou erreur).</span>';
@@ -184,7 +189,11 @@ export class UiRenderer {
                 btn.className = 'preset-btn';
                 btn.textContent = item.name;
                 btn.addEventListener('click', () => {
-                    if (this.onPresetSelected) this.onPresetSelected(item);
+                    // Enrichir avec adminType et code pour la détection des voisins
+                    const enrichedItem = adminType
+                        ? { ...item, adminType, code: item.ref || item.code }
+                        : item;
+                    if (this.onPresetSelected) this.onPresetSelected(enrichedItem);
                     this.minimizePresetsPanel();
                 });
                 container.appendChild(btn);

@@ -240,4 +240,54 @@ export class MapManager {
             }
         });
     }
+
+    /**
+     * Affiche les zones voisines en gris sur la carte.
+     * @param {Array} neighbors  [{ name, code, type, geometry }]
+     * @param {Function} onClickCallback  Appelé avec le voisin cliqué
+     */
+    drawNeighborZones(neighbors, onClickCallback) {
+        if (!this.neighborGroup) {
+            this.neighborGroup = L.layerGroup().addTo(this.map);
+        }
+        this.neighborGroup.clearLayers();
+
+        neighbors.forEach(neighbor => {
+            const layer = L.geoJSON(neighbor.geometry, {
+                style: {
+                    color: '#94a3b8',
+                    weight: 1.5,
+                    fillColor: '#64748b',
+                    fillOpacity: 0.12,
+                    dashArray: '4, 4'
+                }
+            });
+
+            layer.bindTooltip(`<b>${neighbor.name}</b><br><span style="font-size:0.8em;opacity:0.7">Cliquer pour explorer</span>`, {
+                sticky: true,
+                direction: 'top'
+            });
+
+            layer.on('click', () => {
+                if (onClickCallback) onClickCallback(neighbor);
+            });
+
+            layer.on('mouseover', () => {
+                layer.setStyle({ fillOpacity: 0.3, color: '#cbd5e1' });
+            });
+
+            layer.on('mouseout', () => {
+                layer.setStyle({ fillOpacity: 0.12, color: '#94a3b8' });
+            });
+
+            this.neighborGroup.addLayer(layer);
+        });
+    }
+
+    /** Supprime tous les polygones voisins de la carte. */
+    clearNeighborZones() {
+        if (this.neighborGroup) {
+            this.neighborGroup.clearLayers();
+        }
+    }
 }
