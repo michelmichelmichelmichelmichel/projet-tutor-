@@ -288,7 +288,7 @@ class App {
 
     getNetworkStyle(type, tags = {}, relationRef = null, relationRoute = null) {
         // Priority: Relation (GR10/HRP) > Difficulty (sac_scale) > Highway Type
-        const scale = (w) => w * (this.pathWeight || 1);
+        const scale = (w) => w * (this.pathWeight ?? 1);
 
         // 1. Relations (HRP, GR10, etc.)
         if (type === 'relation' || (relationRef && (relationRef.includes('GR') || relationRef.includes('HRP')))) {
