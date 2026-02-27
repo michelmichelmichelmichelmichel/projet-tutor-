@@ -375,8 +375,20 @@ export class UiRenderer {
                     if (this.onFilterChange) this.onFilterChange();
                 });
 
+                // Color dot matching the POI marker color
+                const colorDot = document.createElement('span');
+                const catColor = this.getCategoryColor(cat.id);
+                colorDot.style.display = 'inline-block';
+                colorDot.style.width = '12px';
+                colorDot.style.height = '12px';
+                colorDot.style.borderRadius = '50%';
+                colorDot.style.background = catColor;
+                colorDot.style.boxShadow = `0 0 4px ${catColor}88`;
+                colorDot.style.flexShrink = '0';
+
                 label.appendChild(checkbox);
-                label.appendChild(document.createTextNode(`${this.getCategoryEmoji(cat.id)} ${cat.label}`));
+                label.appendChild(colorDot);
+                label.appendChild(document.createTextNode(` ${cat.label}`));
 
                 // Sub-category container (initially hidden and empty)
                 const subContainer = document.createElement('div');
