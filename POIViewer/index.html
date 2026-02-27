@@ -71,25 +71,27 @@
                 <p>📍 <strong>Mode Macro :</strong> Utilisez l'outil de dessin <span class="icon-draw">⬠</span> pour
                     sélectionner une zone.</p>
 
-                <div class="filter-section" style="margin-top: 15px;">
-                    <button id="toggle-filters-btn" class="glass-btn"
-                        style="width: 100%; text-align: left; font-size: 0.9rem; padding: 8px;">🛠️ Choisir les
-                        catégories POIs (Tout)</button>
-                    <div id="macro-filters-content"
-                        style="display: none; margin-top: 10px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                        <button id="deselect-all-btn" class="glass-btn small"
-                            style="width: 100%; margin-bottom: 8px; font-size: 0.8rem;">Tout cocher/décocher</button>
+                <div class="filter-card" style="margin-top: 15px;">
+                    <button id="toggle-filters-btn" class="filter-toggle-btn">
+                        <span class="btn-label">🛠️ Catégories POIs</span>
+                        <span class="filter-badge badge--all" id="filter-badge-categories">--/--</span>
+                        <span class="btn-chevron">▾</span>
+                    </button>
+                    <div id="macro-filters-content" class="filter-card-body"
+                        style="display: none; max-height: 250px; overflow-y: auto;">
+                        <button id="deselect-all-btn" class="filter-action-btn">Tout cocher / décocher</button>
                     </div>
                 </div>
 
-                <div class="filter-section" style="margin-top: 10px;">
-                    <button id="toggle-path-filters-btn" class="glass-btn"
-                        style="width: 100%; text-align: left; font-size: 0.9rem; padding: 8px;">🗺️ Choisir les chemins
-                        (Tout)</button>
-                    <div id="path-filters-content"
-                        style="display: none; margin-top: 10px; max-height: 250px; overflow-y: auto; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px;">
-                        <button id="deselect-all-paths-btn" class="glass-btn small"
-                            style="width: 100%; margin-bottom: 8px; font-size: 0.8rem;">Tout cocher/décocher</button>
+                <div class="filter-card" style="margin-top: 10px;">
+                    <button id="toggle-path-filters-btn" class="filter-toggle-btn">
+                        <span class="btn-label">🗺️ Chemins</span>
+                        <span class="filter-badge badge--all" id="filter-badge-paths">--/--</span>
+                        <span class="btn-chevron">▾</span>
+                    </button>
+                    <div id="path-filters-content" class="filter-card-body"
+                        style="display: none; max-height: 250px; overflow-y: auto;">
+                        <button id="deselect-all-paths-btn" class="filter-action-btn">Tout cocher / décocher</button>
                         <!-- Path Checkboxes injected here -->
                     </div>
                 </div>

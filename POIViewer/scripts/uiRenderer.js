@@ -406,6 +406,7 @@ export class UiRenderer {
             this.toggleFiltersBtn.addEventListener('click', () => {
                 const isHidden = this.macroFiltersContent.style.display === 'none';
                 this.macroFiltersContent.style.display = isHidden ? 'block' : 'none';
+                this.toggleFiltersBtn.classList.toggle('is-open', isHidden);
             });
         }
 
@@ -499,9 +500,11 @@ export class UiRenderer {
             togglePathFiltersBtn.addEventListener('click', () => {
                 const isHidden = pathFiltersContent.style.display === 'none';
                 pathFiltersContent.style.display = isHidden ? 'block' : 'none';
+                togglePathFiltersBtn.classList.toggle('is-open', isHidden);
             });
             this.updatePathFilterButtonText();
         }
+        this.updateFilterButtonText();
     }
 
     // Ferme le panneau d'apparence et réinitialise le style du bouton
@@ -518,11 +521,23 @@ export class UiRenderer {
 
     updatePathFilterButtonText() {
         const btn = document.getElementById('toggle-path-filters-btn');
+        const badge = document.getElementById('filter-badge-paths');
         const content = document.getElementById('path-filters-content');
         if (!btn || !content) return;
         const checkedCount = content.querySelectorAll('input:checked').length;
         const total = this.pathCategories.length;
-        btn.textContent = `🗺️ Choisir les chemins (${checkedCount}/${total})`;
+        // Update badge text
+        if (badge) {
+            badge.textContent = `${checkedCount}/${total}`;
+            badge.className = 'filter-badge ' + (
+                checkedCount === total ? 'badge--all' :
+                    checkedCount === 0 ? 'badge--none' : 'badge--partial'
+            );
+        }
+        // Update button border state
+        btn.classList.remove('state--all', 'state--partial');
+        if (checkedCount === total) btn.classList.add('state--all');
+        else if (checkedCount > 0) btn.classList.add('state--partial');
     }
 
     getSelectedPathCategories() {
@@ -534,13 +549,35 @@ export class UiRenderer {
     }
 
     updateFilterButtonText() {
-        if (!this.macroFiltersContent) return;
-        // Count only main category checkboxes (not sub-cat ones)
-        const mainCheckboxes = this.macroFiltersContent.querySelectorAll(':scope > div > div > label > input[type="checkbox"]');
-        const checkedCount = Array.from(mainCheckboxes).filter(cb => cb.checked).length;
         const total = this.categories.length;
-        this.toggleFiltersBtn.textContent = `🛠️ Choisir les catégories (${checkedCount}/${total})`;
+        const btn = this.toggleFiltersBtn;
+        const badge = document.getElementById('filter-badge-categories');
+
+        // Count checked boxes only if the panel has been populated
+        let checkedCount = total; // default: all checked (before injection)
+        if (this.macroFiltersContent) {
+            const mainCheckboxes = this.macroFiltersContent.querySelectorAll(':scope > div > div > label > input[type="checkbox"]');
+            if (mainCheckboxes.length > 0) {
+                checkedCount = Array.from(mainCheckboxes).filter(cb => cb.checked).length;
+            }
+        }
+
+        // Update badge
+        if (badge) {
+            badge.textContent = `${checkedCount}/${total}`;
+            badge.className = 'filter-badge ' + (
+                checkedCount === total ? 'badge--all' :
+                    checkedCount === 0 ? 'badge--none' : 'badge--partial'
+            );
+        }
+        // Update button border state
+        if (btn) {
+            btn.classList.remove('state--all', 'state--partial');
+            if (checkedCount === total) btn.classList.add('state--all');
+            else if (checkedCount > 0) btn.classList.add('state--partial');
+        }
     }
+
 
     getSelectedCategories() {
         if (!this.macroFiltersContent) return [];

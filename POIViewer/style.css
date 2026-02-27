@@ -209,6 +209,151 @@ body {
     letter-spacing: 0.05em;
 }
 
+/* ============================================
+   FILTER SYSTEM — Unified card design
+   ============================================ */
+
+/* Card wrapper around each filter section */
+.filter-card {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.04);
+    transition: border-color 0.25s ease;
+}
+
+.filter-card+.filter-card {
+    margin-top: 10px;
+}
+
+/* When the card's toggle button is in state--all */
+.filter-card:has(.state--all) {
+    border-color: rgba(16, 185, 129, 0.35);
+}
+
+.filter-card:has(.state--partial) {
+    border-color: rgba(251, 191, 36, 0.35);
+}
+
+/* Toggle button — shared header of the card */
+.filter-toggle-btn {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    border: none;
+    /* border handled by .filter-card */
+    border-bottom: 1px solid transparent;
+    color: var(--color-text);
+    padding: 11px 14px;
+    border-radius: 0;
+    /* card clips corners */
+    font-family: "Google Sans", sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    text-align: left;
+}
+
+.filter-toggle-btn:hover {
+    background: rgba(16, 185, 129, 0.12);
+}
+
+/* When panel is open: separator line under header */
+.filter-toggle-btn.is-open {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    background: rgba(16, 185, 129, 0.08);
+}
+
+/* States (all/partial) — visual glow handled at .filter-card level via :has() */
+
+/* Left part: icon + label */
+.filter-toggle-btn .btn-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Chevron indicator */
+.filter-toggle-btn .btn-chevron {
+    font-size: 0.7rem;
+    opacity: 0.5;
+    transition: transform 0.2s ease;
+    flex-shrink: 0;
+}
+
+.filter-toggle-btn.is-open .btn-chevron {
+    transform: rotate(180deg);
+    opacity: 1;
+}
+
+/* Badge counter */
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 44px;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    transition: background 0.25s ease, color 0.25s ease;
+}
+
+.filter-badge.badge--all {
+    background: rgba(16, 185, 129, 0.25);
+    color: var(--color-primary);
+}
+
+.filter-badge.badge--partial {
+    background: rgba(251, 191, 36, 0.25);
+    color: var(--color-accent);
+}
+
+.filter-badge.badge--none {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-text-muted);
+}
+
+/* Body of the card (collapsible panel) */
+.filter-card-body {
+    padding: 10px 12px 12px;
+    background: rgba(0, 0, 0, 0.15);
+}
+
+/* "Select all / deselect all" secondary button */
+.filter-action-btn {
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 7px 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.06);
+    color: var(--color-text-muted);
+    font-family: "Google Sans", sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.filter-action-btn:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: var(--color-text);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+
 /* Micro Sidebar (Right Side) */
 #micro-sidebar {
     position: absolute;
