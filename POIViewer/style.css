@@ -261,6 +261,36 @@ body {
     border-bottom: 1px solid var(--glass-border);
 }
 
+/* Sub-category chips container */
+#sub-category-filter-container {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    max-height: 130px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1);
+}
+
+#sub-category-filter-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+#sub-category-filter-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+#sub-category-filter-container::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+#sub-category-filter-container::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+}
+
 #category-filter {
     width: 100%;
     padding: 10px;
@@ -283,9 +313,24 @@ body {
     width: 6px;
 }
 
+.poi-list::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
 .poi-list::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
+    border-radius: 10px;
+}
+
+.poi-list::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
+}
+
+/* Version standard pour Firefox */
+.poi-list {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1);
 }
 
 .empty-state {
@@ -404,6 +449,28 @@ body {
 .detail-view {
     padding: 20px;
     animation: slideIn 0.3s ease-out;
+    overflow-y: auto;
+    max-height: 100%;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) rgba(0, 0, 0, 0.1);
+}
+
+.detail-view::-webkit-scrollbar {
+    width: 6px;
+}
+
+.detail-view::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+}
+
+.detail-view::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+.detail-view::-webkit-scrollbar-thumb:hover {
+    background: var(--color-primary);
 }
 
 @keyframes slideIn {
