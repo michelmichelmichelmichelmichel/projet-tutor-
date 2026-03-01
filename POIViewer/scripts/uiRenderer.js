@@ -356,7 +356,7 @@ export class UiRenderer {
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.value = cat.id;
-                checkbox.checked = true;
+                checkbox.checked = false;
                 checkbox.style.accentColor = 'var(--color-primary)';
                 checkbox.addEventListener('change', () => {
                     this.updateFilterButtonText();
@@ -482,7 +482,7 @@ export class UiRenderer {
                 const checkbox = document.createElement('input');
                 checkbox.type = 'checkbox';
                 checkbox.value = cat.id;
-                checkbox.checked = true;
+                checkbox.checked = false;
                 checkbox.style.accentColor = 'var(--color-primary)';
                 checkbox.addEventListener('change', () => {
                     this.updatePathFilterButtonText();
@@ -644,7 +644,7 @@ export class UiRenderer {
 
             const allCb = document.createElement('input');
             allCb.type = 'checkbox';
-            allCb.checked = true;
+            allCb.checked = false;
             allCb.style.accentColor = 'var(--color-primary)';
             allCb.addEventListener('change', () => {
                 const subCbs = container.querySelectorAll('input[type="checkbox"].sub-cat-cb');
@@ -680,7 +680,7 @@ export class UiRenderer {
                 cb.type = 'checkbox';
                 cb.className = 'sub-cat-cb';
                 cb.value = typeName;
-                cb.checked = true;
+                cb.checked = false;
                 cb.style.accentColor = 'var(--color-primary)';
                 cb.addEventListener('change', () => {
                     if (!cb.checked) {
