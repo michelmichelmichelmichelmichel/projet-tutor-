@@ -1,9 +1,28 @@
 export class ApiService {
     constructor() {
         this.overpassUrl = 'https://overpass-api.de/api/interpreter';
+        this._dbPromise = null; // Lazy-init IndexedDB
     }
 
     async fetchPOIs(latLngs, selectedCategories = []) {
+        // --- Cache IndexedDB ---
+        // Clé basée UNIQUEMENT sur le polygone (pas les catégories).
+        // On stocke toujours TOUTES les données, le filtrage par catégorie est côté client.
+        const cacheKey = this._buildPOICacheKey(latLngs);
+        const POI_CACHE_DURATION = 60 * 60 * 1000; // 1 heure
+        let cachedEntry = null;
+
+        try {
+            cachedEntry = await this._idbGet(cacheKey);
+            if (cachedEntry && (Date.now() - cachedEntry.timestamp < POI_CACHE_DURATION)) {
+                console.log("✅ Chargement des POIs depuis le cache IndexedDB");
+                // Filtrage côté client par catégories sélectionnées
+                return this._filterByCategories(cachedEntry.data, selectedCategories);
+            }
+        } catch (e) {
+            console.warn("Lecture cache IndexedDB échouée:", e);
+        }
+
         // Convert Leaflet LatLngs to Overpass Poly String: "lat1 lon1 lat2 lon2 ..."
         // Ensure the polygon is closed (first point == last point)
         const points = [...latLngs];
@@ -17,7 +36,7 @@ export class ApiService {
 
         const polyCoords = points.map(pt => `${pt.lat} ${pt.lng}`).join(' ');
 
-        // Map categories to Overpass Keys
+        // Toujours fetch TOUTES les catégories pour le cache
         const categoryToKeys = {
             'tourism': ['tourism'],
             'sustenance': ['amenity'],
@@ -39,22 +58,11 @@ export class ApiService {
             'place': ['place']
         };
 
-        // Determine which keys to query
-        const keysToFetch = new Set();
-        // If 'none' is in the list, we don't fetch any POI keys, but we still want networks
-        const explicitlyNone = selectedCategories.length === 1 && selectedCategories[0] === 'none';
-
-        if (selectedCategories.length === 0) {
-            // Fallback if empty (api call without args) -> fetch all
-            Object.values(categoryToKeys).flat().forEach(k => keysToFetch.add(k));
-        } else if (!explicitlyNone) {
-            selectedCategories.forEach(cat => {
-                if (categoryToKeys[cat]) categoryToKeys[cat].forEach(k => keysToFetch.add(k));
-            });
-        }
-
-        const keysRegex = Array.from(keysToFetch).join('|');
-        const nodeQuery = keysRegex ? `node[~"^(${keysRegex})$"~"."](poly:"${polyCoords}");` : '';
+        // On fetch TOUJOURS toutes les clés pour avoir un cache complet
+        const allKeys = new Set();
+        Object.values(categoryToKeys).flat().forEach(k => allKeys.add(k));
+        const keysRegex = Array.from(allKeys).join('|');
+        const nodeQuery = `node[~"^(${keysRegex})$"~"."](poly:"${polyCoords}");`;
 
         // POI Query (Nodes) + Network Query (Ways with Geometry)
         const query = `
@@ -78,6 +86,7 @@ export class ApiService {
         `;
 
         try {
+            console.log("🌍 Téléchargement des POIs depuis Overpass...");
             const response = await fetch(this.overpassUrl, {
                 method: 'POST',
                 headers: {
@@ -89,12 +98,49 @@ export class ApiService {
             if (!response.ok) throw new Error(`Overpass API Error: ${response.statusText}`);
 
             const data = await response.json();
-            return this.processData(data.elements, selectedCategories);
+            // Toujours traiter SANS filtre de catégorie pour stocker tout en cache
+            const fullResult = this.processData(data.elements, []);
+
+            // --- Cache IndexedDB : sauvegarde des données complètes ---
+            try {
+                await this._idbPut(cacheKey, { timestamp: Date.now(), data: fullResult });
+                await this._cleanupPOICache();
+                console.log("💾 POIs sauvegardés dans le cache IndexedDB");
+            } catch (e) {
+                console.warn("Impossible d'écrire le cache POI:", e);
+            }
+
+            // Retourner les données filtrées par les catégories demandées
+            return this._filterByCategories(fullResult, selectedCategories);
 
         } catch (error) {
             console.error("API Error:", error);
+            // Fallback : utiliser le cache même expiré
+            if (cachedEntry) {
+                console.warn("⚠️ Utilisation du cache POI expiré (fallback réseau)");
+                return this._filterByCategories(cachedEntry.data, selectedCategories);
+            }
             throw error; // Propagate error to App for handling
         }
+    }
+
+    /**
+     * Filtre les POIs par catégories sélectionnées (côté client).
+     * Les networks ne sont jamais filtrés par catégorie.
+     */
+    _filterByCategories(data, selectedCategories) {
+        const explicitlyNone = selectedCategories.length === 1 && selectedCategories[0] === 'none';
+        if (selectedCategories.length === 0) {
+            // Pas de filtre = tout retourner
+            return data;
+        }
+        if (explicitlyNone) {
+            return { pois: [], networks: data.networks };
+        }
+        return {
+            pois: data.pois.filter(p => selectedCategories.includes(p.category)),
+            networks: data.networks
+        };
     }
 
     // Calcule la distance en mètres entre deux points (Formule de Haversine)
@@ -740,5 +786,109 @@ export class ApiService {
             return arr.reduce((acc, val) => acc.concat(flatten(val)), []);
         };
         return flatten(geometry.coordinates);
+    }
+
+    /**
+     * Génère une clé de cache déterministe à partir du polygone.
+     * Les coordonnées sont arrondies à 2 décimales pour tolérer les micro-écarts.
+     */
+    _buildPOICacheKey(latLngs) {
+        const coordStr = latLngs
+            .map(pt => `${pt.lat.toFixed(2)},${pt.lng.toFixed(2)}`)
+            .join('|');
+        // Hash simple (djb2) pour garder la clé courte
+        let hash = 5381;
+        for (let i = 0; i < coordStr.length; i++) {
+            hash = ((hash << 5) + hash) + coordStr.charCodeAt(i);
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        return `pois_cache_${Math.abs(hash).toString(36)}`;
+    }
+
+    // ========== IndexedDB helpers pour le cache POI ==========
+
+    /** Ouvre (ou crée) la base IndexedDB pour le cache POI. */
+    _openPOICacheDB() {
+        if (this._dbPromise) return this._dbPromise;
+        this._dbPromise = new Promise((resolve, reject) => {
+            const request = indexedDB.open('POIViewerCache', 1);
+            request.onupgradeneeded = () => {
+                const db = request.result;
+                if (!db.objectStoreNames.contains('pois')) {
+                    db.createObjectStore('pois'); // clé fournie via put(value, key)
+                }
+            };
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+        return this._dbPromise;
+    }
+
+    /** Lit une entrée du cache IndexedDB. */
+    async _idbGet(key) {
+        const db = await this._openPOICacheDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('pois', 'readonly');
+            const req = tx.objectStore('pois').get(key);
+            req.onsuccess = () => resolve(req.result || null);
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    /** Écrit une entrée dans le cache IndexedDB. */
+    async _idbPut(key, value) {
+        const db = await this._openPOICacheDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('pois', 'readwrite');
+            const req = tx.objectStore('pois').put(value, key);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    /** Supprime une entrée du cache IndexedDB. */
+    async _idbDelete(key) {
+        const db = await this._openPOICacheDB();
+        return new Promise((resolve, reject) => {
+            const tx = db.transaction('pois', 'readwrite');
+            const req = tx.objectStore('pois').delete(key);
+            req.onsuccess = () => resolve();
+            req.onerror = () => reject(req.error);
+        });
+    }
+
+    /**
+     * Limite le nombre d'entrées POI en cache à 20.
+     * Supprime les plus anciennes si le seuil est dépassé.
+     */
+    async _cleanupPOICache() {
+        const MAX_POI_CACHE_ENTRIES = 20;
+        const db = await this._openPOICacheDB();
+
+        const entries = await new Promise((resolve, reject) => {
+            const tx = db.transaction('pois', 'readonly');
+            const store = tx.objectStore('pois');
+            const req = store.openCursor();
+            const results = [];
+            req.onsuccess = () => {
+                const cursor = req.result;
+                if (cursor) {
+                    results.push({ key: cursor.key, timestamp: cursor.value.timestamp || 0 });
+                    cursor.continue();
+                } else {
+                    resolve(results);
+                }
+            };
+            req.onerror = () => reject(req.error);
+        });
+
+        if (entries.length > MAX_POI_CACHE_ENTRIES) {
+            entries.sort((a, b) => a.timestamp - b.timestamp);
+            const toRemove = entries.slice(0, entries.length - MAX_POI_CACHE_ENTRIES);
+            for (const e of toRemove) {
+                await this._idbDelete(e.key);
+                console.log(`🗑️ Cache POI supprimé : ${e.key}`);
+            }
+        }
     }
 }
