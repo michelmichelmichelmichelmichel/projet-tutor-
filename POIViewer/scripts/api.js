@@ -523,7 +523,7 @@ export class ApiService {
 
     async fetchWikidata(wikidataId) {
         if (!wikidataId) return null;
-        const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikidataId}&format=json&props=descriptions|claims|sitelinks&languages=fr&origin=*`;
+        const url = `https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${wikidataId}&format=json&props=descriptions|claims|sitelinks&languages=fr|en&origin=*`;
 
         try {
             const response = await fetch(url);
@@ -531,38 +531,128 @@ export class ApiService {
             const entity = data.entities[wikidataId];
             if (!entity) return null;
 
-            const description = entity.descriptions && entity.descriptions.fr ? entity.descriptions.fr.value : null;
+            // --- Helper: extract first claim value ---
+            const claim = (prop) => entity.claims?.[prop]?.[0]?.mainsnak?.datavalue?.value ?? null;
 
-            // Claims: P856 (Official Website), P18 (Image)
-            let website = null;
-            if (entity.claims && entity.claims.P856 && entity.claims.P856[0].mainsnak.datavalue) {
-                website = entity.claims.P856[0].mainsnak.datavalue.value;
-            }
+            // Description (fr fallback en)
+            const description =
+                entity.descriptions?.fr?.value ||
+                entity.descriptions?.en?.value ||
+                null;
 
+            // P856 — Site officiel
+            const website = claim('P856');
+
+            // P18 — Image principale
             let image = null;
-            if (entity.claims && entity.claims.P18 && entity.claims.P18[0].mainsnak.datavalue) {
+            if (entity.claims?.P18?.[0]?.mainsnak?.datavalue) {
                 const imageName = entity.claims.P18[0].mainsnak.datavalue.value.replace(/ /g, '_');
-                // Construct Wikimedia Commons URL
-                // MD5 hash structure: https://upload.wikimedia.org/wikipedia/commons/[a]/[ab]/[filename]
-                // But it's easier to use the special redirector or mediawiki API for image info
-                // Let's use a simpler approach or rely on fetchPoiImage if this is too complex url construction
-                // Actually, let's use the special commons file path
-                // https://commons.wikimedia.org/wiki/Special:FilePath/Filename.jpg?width=600
-                image = `https://commons.wikimedia.org/wiki/Special:FilePath/${imageName}?width=600`;
+                image = `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(imageName)}?width=800`;
             }
 
+            // Wikipedia fr link
             let wikipedia = null;
-            if (entity.sitelinks && entity.sitelinks.frwiki) {
-                wikipedia = entity.sitelinks.frwiki.url || `https://fr.wikipedia.org/wiki/${entity.sitelinks.frwiki.title.replace(/ /g, '_')}`;
+            if (entity.sitelinks?.frwiki) {
+                const title = entity.sitelinks.frwiki.title;
+                wikipedia = `https://fr.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
             }
 
-            return { description, website, image, wikipedia };
+            // P1082 — Population
+            let population = null;
+            if (entity.claims?.P1082) {
+                // Take the most recent (last in list, often has rank preferred)
+                const popClaims = entity.claims.P1082;
+                const preferred = popClaims.find(c => c.rank === 'preferred') || popClaims[popClaims.length - 1];
+                if (preferred?.mainsnak?.datavalue?.value?.amount) {
+                    population = parseInt(preferred.mainsnak.datavalue.value.amount, 10);
+                }
+            }
+
+            // P2044 — Altitude (m)
+            let elevation = null;
+            const elClaim = claim('P2044');
+            if (elClaim?.amount) elevation = Math.round(parseFloat(elClaim.amount));
+
+            // P571 — Date de fondation/création
+            let inception = null;
+            const incClaim = claim('P571');
+            if (incClaim?.time) {
+                // format: +1850-00-00T00:00:00Z → "1850"
+                const match = incClaim.time.match(/^\+?(\d{4})/);
+                if (match) inception = match[1];
+            }
+
+            // P1435 — Classement patrimoine (label de l'item QID)
+            let heritage = null;
+            const herClaim = entity.claims?.P1435?.[0]?.mainsnak?.datavalue?.value?.id;
+            if (herClaim) {
+                // Common known QIDs → readable label (avoid extra API call)
+                const heritageMap = {
+                    Q916334: 'Monument historique classé',
+                    Q2562402: 'Monument historique inscrit',
+                    Q111643416: 'Site classé',
+                    Q60023: 'Patrimoine mondial UNESCO',
+                    Q1194071: 'Site inscrit UNESCO'
+                };
+                heritage = heritageMap[herClaim] || 'Classé patrimoine';
+            }
+
+            // P84 — Architecte
+            let architect = null;
+            const archClaim = entity.claims?.P84?.[0]?.mainsnak?.datavalue?.value?.id;
+            if (archClaim) {
+                // We'll resolve the label with a minimal extra request
+                try {
+                    const archResp = await fetch(`https://www.wikidata.org/w/api.php?action=wbgetentities&ids=${archClaim}&format=json&props=labels&languages=fr|en&origin=*`);
+                    const archData = await archResp.json();
+                    const archEntity = archData.entities[archClaim];
+                    architect = archEntity?.labels?.fr?.value || archEntity?.labels?.en?.value || null;
+                } catch (_) { /* ignore */ }
+            }
+
+            // P2046 — Superficie (km²)
+            let area = null;
+            const areaClaim = claim('P2046');
+            if (areaClaim?.amount) {
+                area = parseFloat(parseFloat(areaClaim.amount).toFixed(2));
+            }
+
+            return { description, website, image, wikipedia, population, elevation, inception, heritage, architect, area };
 
         } catch (error) {
             console.warn("Wikidata fetch error:", error);
             return null;
         }
     }
+
+    /**
+     * Fetch up to `limit` thumbnail image URLs from Wikimedia Commons
+     * for a given Commons category or file page title.
+     * Falls back to geocoordinate search if no title is provided.
+     * @param {number} lat
+     * @param {number} lng
+     * @param {number} limit
+     */
+    async fetchWikimediaImages(lat, lng, limit = 5) {
+        const url = `https://commons.wikimedia.org/w/api.php?action=query&generator=geosearch&ggscoord=${lat}|${lng}&ggsradius=500&ggsnamespace=6&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=600&format=json&origin=*&ggslimit=${limit}`;
+        try {
+            const response = await fetch(url);
+            const data = await response.json();
+            if (!data.query?.pages) return [];
+            return Object.values(data.query.pages)
+                .filter(p => p.imageinfo?.[0]?.url)
+                .map(p => ({
+                    url: p.imageinfo[0].url,
+                    thumbUrl: p.imageinfo[0].thumburl || p.imageinfo[0].url,
+                    title: p.imageinfo[0].extmetadata?.ObjectName?.value || p.title?.replace('File:', '') || ''
+                }));
+        } catch (error) {
+            console.warn("Wikimedia images fetch error:", error);
+            return [];
+        }
+    }
+
+
 
     // ---- VOISINS ----
 

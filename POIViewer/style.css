@@ -1101,3 +1101,147 @@ body {
     padding: 5px 10px !important;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4) !important;
 }
+
+/* ============================================
+   ENRICHED POI DETAIL VIEW
+   ============================================ */
+
+/* Section block inside detail view */
+.poi-section {
+    margin-top: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.poi-section__title {
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.05);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--color-text-muted);
+}
+
+.poi-section .detail-info {
+    padding: 4px 0;
+}
+
+/* info-row highlight (Wikidata description) */
+.info-row--highlight {
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.03);
+}
+
+/* ── Gallery ─────────────────────────────────── */
+.poi-gallery {
+    margin: 14px 0 4px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* Skeleton shimmer while loading */
+.poi-gallery--loading {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.poi-gallery__skeleton {
+    width: 100%;
+    height: 190px;
+    background: linear-gradient(90deg,
+            rgba(255, 255, 255, 0.04) 25%,
+            rgba(255, 255, 255, 0.10) 50%,
+            rgba(255, 255, 255, 0.04) 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.4s infinite;
+    border-radius: 12px;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Main image */
+.poi-gallery__main {
+    width: 100%;
+    max-height: 220px;
+    overflow: hidden;
+    border-radius: 12px 12px 0 0;
+}
+
+.poi-gallery__img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    display: block;
+    transition: opacity 0.3s ease;
+}
+
+/* Thumbnails strip */
+.poi-gallery__thumbs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    overflow-x: auto;
+    background: rgba(0, 0, 0, 0.3);
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.2) transparent;
+}
+
+.poi-gallery__thumbs::-webkit-scrollbar {
+    height: 4px;
+}
+
+.poi-gallery__thumbs::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.poi-gallery__thumb {
+    width: 60px;
+    height: 45px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+    cursor: pointer;
+    opacity: 0.55;
+    border: 2px solid transparent;
+    transition: opacity 0.2s, border-color 0.2s;
+}
+
+.poi-gallery__thumb:hover,
+.poi-gallery__thumb.active {
+    opacity: 1;
+    border-color: var(--color-primary);
+}
+
+/* ── Opening Hours ───────────────────────────── */
+.oh-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.oh-badge--open {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--color-primary);
+}
+
+.oh-value {
+    font-size: 0.85rem;
+    font-family: monospace;
+    color: var(--color-text);
+    line-height: 1.5;
+    word-break: break-word;
+}

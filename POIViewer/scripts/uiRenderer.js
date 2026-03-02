@@ -1039,115 +1039,238 @@ export class UiRenderer {
 
     renderPoiDetails(poi) {
         this.categoryFilter.parentElement.style.display = 'none';
-        const website = poi.tags.website || poi.tags['contact:website'] || poi.tags.url;
-        const phone = poi.tags.phone || poi.tags['contact:phone'];
-        const address = this.formatAddress(poi.tags);
-        const openingHours = poi.tags.opening_hours;
-        const wheelchair = poi.tags.wheelchair;
         const color = this.getCategoryColor(poi.category);
-        const typeStyle = `background: ${color}33; color: ${color};`;
+        const typeStyle = `background: ${color}22; color: ${color}; border: 1px solid ${color}55;`;
 
-        const html = `
-            <div class="detail-view">
+        // ── Skeleton displayed immediately ────────────────────────────────────
+        this.poiList.innerHTML = `
+            <div class="detail-view" id="poi-detail-root">
                 <div class="detail-header">
                     <button class="back-btn" id="back-to-list">← Retour</button>
-                    ${website ? `<a href="${website}" target="_blank" class="icon-btn" title="Site Web">🌐</a>` : ''}
+                    <div id="detail-header-links" style="display:flex;gap:6px;align-items:center;"></div>
                 </div>
-                <h2 class="detail-title" style="color: ${color}">${this.getCategoryEmoji(poi.category)} ${poi.name}</h2>
+                <h2 class="detail-title" style="color:${color}">${this.getCategoryEmoji(poi.category)} ${poi.name}</h2>
                 <span class="detail-type" style="${typeStyle}">${this.translateType(poi.type)}</span>
-                <div id="poi-image-container" style="width: 100%; height: 200px; background: #eee; border-radius: 8px; margin: 15px 0; display: none; overflow: hidden;">
-                    <img id="poi-image" src="" alt="${poi.name}" style="width: 100%; height: 100%; object-fit: cover;">
-                </div>
-                <div class="detail-info">
-                    ${poi.tags.description ? `<div class="info-row"><span class="info-label">Description (OSM)</span><span class="info-value" id="poi-description-text">${poi.tags.description}</span></div>` : `<div id="poi-description-text"></div>`}
-                    ${address ? `<div class="info-row"><span class="info-label">Adresse</span><span class="info-value">${address}</span></div>` : ''}
-                    ${phone ? `<div class="info-row"><span class="info-label">Téléphone</span><span class="info-value"><a href="tel:${phone}" style="color:${color}">${phone}</a></span></div>` : ''}
-                    ${openingHours ? `<div class="info-row"><span class="info-label">Horaires</span><span class="info-value">${openingHours}</span></div>` : ''}
-                    ${wheelchair ? `<div class="info-row"><span class="info-label">Accessibilité</span><span class="info-value">${wheelchair === 'yes' ? 'Accessible Fauteuil' : 'Non spécifié'}</span></div>` : ''}
-                    ${poi.tags.ele ? `<div class="info-row"><span class="info-label">Altitude</span><span class="info-value">${poi.tags.ele} m</span></div>` : ''}
-                    ${poi.tags.capacity ? `<div class="info-row"><span class="info-label">Capacité</span><span class="info-value">${poi.tags.capacity} personnes</span></div>` : ''}
-                    ${poi.tags.start_date ? `<div class="info-row"><span class="info-label">Date de création</span><span class="info-value">${poi.tags.start_date}</span></div>` : ''}
-                     ${poi.tags.wikipedia ? `<div class="info-row"><span class="info-label">Wikipedia</span><span class="info-value"><a href="https://fr.wikipedia.org/wiki/${poi.tags.wikipedia.replace(/^fr:/, '')}" target="_blank">Voir l'article</a></span></div>` : ''}
-                    <div class="info-row"><span class="info-label">Coordonnées</span><span class="info-value">${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}</span></div>
-                </div>
-            </div>
-        `;
 
-        this.poiList.innerHTML = html;
+                <!-- Image Gallery Skeleton -->
+                <div id="poi-gallery" class="poi-gallery poi-gallery--loading">
+                    <div class="poi-gallery__skeleton"></div>
+                </div>
+
+                <!-- OSM Static Block -->
+                <div class="poi-section">
+                    <div class="poi-section__title">📍 Informations</div>
+                    <div class="detail-info" id="poi-osm-block">
+                        ${this._buildOsmRows(poi, color)}
+                    </div>
+                </div>
+
+                <!-- Wikidata Block (skeleton then replaced) -->
+                <div class="poi-section" id="poi-wikidata-section" style="display:none">
+                    <div class="poi-section__title">
+                        <img src="https://www.wikidata.org/static/favicon/wikidata.ico" width="14" height="14" style="vertical-align:middle;margin-right:5px;" alt="">
+                        Wikidata
+                    </div>
+                    <div id="poi-wikidata-block" class="detail-info"></div>
+                </div>
+
+                <!-- OSM Source Link -->
+                <div style="margin-top:16px;text-align:center;">
+                    <a href="https://www.openstreetmap.org/node/${poi.id}" target="_blank"
+                       style="font-size:0.75rem;color:var(--color-text-muted);text-decoration:none;opacity:0.7;">
+                       🗺️ Voir sur OpenStreetMap
+                    </a>
+                </div>
+            </div>`;
+
+        // Back button
         document.getElementById('back-to-list').addEventListener('click', () => {
             this.categoryFilter.parentElement.style.display = 'block';
             this.filterList();
         });
 
-        const imgContainer = document.getElementById('poi-image-container');
-        const imgElement = document.getElementById('poi-image');
+        // ── Async enrichment ──────────────────────────────────────────────────
+        if (!this.apiService) return;
 
-        // --- 1. Load Image (Wikimedia Commons via GeoSearch or Wikidata) ---
-        // Defaults to existing geosearch if no specific wikidata image is found later
-        if (this.apiService) {
-            this.apiService.fetchPoiImage(poi.lat, poi.lng).then(url => {
-                if (url && !imgElement.src.startsWith('http')) { // Only if not already set by wikidata
-                    imgElement.src = url;
-                    imgElement.style.opacity = '1';
-                    imgContainer.style.display = 'block';
-                }
+        // Run both fetches in parallel
+        Promise.all([
+            this.apiService.fetchWikimediaImages(poi.lat, poi.lng, 5),
+            poi.tags.wikidata ? this.apiService.fetchWikidata(poi.tags.wikidata) : Promise.resolve(null)
+        ]).then(([images, wikidataInfo]) => {
+
+            // If Wikidata has a main image, prepend it to the list
+            if (wikidataInfo?.image) {
+                images = [{ url: wikidataInfo.image, thumbUrl: wikidataInfo.image, title: poi.name }, ...images];
+            }
+            // Deduplicate by URL
+            const seen = new Set();
+            images = images.filter(img => {
+                if (seen.has(img.url)) return false;
+                seen.add(img.url);
+                return true;
             });
-        }
 
-        // --- 2. Fetch Wikidata & Enrich OSM Details ---
-        if (poi.tags.wikidata && this.apiService) {
-            // Show loading indicator in description or similar?
-            // For now, we update asynchronously
-            this.apiService.fetchWikidata(poi.tags.wikidata).then(data => {
-                if (!data) return;
+            this._renderGallery(images, poi.name);
 
-                // A. Description
-                if (data.description) {
-                    const descEl = document.getElementById('poi-description-text');
-                    if (descEl) descEl.textContent = data.description.charAt(0).toUpperCase() + data.description.slice(1);
-                    else {
-                        // Inject description if logic allows
-                        const container = document.querySelector('.detail-info');
-                        const div = document.createElement('div');
-                        div.className = 'info-row';
-                        div.innerHTML = `<span class="info-label">Description (Wikidata)</span><span class="info-value">${data.description}</span>`;
-                        container.prepend(div);
+            // ── Header links ─────────────────────────────────────────────────
+            const linksContainer = document.getElementById('detail-header-links');
+            if (linksContainer) {
+                const website = poi.tags.website || poi.tags['contact:website'] || poi.tags.url || wikidataInfo?.website;
+                if (website) {
+                    linksContainer.insertAdjacentHTML('beforeend',
+                        `<a href="${website}" target="_blank" class="icon-btn" title="Site Web">🌐</a>`);
+                }
+                if (wikidataInfo?.wikipedia) {
+                    linksContainer.insertAdjacentHTML('beforeend',
+                        `<a href="${wikidataInfo.wikipedia}" target="_blank" class="icon-btn" title="Article Wikipédia">📖</a>`);
+                }
+            }
+
+            // ── Wikidata block ────────────────────────────────────────────────
+            if (wikidataInfo) {
+                const rows = [];
+                if (wikidataInfo.description) {
+                    rows.push(`<div class="info-row info-row--highlight">
+                        <span class="info-value" style="font-style:italic;color:var(--color-text-muted);line-height:1.5;">"${wikidataInfo.description}"</span>
+                    </div>`);
+                }
+                if (wikidataInfo.population != null)
+                    rows.push(this._infoRow('👥 Population', wikidataInfo.population.toLocaleString('fr-FR') + ' hab.'));
+                if (wikidataInfo.elevation != null)
+                    rows.push(this._infoRow('⛰️ Altitude (Wikidata)', wikidataInfo.elevation + ' m'));
+                if (wikidataInfo.area != null)
+                    rows.push(this._infoRow('📐 Superficie', wikidataInfo.area.toLocaleString('fr-FR') + ' km²'));
+                if (wikidataInfo.inception)
+                    rows.push(this._infoRow('📅 Fondé en', wikidataInfo.inception));
+                if (wikidataInfo.heritage)
+                    rows.push(this._infoRow('🏛️ Classement', wikidataInfo.heritage));
+                if (wikidataInfo.architect)
+                    rows.push(this._infoRow('✏️ Architecte', wikidataInfo.architect));
+
+                if (rows.length > 0) {
+                    const section = document.getElementById('poi-wikidata-section');
+                    const block = document.getElementById('poi-wikidata-block');
+                    if (section && block) {
+                        block.innerHTML = rows.join('');
+                        section.style.display = '';
                     }
                 }
+            }
+        }).catch(err => console.warn('POI enrichment error:', err));
+    }
 
-                // B. Website
-                if (data.website && !website) { // Only if not already in OSM
-                    const container = document.querySelector('.detail-header');
-                    const link = document.createElement('a');
-                    link.href = data.website;
-                    link.target = "_blank";
-                    link.className = "icon-btn";
-                    link.title = "Site Officiel (Wikidata)";
-                    link.textContent = "🌐";
-                    container.appendChild(link);
-                }
+    // ── Private helpers ───────────────────────────────────────────────────────
 
-                // C. Image (Wikidata P18 often better than GeoSearch)
-                if (data.image) {
-                    imgElement.src = data.image;
-                    imgElement.style.opacity = '1';
-                    imgContainer.style.display = 'block';
-                }
+    /** Build all OSM info rows from poi.tags */
+    _buildOsmRows(poi, color) {
+        const t = poi.tags;
+        const rows = [];
 
-                // D. Wikipedia Link
-                if (data.wikipedia) {
-                    const container = document.querySelector('.detail-header');
-                    const link = document.createElement('a');
-                    link.href = data.wikipedia;
-                    link.target = "_blank";
-                    link.className = "icon-btn";
-                    link.title = "Article Wikipédia";
-                    link.textContent = "📖"; // Book emoji for Wikipedia
-                    container.appendChild(link);
-                }
+        const address = this.formatAddress(t);
+        if (address) rows.push(this._infoRow('📬 Adresse', address));
+
+        const phone = t.phone || t['contact:phone'];
+        if (phone) rows.push(this._infoRow('📞 Téléphone',
+            `<a href="tel:${phone}" style="color:${color}">${phone}</a>`));
+
+        const email = t.email || t['contact:email'];
+        if (email) rows.push(this._infoRow('✉️ Email',
+            `<a href="mailto:${email}" style="color:${color}">${email}</a>`));
+
+        if (t.opening_hours) rows.push(this._infoRow('🕐 Horaires', this._renderOpeningHours(t.opening_hours)));
+
+        const website = t.website || t['contact:website'] || t.url;
+        if (website) rows.push(this._infoRow('🌐 Site Web',
+            `<a href="${website}" target="_blank" style="color:${color}">Ouvrir ↗</a>`));
+
+        if (t.cuisine) rows.push(this._infoRow('🍽️ Cuisine', t.cuisine.replace(/_/g, ' ')));
+        if (t.stars) rows.push(this._infoRow('⭐ Étoiles', t.stars));
+        if (t.operator) rows.push(this._infoRow('🏢 Opérateur', t.operator));
+        if (t.brand) rows.push(this._infoRow('🏷️ Enseigne', t.brand));
+        if (t.ele) rows.push(this._infoRow('⛰️ Altitude', t.ele + ' m'));
+        if (t.capacity) rows.push(this._infoRow('👤 Capacité', t.capacity + ' pers.'));
+        if (t.start_date) rows.push(this._infoRow('📅 Création', t.start_date));
+        if (t.fee) rows.push(this._infoRow('💰 Tarif', t.fee === 'yes' ? 'Payant' : t.fee === 'no' ? 'Gratuit' : t.fee));
+        if (t.access) rows.push(this._infoRow('🔒 Accès', t.access));
+        if (t.wheelchair) rows.push(this._infoRow('♿ Accessibilité',
+            t.wheelchair === 'yes' ? '✅ Accessible PMR' :
+                t.wheelchair === 'limited' ? '⚠️ Accès limité' : '❌ Non accessible'));
+        if (t.description) rows.push(this._infoRow('📝 Description', t.description));
+        if (t.wikipedia && !t.wikidata) {
+            const wikiTitle = t.wikipedia.replace(/^fr:/, '');
+            rows.push(this._infoRow('📖 Wikipédia',
+                `<a href="https://fr.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}" target="_blank" style="color:${color}">Voir l'article ↗</a>`));
+        }
+
+        rows.push(this._infoRow('🌐 Coordonnées',
+            `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
+
+        return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée OSM disponible.</p>';
+    }
+
+    /** Generates a single info-row HTML string */
+    _infoRow(label, value) {
+        return `<div class="info-row">
+            <span class="info-label">${label}</span>
+            <span class="info-value">${value}</span>
+        </div>`;
+    }
+
+    /** Parses raw opening_hours string and adds open/closed badge */
+    _renderOpeningHours(raw) {
+        if (!raw) return '';
+        // Simple heuristic: check if "24/7"
+        if (raw === '24/7') return `<span class="oh-badge oh-badge--open">24h/24</span>`;
+        return `<span class="oh-value">${raw}</span>`;
+    }
+
+    /** Renders the image gallery section */
+    _renderGallery(images, altText) {
+        const galleryEl = document.getElementById('poi-gallery');
+        if (!galleryEl) return;
+
+        if (!images || images.length === 0) {
+            galleryEl.style.display = 'none';
+            return;
+        }
+
+        galleryEl.classList.remove('poi-gallery--loading');
+
+        if (images.length === 1) {
+            galleryEl.innerHTML = `
+                <div class="poi-gallery__main">
+                    <img src="${images[0].url}" alt="${altText}"
+                         class="poi-gallery__img"
+                         onerror="this.closest('.poi-gallery').style.display='none'">
+                </div>`;
+        } else {
+            const thumbsHtml = images.map((img, i) => `
+                <img src="${img.thumbUrl}" alt="${img.title || altText}"
+                     class="poi-gallery__thumb ${i === 0 ? 'active' : ''}"
+                     data-full="${img.url}"
+                     onerror="this.style.display='none'">`).join('');
+
+            galleryEl.innerHTML = `
+                <div class="poi-gallery__main">
+                    <img id="poi-gallery-main-img" src="${images[0].url}" alt="${altText}"
+                         class="poi-gallery__img"
+                         onerror="this.src=''; this.style.display='none'">
+                </div>
+                <div class="poi-gallery__thumbs">${thumbsHtml}</div>`;
+
+            // Thumb click → change main image
+            galleryEl.querySelectorAll('.poi-gallery__thumb').forEach(thumb => {
+                thumb.addEventListener('click', () => {
+                    const mainImg = document.getElementById('poi-gallery-main-img');
+                    if (mainImg) mainImg.src = thumb.dataset.full;
+                    galleryEl.querySelectorAll('.poi-gallery__thumb').forEach(t => t.classList.remove('active'));
+                    thumb.classList.add('active');
+                });
             });
         }
     }
+
+
 
     setApiService(apiService) {
         this.apiService = apiService;
