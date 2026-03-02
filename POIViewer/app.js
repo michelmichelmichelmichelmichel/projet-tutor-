@@ -176,7 +176,10 @@ class App {
 
             } catch (err) {
                 console.error("Error handling selection", err);
-                // alert("Erreur lors de la récupération des données."); // Too noisy for user
+                this.uiRenderer.showError(
+                    'Erreur lors de la récupération des données.',
+                    () => this.handleAreaSelection(layer)
+                );
             } finally {
                 this.uiRenderer.showLoading(false);
             }

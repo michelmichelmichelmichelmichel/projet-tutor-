@@ -716,6 +716,30 @@ export class UiRenderer {
         }
     }
 
+    /**
+     * Affiche un message d'erreur avec un bouton "Réessayer".
+     * @param {string} message  Texte d'erreur à afficher
+     * @param {Function} onRetry  Callback appelé au clic sur "Réessayer"
+     */
+    showError(message = 'Impossible de charger les données.', onRetry = null) {
+        const errorBlock = (small = false) => `
+            <div class="load-error-block${small ? ' load-error-block--small' : ''}">
+                <span class="load-error-block__icon">⚠️</span>
+                <p class="load-error-block__msg">${message}</p>
+                ${onRetry ? `<button class="load-error-block__retry-btn">🔄 Réessayer</button>` : ''}
+            </div>`;
+
+        this.macroStats.innerHTML = errorBlock(true);
+        this.poiList.innerHTML = errorBlock();
+
+        if (onRetry) {
+            this.macroStats.querySelector('.load-error-block__retry-btn')
+                ?.addEventListener('click', onRetry);
+            this.poiList.querySelector('.load-error-block__retry-btn')
+                ?.addEventListener('click', onRetry);
+        }
+    }
+
     clear() {
         this.macroStats.innerHTML = `
             <div class="stat-item empty">
