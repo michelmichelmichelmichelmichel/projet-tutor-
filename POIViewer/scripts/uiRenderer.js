@@ -3,7 +3,8 @@ export class UiRenderer {
         // --- FULL SCREEN CHART CONTAINERS ---
         this.fsOverlay = null; // Will be created in init
         this.fsChartContainer = null;
-
+        this.loadNeighborsBtn = document.getElementById('load-neighbors-btn');
+        this.onLoadNeighbors = null;
         this.macroStats = document.getElementById('macro-stats');
         this.poiList = document.getElementById('poi-list');
         this.microSidebar = document.getElementById('micro-sidebar');
@@ -366,7 +367,22 @@ export class UiRenderer {
 
         // --- INIT FULL SCREEN OVERLAY ---
         this._initFullScreenOverlay();
+        // --- BOUTON CHARGER VOISINS ---
+        if (this.loadNeighborsBtn) {
+            this.loadNeighborsBtn.addEventListener('click', () => {
+                const originalText = this.loadNeighborsBtn.innerHTML;
+                // Animation de chargement dans le bouton
+                this.loadNeighborsBtn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;margin-right:8px;vertical-align:middle;"></span> Chargement...';
+                this.loadNeighborsBtn.style.pointerEvents = 'none'; // Désactiver pendant le chargement
 
+                if (this.onLoadNeighbors) {
+                    this.onLoadNeighbors().finally(() => {
+                        this.loadNeighborsBtn.innerHTML = originalText;
+                        this.loadNeighborsBtn.style.pointerEvents = 'auto';
+                    });
+                }
+            });
+        }
         if (this.closeMicroBtn) {
             this.closeMicroBtn.addEventListener('click', () => {
                 this.toggleMicroSidebar(false);
@@ -1406,5 +1422,12 @@ export class UiRenderer {
         };
 
         Plotly.newPlot(this.fsChartContainer, data, fsLayout, { responsive: true, displayModeBar: false });
+    }
+
+    toggleLoadNeighborsBtn(show) {
+        if (this.loadNeighborsBtn) {
+            if (show) this.loadNeighborsBtn.classList.remove('hidden');
+            else this.loadNeighborsBtn.classList.add('hidden');
+        }
     }
 }

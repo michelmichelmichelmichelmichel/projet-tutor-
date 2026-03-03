@@ -250,10 +250,15 @@ export class MapManager {
     drawNeighborZones(neighbors, onClickCallback) {
         if (!this.neighborGroup) {
             this.neighborGroup = L.layerGroup().addTo(this.map);
+            this.drawnNeighborCodes = new Set(); // Mémorise ce qui est déjà dessiné
         }
-        this.neighborGroup.clearLayers();
+        // ON NE FAIT PLUS .clearLayers() ICI !
 
         neighbors.forEach(neighbor => {
+            // Éviter les doublons
+            if (this.drawnNeighborCodes.has(neighbor.code)) return;
+            this.drawnNeighborCodes.add(neighbor.code);
+
             const layer = L.geoJSON(neighbor.geometry, {
                 style: {
                     color: '#94a3b8',
@@ -285,10 +290,10 @@ export class MapManager {
         });
     }
 
-    /** Supprime tous les polygones voisins de la carte. */
     clearNeighborZones() {
         if (this.neighborGroup) {
             this.neighborGroup.clearLayers();
+            if (this.drawnNeighborCodes) this.drawnNeighborCodes.clear();
         }
     }
 

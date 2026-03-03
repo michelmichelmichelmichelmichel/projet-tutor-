@@ -15,6 +15,10 @@ class App {
     }
 
     init() {
+        // Connecter le bouton des voisins
+        this.uiRenderer.onLoadNeighbors = async () => {
+            await this.loadNeighbors();
+        };
         this.mapManager.init();
         this.uiRenderer.init();
         this.uiRenderer.setApiService(this.apiService);
@@ -27,6 +31,7 @@ class App {
         this.mapManager.onPolygonCreated = async (layer) => {
             this.uiRenderer.closeSettings(); // Ferme le panneau dès qu'une zone est validée
             this.handleAreaSelection(layer);
+            this.uiRenderer.toggleLoadNeighborsBtn(false);
         };
 
         // Fermer le panneau dès que l'utilisateur commence à dessiner
@@ -136,8 +141,14 @@ class App {
 
             if (layer) {
                 await this.handleAreaSelection(layer);
-                // Charger les voisins après le chargement des POIs
-                this.loadNeighbors();
+
+                // SUPPRESSION DU CHARGEMENT AUTO DES VOISINS :
+                // this.loadNeighbors();
+
+                // Afficher le bouton seulement s'il y a une zone active (pas pour les zones dessinées libres)
+                if (this.activeZone) {
+                    this.uiRenderer.toggleLoadNeighborsBtn(true);
+                }
             } else {
                 this.uiRenderer.showLoading(false);
             }
