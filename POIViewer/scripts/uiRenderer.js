@@ -939,8 +939,8 @@ export class UiRenderer {
                 <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.08);">
                     <div>
                         <div style="${kpiLabelStyle}">🛏️ Capacité d'accueil</div>
-                        <div style="${kpiValueStyle}">${totalBeds.toLocaleString('fr-FR')} <span style="font-size:0.85rem;font-weight:400;color:var(--color-text-muted);">lits</span></div>
-                        <div style="${kpiSubStyle}">🚪 ${totalRooms.toLocaleString('fr-FR')} chambres</div>
+                        <div style="${kpiValueStyle}">${totalRooms.toLocaleString('fr-FR')} <span style="font-size:0.85rem;font-weight:400;color:var(--color-text-muted);">chambres</span></div>
+                        <div style="${kpiSubStyle}">🛏️ ${totalBeds.toLocaleString('fr-FR')} lits</div>
                     </div>
                 </div>
                 <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(5,150,105,0.35);background:rgba(5,150,105,0.08);">
@@ -1191,6 +1191,249 @@ export class UiRenderer {
 
         Plotly.newPlot(chartDiv, data, layout, config);
         this.lastPois = pois;
+
+        // ── 3 MINI TREEMAPS ────────────────────────────────────────────────
+        const miniLayout = {
+            margin: { t: 0, l: 0, r: 0, b: 0 },
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { family: "Outfit, sans-serif", color: "#ffffff", size: 11 }
+        };
+        const miniConfig = { responsive: true, displayModeBar: false };
+
+        const addMiniTreemap = (titleText, emoji, treemapData) => {
+            if (!treemapData || treemapData.values.length <= 1) return; // Rien à afficher
+
+            const section = document.createElement('div');
+            section.style.cssText = 'margin-top:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;';
+
+            // Header + bouton Agrandir
+            const headerRow = document.createElement('div');
+            headerRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
+
+            const header = document.createElement('span');
+            header.style.cssText = 'font-size:0.8rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;';
+            header.textContent = `${emoji} ${titleText}`;
+            headerRow.appendChild(header);
+
+            const miniDiv = document.createElement('div');
+            miniDiv.style.height = '220px';
+
+            const plotData = [{
+                type: 'treemap',
+                ids: treemapData.ids,
+                labels: treemapData.labels,
+                parents: treemapData.parents,
+                values: treemapData.values,
+                marker: {
+                    colors: treemapData.colors,
+                    line: { width: 1.5, color: 'rgba(255,255,255,0.5)' },
+                    pad: { b: 4, l: 4, r: 4, t: 12 }
+                },
+                textfont: { family: 'Outfit, sans-serif', color: '#ffffff' },
+                textposition: 'top left',
+                textinfo: 'label+value',
+                hoverinfo: 'label+value+percent parent',
+                branchvalues: 'total'
+            }];
+
+            const maxBtn = document.createElement('button');
+            maxBtn.className = 'maximize-btn';
+            maxBtn.innerHTML = '⤢ Agrandir';
+            maxBtn.title = 'Voir en plein écran';
+            maxBtn.addEventListener('click', () => this._toggleFullScreenChart(plotData, miniLayout));
+            headerRow.appendChild(maxBtn);
+
+            section.appendChild(headerRow);
+            section.appendChild(miniDiv);
+            this.macroStats.appendChild(section);
+
+            Plotly.newPlot(miniDiv, plotData, miniLayout, miniConfig);
+        };
+
+        // ─── 1. Treemap Hébergements par catégorie ────────────────────────
+        const accomTags = {
+            'hotel': 'Hôtel', 'hostel': 'Auberge', 'motel': 'Motel',
+            'guest_house': 'Maison d\'hôtes', 'bed_and_breakfast': 'B&B',
+            'holiday_flat': 'Meublé de tourisme', 'chalet': 'Chalet',
+            'apartment': 'Appartement', 'camp_site': 'Camping',
+            'caravan_site': 'Aire camping-car', 'camp_pitch': 'Emplacement',
+            'alpine_hut': 'Refuge alpin', 'wilderness_hut': 'Refuge nature',
+            'shelter': 'Abri'
+        };
+        const accomCounts = {};
+        pois.forEach(p => {
+            const t = p.tags?.tourism || p.type;
+            if (accomTags[t]) {
+                accomCounts[t] = (accomCounts[t] || 0) + 1;
+            }
+        });
+        if (Object.keys(accomCounts).length > 0) {
+            const totalAccom = Object.values(accomCounts).reduce((a, b) => a + b, 0);
+            const accomTreemap = {
+                ids: ['AccomRoot'], labels: [`Total (${totalAccom})`], parents: [''], values: [totalAccom],
+                colors: ['#a78bfa']
+            };
+            const baseColors = ['#c4b5fd', '#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95', '#ddd6fe', '#ede9fe', '#e9d5ff', '#d8b4fe', '#b794f4', '#9f7aea', '#805ad5'];
+            let ci = 0;
+            Object.entries(accomCounts).sort((a, b) => b[1] - a[1]).forEach(([key, count]) => {
+                accomTreemap.ids.push(key);
+                accomTreemap.labels.push(`${accomTags[key]} (${count})`);
+                accomTreemap.parents.push('AccomRoot');
+                accomTreemap.values.push(count);
+                accomTreemap.colors.push(baseColors[ci % baseColors.length]);
+                ci++;
+            });
+            addMiniTreemap('Hébergements par type', '🏨', accomTreemap);
+        }
+
+        // ─── 2. Treemap Sentiers piétons par sac_scale ────────────────────
+        const sacLabels = {
+            'hiking': 'Randonnée (T1)',
+            'mountain_hiking': 'Montagne (T2)',
+            'demanding_mountain_hiking': 'Montagne exigeante (T3)',
+            'alpine_hiking': 'Alpin (T4)',
+            'demanding_alpine_hiking': 'Alpin exigeant (T5)'
+        };
+        const sacCounts = {};
+        networks.forEach(net => {
+            const sac = net.tags?.sac_scale;
+            if (sac && sacLabels[sac]) {
+                sacCounts[sac] = (sacCounts[sac] || 0) + 1;
+            }
+        });
+        if (Object.keys(sacCounts).length > 0) {
+            const totalSac = Object.values(sacCounts).reduce((a, b) => a + b, 0);
+            const sacTreemap = {
+                ids: ['SacRoot'], labels: [`Total (${totalSac})`], parents: [''], values: [totalSac],
+                colors: ['#34d399']
+            };
+            const sacColors = { 'hiking': '#facc15', 'mountain_hiking': '#ef4444', 'demanding_mountain_hiking': '#dc2626', 'alpine_hiking': '#1e1e1e', 'demanding_alpine_hiking': '#000000' };
+            Object.entries(sacCounts).sort((a, b) => b[1] - a[1]).forEach(([key, count]) => {
+                sacTreemap.ids.push(key);
+                sacTreemap.labels.push(`${sacLabels[key]} (${count})`);
+                sacTreemap.parents.push('SacRoot');
+                sacTreemap.values.push(count);
+                sacTreemap.colors.push(sacColors[key] || '#6ee7b7');
+            });
+            addMiniTreemap('Sentiers piétons par difficulté', '🚶', sacTreemap);
+        }
+
+        // ─── 3. Treemap Chemins vélo par catégorie ────────────────────────
+        const cycleCats = {
+            'bicycle_routes': 'VTT / Vélo (itinéraires)',
+            'cycleways': 'Piste Cyclable',
+            'tracks': 'Piste (Track)'
+        };
+        const cycleCounts = {};
+        networks.forEach(net => {
+            const t = net.type;
+            const route = net.relationRoute;
+            if (route === 'bicycle' || route === 'mtb') {
+                cycleCounts['bicycle_routes'] = (cycleCounts['bicycle_routes'] || 0) + 1;
+            } else if (t === 'cycleway') {
+                cycleCounts['cycleways'] = (cycleCounts['cycleways'] || 0) + 1;
+            } else if (t === 'track') {
+                cycleCounts['tracks'] = (cycleCounts['tracks'] || 0) + 1;
+            }
+        });
+        if (Object.keys(cycleCounts).length > 0) {
+            const totalCycle = Object.values(cycleCounts).reduce((a, b) => a + b, 0);
+            const cycleTreemap = {
+                ids: ['CycleRoot'], labels: [`Total (${totalCycle})`], parents: [''], values: [totalCycle],
+                colors: ['#60a5fa']
+            };
+            const cycleColors = { 'bicycle_routes': '#f97316', 'cycleways': '#3b82f6', 'tracks': '#854d0e' };
+            Object.entries(cycleCounts).sort((a, b) => b[1] - a[1]).forEach(([key, count]) => {
+                cycleTreemap.ids.push(key);
+                cycleTreemap.labels.push(`${cycleCats[key]} (${count})`);
+                cycleTreemap.parents.push('CycleRoot');
+                cycleTreemap.values.push(count);
+                cycleTreemap.colors.push(cycleColors[key] || '#93c5fd');
+            });
+            addMiniTreemap('Chemins vélo par type', '🚴', cycleTreemap);
+        }
+
+        // ── SLOPE CHART : Ratio Sentiers Piétons vs Vélo ──────────────────
+        const totalTrails = pedestrianTrailCount + cyclingTrailCount;
+        if (totalTrails > 0) {
+            const slopeSection = document.createElement('div');
+            slopeSection.style.cssText = 'margin-top:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;';
+
+            // Header + bouton Agrandir
+            const slopeHeaderRow = document.createElement('div');
+            slopeHeaderRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;';
+
+            const slopeHeader = document.createElement('span');
+            slopeHeader.style.cssText = 'font-size:0.8rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;';
+            slopeHeader.textContent = '📊 Slope Chart — Randonnée vs Cyclisme';
+            slopeHeaderRow.appendChild(slopeHeader);
+
+            const slopeDiv = document.createElement('div');
+            slopeDiv.style.height = '200px';
+
+            // Slope line color based on dominant side
+            let slopeColor;
+            if (pedestrianTrailCount > cyclingTrailCount) slopeColor = '#34d399';
+            else if (cyclingTrailCount > pedestrianTrailCount) slopeColor = '#60a5fa';
+            else slopeColor = '#fbbf24';
+
+            const slopeData = [
+                // The connecting line
+                {
+                    x: ['Randonnée 🚶', 'Cyclisme 🚴'],
+                    y: [pedestrianTrailCount, cyclingTrailCount],
+                    mode: 'lines+markers+text',
+                    type: 'scatter',
+                    line: { color: slopeColor, width: 4 },
+                    marker: {
+                        size: 20,
+                        color: ['#34d399', '#60a5fa'],
+                        line: { color: '#fff', width: 2 }
+                    },
+                    text: [
+                        `${pedestrianTrailCount.toLocaleString('fr-FR')}`,
+                        `${cyclingTrailCount.toLocaleString('fr-FR')}`
+                    ],
+                    textposition: ['top center', 'top center'],
+                    textfont: { color: '#fff', size: 14, family: 'Outfit, sans-serif' },
+                    hoverinfo: 'x+y'
+                }
+            ];
+
+            const slopeLayout = {
+                margin: { t: 25, l: 40, r: 40, b: 35 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Outfit, sans-serif', color: '#fff', size: 12 },
+                xaxis: {
+                    showgrid: false,
+                    zeroline: false,
+                    tickfont: { size: 12, color: '#fff' }
+                },
+                yaxis: {
+                    showgrid: true,
+                    gridcolor: 'rgba(255,255,255,0.08)',
+                    zeroline: false,
+                    tickfont: { size: 10, color: 'rgba(255,255,255,0.5)' }
+                },
+                showlegend: false
+            };
+
+            // Bouton Agrandir pour le slope chart
+            const slopeMaxBtn = document.createElement('button');
+            slopeMaxBtn.className = 'maximize-btn';
+            slopeMaxBtn.innerHTML = '⤢ Agrandir';
+            slopeMaxBtn.title = 'Voir en plein écran';
+            slopeMaxBtn.addEventListener('click', () => this._toggleFullScreenChart(slopeData, slopeLayout));
+            slopeHeaderRow.appendChild(slopeMaxBtn);
+
+            slopeSection.appendChild(slopeHeaderRow);
+            slopeSection.appendChild(slopeDiv);
+            this.macroStats.appendChild(slopeSection);
+
+            Plotly.newPlot(slopeDiv, slopeData, slopeLayout, miniConfig);
+        }
     }
 
     /** Lie les checkboxes heatmap après injection dans le DOM */
