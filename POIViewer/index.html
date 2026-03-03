@@ -126,35 +126,12 @@
                 <button id="close-micro-view" class="icon-btn" aria-label="Retour à la vue macro">✕</button>
             </div>
 
-            <div class="filters-container">
-                <select id="category-filter">
-                    <option value="all">🌎 Toutes catégories</option>
-                    <option value="tourism">📷 Tourisme</option>
-                    <option value="sustenance">🍴 Restauration</option>
-                    <option value="accommodation">🛏️ Hébergement</option>
-                    <option value="leisure">🎡 Loisirs</option>
-                    <option value="sport">⚽ Sport</option>
-                    <option value="historic">🏛️ Histoire & Patrimoine</option>
-                    <option value="natural">🌳 Nature</option>
-                    <option value="shop">🛒 Commerces</option>
-                    <option value="amenity">🚻 Services Divers</option>
-                    <option value="transport">🚌 Transport</option>
-                    <option value="healthcare">⚕️ Santé</option>
-                    <option value="emergency">🚨 Urgence</option>
-                    <option value="office">💼 Bureaux</option>
-                    <option value="craft">🎨 Artisanat</option>
-                    <option value="man_made">🏗️ Infrastructures</option>
-                    <option value="power">⚡ Énergie</option>
-                    <option value="barrier">🚧 Barrières</option>
-                    <option value="place">📍 Lieux & Villes</option>
-                </select>
+            <div class="filters-container" id="micro-filters-container">
                 <input type="text" id="poi-search-input" placeholder="Rechercher par nom..." class="search-input"
-                    style="width: 100%; margin-top: 10px; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white;">
-                <div id="sub-category-filter-container"></div>
+                    style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white;">
             </div>
 
             <div id="poi-list" class="poi-list">
-                <!-- POI Items will be injected here -->
                 <p class="empty-state">Sélectionnez une zone pour voir les lieux.</p>
             </div>
         </aside>

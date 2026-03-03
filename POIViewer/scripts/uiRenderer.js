@@ -8,7 +8,6 @@ export class UiRenderer {
         this.poiList = document.getElementById('poi-list');
         this.microSidebar = document.getElementById('micro-sidebar');
         this.closeMicroBtn = document.getElementById('close-micro-view');
-        this.categoryFilter = document.getElementById('category-filter');
 
         this.toggleFiltersBtn = document.getElementById('toggle-filters-btn');
         this.deselectAllBtn = document.getElementById('deselect-all-btn');
@@ -17,8 +16,6 @@ export class UiRenderer {
         this.deselectAllPathsBtn = document.getElementById('deselect-all-paths-btn');
 
         this.poiSearchInput = document.getElementById('poi-search-input');
-        this.subCategoryContainer = document.getElementById('sub-category-filter-container');
-        this.selectedSubCategory = null;
         this.excludedSubCategories = new Set();
 
         this.onFilterChange = null;
@@ -380,7 +377,6 @@ export class UiRenderer {
             this.categoryFilter.addEventListener('change', (e) => {
                 this.selectedSubCategory = null; // Reset sub-cat when main cat changes
                 this.filterList();
-                this.updateSidebarFilterOptions(this.lastPois); // Refresh sub-cats
             });
         }
 
@@ -1017,7 +1013,9 @@ export class UiRenderer {
             this.poiList.innerHTML = '<p class="empty-state">Aucun point d\'intérêt trouvé dans cette zone.</p>';
             return;
         }
-        this.updateSidebarFilterOptions(this.lastPois);
+
+        // C'est ici que la ligne fautive a été supprimée !
+
         this.poiList.innerHTML = pois.map(poi => this.createPoiCard(poi)).join('');
         this.poiList.querySelectorAll('.poi-card').forEach(card => {
             card.addEventListener('click', () => {
@@ -1028,89 +1026,6 @@ export class UiRenderer {
                     if (this.onPoiSelected) this.onPoiSelected(poi);
                 }
             });
-        });
-    }
-
-    updateSidebarFilterOptions(pois) {
-        if (!this.categoryFilter) return;
-        const categoriesPresent = new Set(pois.map(p => p.category));
-        const currentVal = this.categoryFilter.value;
-        this.categoryFilter.innerHTML = '';
-        const allOption = document.createElement('option');
-        allOption.value = 'all';
-        allOption.textContent = '🌎 Toutes catégories';
-        this.categoryFilter.appendChild(allOption);
-
-        this.categories.forEach(cat => {
-            if (categoriesPresent.has(cat.id)) {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = `${this.getCategoryEmoji(cat.id)} ${cat.label}`;
-                this.categoryFilter.appendChild(option);
-            }
-        });
-
-        if (categoriesPresent.has(currentVal) || currentVal === 'all') {
-            this.categoryFilter.value = currentVal;
-        } else {
-            this.categoryFilter.value = 'all';
-        }
-
-        this.renderSubCategoryFilters(pois, this.categoryFilter.value);
-    }
-
-    renderSubCategoryFilters(pois, category) {
-        if (!this.subCategoryContainer) return;
-
-        // Filter POIs by standard category first to get relevant types
-        let filteredPois = pois;
-        if (category !== 'all') {
-            filteredPois = pois.filter(p => p.category === category);
-        }
-
-        // Count Types
-        const typeCounts = {};
-        filteredPois.forEach(p => {
-            if (!typeCounts[p.type]) typeCounts[p.type] = 0;
-            typeCounts[p.type]++;
-        });
-
-        // Convert to array and sort
-        const sortedTypes = Object.entries(typeCounts)
-            .map(([type, count]) => ({ type, count }))
-            .sort((a, b) => b.count - a.count);
-
-        this.subCategoryContainer.innerHTML = '';
-
-        // "All" Chip
-        const allBtn = document.createElement('button');
-        allBtn.className = `preset-btn ${this.selectedSubCategory === null ? 'active' : ''}`;
-        allBtn.style.fontSize = '0.75rem';
-        allBtn.style.padding = '4px 8px';
-        allBtn.textContent = `Tout (${filteredPois.length})`;
-        allBtn.addEventListener('click', () => {
-            this.selectedSubCategory = null;
-            this.filterList();
-            this.renderSubCategoryFilters(pois, category); // Re-render to update active state
-        });
-        this.subCategoryContainer.appendChild(allBtn);
-
-        // Type Chips
-        sortedTypes.forEach(item => {
-            const btn = document.createElement('button');
-            const isActive = this.selectedSubCategory === item.type;
-            btn.className = `preset-btn ${isActive ? 'active' : ''}`;
-            btn.style.fontSize = '0.75rem';
-            btn.style.padding = '4px 8px';
-            // Use translation
-            const label = this.translateType(item.type);
-            btn.textContent = `${label} (${item.count})`;
-            btn.addEventListener('click', () => {
-                this.selectedSubCategory = isActive ? null : item.type; // Toggle
-                this.filterList();
-                this.renderSubCategoryFilters(pois, category); // Re-render to update active state
-            });
-            this.subCategoryContainer.appendChild(btn);
         });
     }
 
@@ -1127,7 +1042,8 @@ export class UiRenderer {
     }
 
     renderPoiDetails(poi) {
-        this.categoryFilter.parentElement.style.display = 'none';
+        const filtersContainer = document.getElementById('micro-filters-container');
+        if (filtersContainer) filtersContainer.style.display = 'none';
         const color = this.getCategoryColor(poi.category);
         const typeStyle = `background: ${color}22; color: ${color}; border: 1px solid ${color}55;`;
 
@@ -1173,8 +1089,10 @@ export class UiRenderer {
             </div>`;
 
         // Back button
+        // Back button
         document.getElementById('back-to-list').addEventListener('click', () => {
-            this.categoryFilter.parentElement.style.display = 'block';
+            const filtersContainer = document.getElementById('micro-filters-container');
+            if (filtersContainer) filtersContainer.style.display = 'block';
             this.filterList();
         });
 
@@ -1375,23 +1293,10 @@ export class UiRenderer {
     }
 
     filterList() {
-        const category = this.categoryFilter ? this.categoryFilter.value : 'all';
         const searchQuery = this.poiSearchInput ? this.poiSearchInput.value.toLowerCase() : '';
-        const subCat = this.selectedSubCategory;
-
         let filtered = this.lastPois;
 
-        // 1. Category
-        if (category !== 'all') {
-            filtered = filtered.filter(p => p.category === category);
-        }
-
-        // 2. Sub-Category
-        if (subCat) {
-            filtered = filtered.filter(p => p.type === subCat);
-        }
-
-        // 3. Search
+        // On ne filtre plus que par la recherche textuelle
         if (searchQuery.length > 0) {
             filtered = filtered.filter(p =>
                 p.name.toLowerCase().includes(searchQuery) ||
@@ -1401,7 +1306,6 @@ export class UiRenderer {
 
         this.renderMicroList(filtered);
     }
-
     getCategoryEmoji(category) {
         const emojis = {
             'tourism': '📷', 'sustenance': '🍴', 'accommodation': '🛏️', 'amenity': '🚻',
