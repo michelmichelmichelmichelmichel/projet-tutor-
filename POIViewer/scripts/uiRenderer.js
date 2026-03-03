@@ -745,7 +745,7 @@ export class UiRenderer {
 
             const allCb = document.createElement('input');
             allCb.type = 'checkbox';
-            allCb.checked = false;
+            allCb.checked = true;
             allCb.style.accentColor = 'var(--color-primary)';
             allCb.addEventListener('change', () => {
                 const subCbs = container.querySelectorAll('input[type="checkbox"].sub-cat-cb');
@@ -781,7 +781,7 @@ export class UiRenderer {
                 cb.type = 'checkbox';
                 cb.className = 'sub-cat-cb';
                 cb.value = typeName;
-                cb.checked = false;
+                cb.checked = true;
                 cb.style.accentColor = 'var(--color-primary)';
                 cb.addEventListener('change', () => {
                     if (!cb.checked) {
