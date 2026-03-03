@@ -56,6 +56,18 @@
                 <input type="color" id="polygon-color-picker" value="#3388ff"
                     style="cursor: pointer; border: none; width: 40px; height: 25px; padding: 0; background: none; border-radius: 4px;">
             </div>
+
+            <!-- Ajout de la sélection du serveur Overpass -->
+            <div class="filter-section" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">
+                <label style="color: #fff; font-size: 0.85rem;">Serveur Overpass API</label>
+                <select id="overpass-server-select"
+                    style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; cursor: pointer;">
+                    <option value="https://overpass-api.de/api/interpreter">overpass-api.de (Officiel)</option>
+                    <option value="https://overpass.private.coffee/api/interpreter" selected>Private Coffee</option>
+                    <option value="https://maps.mail.ru/osm/tools/overpass/api/interpreter">Mails.ru</option>
+                    <option value="https://overpass.osm.ch/api/interpreter">osm.ch</option>
+                </select>
+            </div>
         </div>
 
         <!-- Macro View Overlay (Statistics & Instructions) -->
@@ -153,7 +165,8 @@
             <div class="presets-tabs"
                 style="display: flex; justify-content: space-between; align-items: center; padding-right: 10px;">
                 <div style="display: flex; flex: 1; overflow-x: auto;">
-                    <button class="tab-btn active" data-tab="national">Parcs Nationaux</button>
+                    <button class="tab-btn" data-tab="countries">Pays</button> <button class="tab-btn active"
+                        data-tab="national">Parcs Nationaux</button>
                     <button class="tab-btn" data-tab="regional">Parcs Régionaux</button>
                     <button class="tab-btn" data-tab="regions">Régions</button>
                     <button class="tab-btn" data-tab="departments">Départements</button>
@@ -163,6 +176,16 @@
                     style="padding: 4px 8px;">−</button>
             </div>
 
+            <div id="countries-content" class="tab-content">
+                <div class="search-container" style="padding: 10px 0;">
+                    <input type="text" id="country-search-input" placeholder="Rechercher un pays..."
+                        style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
+                </div>
+                <div id="countries-results" class="presets-list">
+                    <p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Tapez le nom d'un
+                        pays...</p>
+                </div>
+            </div>
             <div id="national-content" class="tab-content active">
                 <div id="national-list" class="presets-list">
                     <!-- National Parks injected here -->

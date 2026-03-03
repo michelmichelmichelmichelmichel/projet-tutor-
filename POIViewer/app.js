@@ -19,6 +19,10 @@ class App {
         this.uiRenderer.init();
         this.uiRenderer.setApiService(this.apiService);
 
+        this.uiRenderer.onServerChange = (newUrl) => {
+            this.apiService.overpassUrl = newUrl;
+        };
+
         // Bind Drawing Event
         this.mapManager.onPolygonCreated = async (layer) => {
             this.uiRenderer.closeSettings(); // Ferme le panneau dès qu'une zone est validée
@@ -89,6 +93,13 @@ class App {
 
         // Initialize Presets
         this.uiRenderer.initPresets();
+        // NOUVEAU: Zoomer sur la carte lors de la sélection d'un pays
+        this.uiRenderer.onCountrySelected = (bounds) => {
+            if (bounds) {
+                this.mapManager.map.fitBounds(bounds);
+                this.uiRenderer.minimizePresetsPanel(); // Réduit le panneau
+            }
+        }
         this.uiRenderer.onPresetSelected = async (park) => {
             this.uiRenderer.showLoading(true);
             let layer = null;

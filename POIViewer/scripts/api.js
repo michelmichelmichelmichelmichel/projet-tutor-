@@ -1,7 +1,18 @@
 export class ApiService {
     constructor() {
         this.overpassUrl = 'https://overpass-api.de/api/interpreter';
-        this._dbPromise = null; // Lazy-init IndexedDB
+        this._dbPromise = null;
+
+        // État du pays actuel (France par défaut)
+        this.currentCountryAreaId = 3601403916;
+        this.currentCountryCode = 'fr';
+        this.currentCountryName = 'France';
+    }
+
+    setCountry(name, code, areaId) {
+        this.currentCountryName = name;
+        this.currentCountryCode = code;
+        this.currentCountryAreaId = areaId;
     }
 
     async fetchPOIs(latLngs, selectedCategories = []) {
@@ -97,8 +108,13 @@ export class ApiService {
 
             if (!response.ok) throw new Error(`Overpass API Error: ${response.statusText}`);
 
-            const data = await response.json();
-            // Toujours traiter SANS filtre de catégorie pour stocker tout en cache
+            const responseText = await response.text();
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (e) {
+                throw new Error("The Overpass server returned an invalid format (likely an XML error page). Try switching servers.");
+            }            // Toujours traiter SANS filtre de catégorie pour stocker tout en cache
             const fullResult = this.processData(data.elements, []);
 
             // --- Cache IndexedDB : sauvegarde des données complètes ---
@@ -340,111 +356,96 @@ export class ApiService {
         }
     }
 
-    async fetchFrenchPNRs() {
-        const CACHE_KEY = 'pnr_cache_v1';
-        const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 heures
-
-        // 1. Vérification du cache
+    async searchCountries(query) {
+        if (!query || query.length < 3) return [];
+        const url = `https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(query)}&format=json&featuretype=country&limit=5`;
+        try {
+            const resp = await fetch(url);
+            const data = await resp.json();
+            return data.filter(d => d.osm_type === 'relation').map(d => ({
+                name: d.display_name,
+                countryCode: d.country_code || 'fr',
+                areaId: 3600000000 + parseInt(d.osm_id),
+                bounds: [
+                    [parseFloat(d.boundingbox[0]), parseFloat(d.boundingbox[2])],
+                    [parseFloat(d.boundingbox[1]), parseFloat(d.boundingbox[3])]
+                ]
+            }));
+        } catch (e) {
+            console.error("Erreur recherche pays:", e);
+            return [];
+        }
+    }
+    async fetchParks() {
+        const CACHE_KEY = `parks_cache_${this.currentCountryAreaId}`;
+        const CACHE_DURATION = 24 * 60 * 60 * 1000;
         const cached = localStorage.getItem(CACHE_KEY);
         if (cached) {
             try {
                 const { timestamp, data } = JSON.parse(cached);
-                if (Date.now() - timestamp < CACHE_DURATION) {
-                    console.log("✅ Chargement des PNR depuis le cache local");
-                    return data;
-                }
-            } catch (e) {
-                console.warn("Cache invalide");
-            }
+                if (Date.now() - timestamp < CACHE_DURATION) return data;
+            } catch (e) { }
         }
 
-        // 2. Requête API (si pas de cache valide)
         const query = `
-            [out:json][timeout:25];
-            relation(9091001); 
-            relation(r); 
+            [out:json][timeout:50];
+            area(${this.currentCountryAreaId})->.searchArea;
+            (
+              relation["boundary"="national_park"](area.searchArea);
+              relation["boundary"="protected_area"]["protect_class"~"2|5"](area.searchArea);
+            );
             out tags bb;
         `;
 
         try {
-            console.log("🌍 Téléchargement de la liste des PNR depuis Overpass...");
             const response = await fetch(this.overpassUrl, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `data=${encodeURIComponent(query)}`
             });
-
-            if (response.status === 429) {
-                console.warn("⚠️ Trop de requêtes (429). Utilisation du cache si possible.");
-                if (cached) return JSON.parse(cached).data;
-                throw new Error("API Limit Reached");
-            }
-
             if (!response.ok) throw new Error(`Erreur Overpass: ${response.status}`);
-
             const data = await response.json();
+            const parks = data.elements
+                .filter(el => el.tags && el.tags.name)
+                .map(el => ({
+                    name: el.tags.name,
+                    relationId: el.id,
+                    bounds: [[el.bounds.minlat, el.bounds.minlon], [el.bounds.maxlat, el.bounds.maxlon]]
+                }))
+                .sort((a, b) => a.name.localeCompare(b.name));
 
-            const pnrs = data.elements.map(el => ({
-                name: el.tags.name,
-                relationId: el.id,
-                bounds: [
-                    [el.bounds.minlat, el.bounds.minlon],
-                    [el.bounds.maxlat, el.bounds.maxlon]
-                ]
-            })).sort((a, b) => a.name.localeCompare(b.name));
-
-            // 3. Sauvegarde dans le cache
-            localStorage.setItem(CACHE_KEY, JSON.stringify({
-                timestamp: Date.now(),
-                data: pnrs
-            }));
-
-            return pnrs;
-
+            localStorage.setItem(CACHE_KEY, JSON.stringify({ timestamp: Date.now(), data: parks }));
+            return parks;
         } catch (error) {
-            console.error("Erreur chargement PNR:", error);
-            // En dernier recours, on renvoie le cache même vieux s'il existe
+            console.error("Erreur chargement parcs:", error);
             if (cached) return JSON.parse(cached).data;
             return [];
         }
     }
 
-    async fetchFrenchRegions() {
-        const CACHE_KEY = 'regions_cache_v1';
-        return this._fetchAdminArea(CACHE_KEY, '4');
+    async fetchRegions() {
+        return this._fetchAdminArea(`regions_cache_${this.currentCountryAreaId}`, '4');
     }
 
-    async fetchFrenchDepartments() {
-        const CACHE_KEY = 'depts_cache_v1';
-        return this._fetchAdminArea(CACHE_KEY, '6');
+    async fetchDepartments() {
+        return this._fetchAdminArea(`depts_cache_${this.currentCountryAreaId}`, '6');
     }
 
     // Helper for Regions/Departments
     async _fetchAdminArea(cacheKey, adminLevel) {
-        // ... (existing code) ...
-        // (Keeping existing code identical, just appending new method after it or before end of class)
-        const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000; // 30 jours (ça change rarement)
-
+        const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000;
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
             try {
                 const { timestamp, data } = JSON.parse(cached);
-                if (Date.now() - timestamp < CACHE_DURATION) {
-                    console.log(`✅ Chargement admin_level=${adminLevel} depuis le cache local`);
-                    return data;
-                }
-            } catch (e) {
-                console.warn("Cache invalide");
-            }
+                if (Date.now() - timestamp < CACHE_DURATION) return data;
+            } catch (e) { }
         }
 
-        // OPTIMISATION: Utiliser searchArea "France Métropolitaine" (ID 1403916 => Area 3601403916)
-        // Plutôt que la BBox qui est lourde.
-        // On augmente le timeout à 90s pour éviter les 504.
         const query = `
             [out:json][timeout:90];
-            area(3601403916)->.searchArea;
-            relation["boundary"="administrative"]["admin_level"="${adminLevel}"]["ref:INSEE"](area.searchArea);
+            area(${this.currentCountryAreaId})->.searchArea;
+            relation["boundary"="administrative"]["admin_level"="${adminLevel}"](area.searchArea);
             out tags bb;
         `;
 
@@ -500,70 +501,72 @@ export class ApiService {
     async searchCommunes(query) {
         if (!query || query.length < 3) return [];
 
-        // Utilisation de l'API GéoGouv au format GeoJSON pour avoir le contour précis
-        const url = `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(query)}&fields=nom,code,codeDepartement,codesPostaux&format=geojson&geometry=contour&boost=population&limit=10`;
+        if (this.currentCountryCode === 'fr') {
+            // API GeoGouv pour la France (très rapide et précise)
+            const url = `https://geo.api.gouv.fr/communes?nom=${encodeURIComponent(query)}&fields=nom,code,codeDepartement,codesPostaux&format=geojson&geometry=contour&boost=population&limit=10`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) throw new Error("GeoAPI Error");
+                const data = await response.json();
+                if (!data.features) return [];
+                return data.features.map(feature => {
+                    const props = feature.properties;
+                    const geometry = feature.geometry;
 
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error("GeoAPI Error");
-            const data = await response.json(); // data is a FeatureCollection
+                    let minLat = Infinity, minLon = Infinity, maxLat = -Infinity, maxLon = -Infinity;
+                    const allPoints = [];
+                    if (geometry.type === 'Polygon') geometry.coordinates[0].forEach(p => allPoints.push(p));
+                    else if (geometry.type === 'MultiPolygon') geometry.coordinates.forEach(poly => poly[0].forEach(p => allPoints.push(p)));
 
-            if (!data.features) return [];
+                    allPoints.forEach(pt => {
+                        const [lon, lat] = pt;
+                        if (lon < minLon) minLon = lon;
+                        if (lon > maxLon) maxLon = lon;
+                        if (lat < minLat) minLat = lat;
+                        if (lat > maxLat) maxLat = lat;
+                    });
 
-            return data.features.map(feature => {
-                const props = feature.properties;
-                const geometry = feature.geometry;
-
-                // Calculate bounds from geometry (Polygon or MultiPolygon)
-                let latLngs = [];
-                // Simple helper to extract coords
-                const extractCoords = (coords) => {
-                    if (typeof coords[0] === 'number') return [coords]; // Point [lon, lat]
-                    return coords.reduce((acc, val) => acc.concat(extractCoords(val)), []);
-                };
-
-                // For Polygon: [[ [lon, lat], ... ]]
-                // For MultiPolygon: [[[ [lon, lat], ... ]]]
-                // Leaflet expects [lat, lon], GeoJSON is [lon, lat]
-
-                // Quick bounds calculation
-                let minLat = Infinity, minLon = Infinity, maxLat = -Infinity, maxLon = -Infinity;
-                const flatCoords = extractCoords(geometry.coordinates);
-
-                // flatCoords will be array of [lon, lat] (or single numbers if I messed up recursion, but reduce handles arrays)
-                // Actually recursion above flattens to [lon, lat, lon, lat...] ? No.
-                // Let's use specific logic for Polygon/MultiPolygon
-                const allPoints = [];
-                if (geometry.type === 'Polygon') {
-                    geometry.coordinates[0].forEach(p => allPoints.push(p));
-                } else if (geometry.type === 'MultiPolygon') {
-                    geometry.coordinates.forEach(poly => poly[0].forEach(p => allPoints.push(p)));
-                }
-
-                allPoints.forEach(pt => {
-                    const [lon, lat] = pt;
-                    if (lon < minLon) minLon = lon;
-                    if (lon > maxLon) maxLon = lon;
-                    if (lat < minLat) minLat = lat;
-                    if (lat > maxLat) maxLat = lat;
+                    return {
+                        name: props.nom,
+                        fullName: `${props.nom} (${props.codesPostaux ? props.codesPostaux[0] : props.code})`,
+                        type: 'city',
+                        code: props.code,
+                        codeDepartement: props.codeDepartement || null,
+                        geometry: geometry,
+                        bounds: [[minLat, minLon], [maxLat, maxLon]],
+                        lat: (minLat + maxLat) / 2,
+                        lon: (minLon + maxLon) / 2
+                    };
                 });
+            } catch (error) { console.error(error); return []; }
+        } else {
+            // Nominatim OSM pour l'international avec polygones
+            const url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(query)}&country=${encodeURIComponent(this.currentCountryName)}&format=json&polygon_geojson=1&limit=10`;
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                return data.map(d => {
+                    const bbox = d.boundingbox;
+                    const minLat = parseFloat(bbox[0]);
+                    const maxLat = parseFloat(bbox[1]);
+                    const minLon = parseFloat(bbox[2]);
+                    const maxLon = parseFloat(bbox[3]);
 
-                return {
-                    name: props.nom,
-                    fullName: `${props.nom} (${props.codesPostaux ? props.codesPostaux[0] : props.code})`,
-                    type: 'city',
-                    code: props.code,
-                    codeDepartement: props.codeDepartement || null,
-                    geometry: geometry, // GeoJSON Geometry Object (Polygon/MultiPolygon)
-                    bounds: [[minLat, minLon], [maxLat, maxLon]],
-                    lat: (minLat + maxLat) / 2, // Centroid approx
-                    lon: (minLon + maxLon) / 2
-                };
-            });
-
-        } catch (error) {
-            console.error("Erreur recherche commune:", error);
-            return [];
+                    return {
+                        name: d.name || d.display_name.split(',')[0],
+                        fullName: d.display_name,
+                        type: 'city',
+                        code: d.osm_id,
+                        geometry: d.geojson,
+                        bounds: [[minLat, minLon], [maxLat, maxLon]],
+                        lat: parseFloat(d.lat),
+                        lon: parseFloat(d.lon)
+                    };
+                }).filter(d => d.geometry && (d.geometry.type === 'Polygon' || d.geometry.type === 'MultiPolygon'));
+            } catch (error) {
+                console.error("Erreur recherche ville internationale:", error);
+                return [];
+            }
         }
     }
 

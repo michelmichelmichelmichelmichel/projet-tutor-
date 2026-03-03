@@ -24,6 +24,7 @@ export class UiRenderer {
         this.onFilterChange = null;
         this.onSubCategoryFilterChange = null;
         this.onPoiSelected = null;
+        this.onServerChange = null;
 
         this.categories = [
             { id: 'tourism', label: 'Tourisme' },
@@ -63,28 +64,32 @@ export class UiRenderer {
     }
 
     async initPresets() {
-        // --- Tab Logic ---
-        const tabs = document.querySelectorAll('.tab-btn');
-        const contents = document.querySelectorAll('.tab-content');
+        // --- 1. Logique de changement d'onglets (Tabs) ---
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
 
-        tabs.forEach(tab => {
-            tab.addEventListener('click', () => {
-                // Remove active class from all
-                tabs.forEach(t => t.classList.remove('active'));
-                contents.forEach(c => c.classList.remove('active'));
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                // Retirer la classe active de tous les boutons et contenus
+                tabBtns.forEach(b => b.classList.remove('active'));
+                tabContents.forEach(c => c.classList.remove('active'));
 
-                // Add active to clicked
-                tab.classList.add('active');
-                const targetId = tab.getAttribute('data-tab');
-                document.getElementById(`${targetId}-content`).classList.add('active');
+                // Ajouter la classe active au bouton cliqué
+                btn.classList.add('active');
+
+                // Afficher le contenu correspondant
+                const tabId = btn.getAttribute('data-tab');
+                const content = document.getElementById(`${tabId}-content`);
+                if (content) {
+                    content.classList.add('active');
+                }
             });
         });
 
-
-        // --- 1. Parcs Nationaux (Statique) ---
-        const nationalContainer = document.getElementById('national-list');
-        if (nationalContainer) {
-            nationalContainer.innerHTML = '';
+        // --- 2. Parcs Nationaux (Statique) ---
+        const nationalList = document.getElementById('national-list');
+        if (nationalList) {
+            nationalList.innerHTML = ''; // Nettoyer avant
             this.nationalParks.forEach(park => {
                 const btn = document.createElement('button');
                 btn.className = 'preset-btn';
@@ -93,21 +98,94 @@ export class UiRenderer {
                     if (this.onPresetSelected) this.onPresetSelected(park);
                     this.minimizePresetsPanel();
                 });
-                nationalContainer.appendChild(btn);
+                nationalList.appendChild(btn);
             });
         }
 
-        // --- 2. Parcs Régionaux (Dynamique) ---
-        this._populateDynamicList('regional-list', () => this.apiService.fetchFrenchPNRs());
+        // --- 3. Listes dynamiques avec l'API (Séquentiel pour éviter l'erreur 429) ---
+        const loadDynamicLists = async () => {
+            await this._populateDynamicList('regional-list', () => this.apiService.fetchParks());
+            await this._populateDynamicList('regions-list', () => this.apiService.fetchRegions());
+            await this._populateDynamicList('departments-list', () => this.apiService.fetchDepartments());
+        };
+        loadDynamicLists();
 
-        // --- 3. Régions (Dynamique) ---
-        this._populateDynamicList('regions-list', () => this.apiService.fetchFrenchRegions());
-
-        // --- 4. Départements (Dynamique) ---
-        this._populateDynamicList('departments-list', () => this.apiService.fetchFrenchDepartments());
-
-        // --- 5. Villes (Recherche) ---
+        // --- 4. Recherches dynamiques (Villes et Pays) ---
         this.initCitySearch();
+        this.initCountrySearch();
+    }
+
+    // Ajoutez cette nouvelle méthode dans la classe UiRenderer
+    initCountrySearch() {
+        const input = document.getElementById('country-search-input');
+        const resultsContainer = document.getElementById('countries-results');
+
+        if (!input || !resultsContainer) return;
+
+        let timeout;
+        input.addEventListener('input', (e) => {
+            const query = e.target.value;
+            clearTimeout(timeout);
+            timeout = setTimeout(async () => {
+                if (query.length < 3) {
+                    resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Tapez au moins 3 caractères...</p>';
+                    return;
+                }
+
+                resultsContainer.innerHTML = '<div class="loading-container"><span class="spinner"></span><span>Recherche...</span></div>';
+
+                try {
+                    const results = await this.apiService.searchCountries(query);
+                    resultsContainer.innerHTML = '';
+
+                    if (results.length === 0) {
+                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucun pays trouvé.</p>';
+                        return;
+                    }
+
+                    results.forEach(country => {
+                        const btn = document.createElement('button');
+                        btn.className = 'preset-btn';
+                        btn.style.width = '100%';
+                        btn.style.textAlign = 'left';
+                        btn.style.display = 'block';
+                        btn.innerHTML = `<strong>${country.name}</strong>`;
+
+                        btn.addEventListener('click', async () => { // <-- AJOUT DE async
+                            // 1. Définir le pays actif dans l'API
+                            this.apiService.setCountry(country.name, country.countryCode, country.areaId);
+
+                            // 2. Feedback visuel de chargement immédiat
+                            resultsContainer.innerHTML = `<div class="loading-container"><span class="spinner"></span><span style="color: var(--color-primary); font-size: 0.9rem;">Chargement des données pour ${country.name}...</span></div>`;
+
+                            // 3. Modifier le placeholder de la ville
+                            const cityInput = document.getElementById('city-search-input');
+                            if (cityInput) cityInput.placeholder = `Rechercher une ville en ${country.name}...`;
+
+                            // 4. Zoomer tout de suite sur la carte pour fluidifier l'expérience
+                            if (this.onCountrySelected) this.onCountrySelected(country.bounds);
+
+                            // 5. Rafraichir les listes SÉQUENTIELLEMENT (avec await)
+                            try {
+                                await this._populateDynamicList('regional-list', () => this.apiService.fetchParks());
+                                await this._populateDynamicList('regions-list', () => this.apiService.fetchRegions());
+                                await this._populateDynamicList('departments-list', () => this.apiService.fetchDepartments());
+
+                                resultsContainer.innerHTML = `<p style="color: var(--color-primary); font-size: 0.9rem; padding: 10px;">✅ Filtre Pays appliqué : <b>${country.name}</b></p>`;
+                            } catch (err) {
+                                console.error(err);
+                                resultsContainer.innerHTML = `<p style="color: #fbbf24; font-size: 0.9rem; padding: 10px;">⚠️ Pays appliqué, mais le serveur est surchargé (certaines listes peuvent être vides).</p>`;
+                            }
+                        });
+                        resultsContainer.appendChild(btn);
+                    });
+
+                } catch (e) {
+                    console.error(e);
+                    resultsContainer.innerHTML = '<p class="empty-state" style="color:var(--color-danger)">Erreur de recherche.</p>';
+                }
+            }, 500);
+        });
     }
 
     initCitySearch() {
@@ -275,6 +353,17 @@ export class UiRenderer {
         if (closeSettingsBtn && settingsPanel) {
             closeSettingsBtn.addEventListener('click', () => {
                 this.closeSettings();
+            });
+        }
+
+        const serverSelect = document.getElementById('overpass-server-select');
+        if (serverSelect) {
+            serverSelect.addEventListener('change', (e) => {
+                console.log('%c[Test API] Connexion à : ' + e.target.value, 'color: #3388ff; font-weight: bold;');
+                fetch(e.target.value + "?data=[out:json];node(42.7,0.5,42.8,0.6)[amenity];out 1;").then(r => console.log('%c[Test API] Réponse OK (' + r.status + ') du serveur ' + e.target.value, 'color: lime; font-weight: bold;')).catch(err => console.error('[Test API] Erreur : ', err));
+                if (this.onServerChange) {
+                    this.onServerChange(e.target.value);
+                }
             });
         }
 
