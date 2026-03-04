@@ -66,11 +66,25 @@
                 <label style="color: #fff; font-size: 0.85rem;">Serveur Overpass API</label>
                 <select id="overpass-server-select"
                     style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; cursor: pointer;">
+                    <option value="https://overpass.private.coffee/api/interpreter" selected>Private Coffee (Rapide)
+                    </option>
                     <option value="https://overpass-api.de/api/interpreter">overpass-api.de (Officiel)</option>
-                    <option value="https://overpass.private.coffee/api/interpreter" selected>Private Coffee</option>
-                    <option value="https://maps.mail.ru/osm/tools/overpass/api/interpreter">Mails.ru</option>
-                    <option value="https://overpass.osm.ch/api/interpreter">osm.ch</option>
+                    <option value="https://overpass.kumi.systems/api/interpreter">Kumi Systems</option>
+                    <option value="https://overpass.osm.ch/api/interpreter">osm.ch (Suisse)</option>
                 </select>
+            </div>
+
+            <div class="filter-section" style="margin-top: 15px;">
+                <button id="force-refresh-btn"
+                    style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(59,130,246,0.4); background: rgba(59,130,246,0.12); color: #93c5fd; font-size: 0.85rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    🔄 Rafraîchir cette zone
+                </button>
+                <span style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px; display: block;">Vide
+                    le cache de la zone active et re-télécharge</span>
+                <button id="force-reset-all-btn"
+                    style="width: 100%; margin-top: 8px; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: #fca5a5; font-size: 0.78rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                    🗑️ Reset complet (tout le cache)
+                </button>
             </div>
         </div>
 

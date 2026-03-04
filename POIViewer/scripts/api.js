@@ -1,12 +1,19 @@
 export class ApiService {
     constructor() {
-        this.overpassUrl = 'https://overpass-api.de/api/interpreter';
+        this.overpassUrl = 'https://overpass.private.coffee/api/interpreter';
+        this.nominatimUrl = 'https://nominatim.openstreetmap.org/search';
+        this.geoGouvUrl = 'https://geo.api.gouv.fr/communes';
+        this.wikidataUrl = 'https://query.wikidata.org/sparql';
+
         this._dbPromise = null;
 
         // État du pays actuel (France par défaut)
-        this.currentCountryAreaId = 3601403916;
+        this.currentCountryAreaId = 36001403916;
         this.currentCountryCode = 'fr';
         this.currentCountryName = 'France';
+
+        // Anti-spam lock for concurrent requests on the same area
+        this._pendingFetches = new Map();
     }
 
     setCountry(name, code, areaId) {
@@ -23,6 +30,18 @@ export class ApiService {
         const POI_CACHE_DURATION = 60 * 60 * 1000; // 1 heure
         let cachedEntry = null;
 
+        // 1. Check if a network request is already ongoing for this exact polygon
+        if (this._pendingFetches.has(cacheKey)) {
+            console.log("⏳ Requête déjà en cours pour cette zone, attente...");
+            try {
+                // Wait for the ongoing fetch to finish, then we filter the result
+                const fullResult = await this._pendingFetches.get(cacheKey);
+                return this._filterByCategories(fullResult, selectedCategories);
+            } catch (e) {
+                // Ignore the error here, it will be handled by the original fetcher
+            }
+        }
+
         try {
             cachedEntry = await this._idbGet(cacheKey);
             if (cachedEntry && (Date.now() - cachedEntry.timestamp < POI_CACHE_DURATION)) {
@@ -34,8 +53,7 @@ export class ApiService {
             console.warn("Lecture cache IndexedDB échouée:", e);
         }
 
-        // Convert Leaflet LatLngs to Overpass Poly String: "lat1 lon1 lat2 lon2 ..."
-        // Ensure the polygon is closed (first point == last point)
+        // Convert Leaflet LatLngs to Overpass Poly String
         const points = [...latLngs];
         if (points.length > 0) {
             const first = points[0];
@@ -44,65 +62,60 @@ export class ApiService {
                 points.push(first);
             }
         }
-
         const polyCoords = points.map(pt => `${pt.lat} ${pt.lng}`).join(' ');
 
-        // Toujours fetch TOUTES les catégories pour le cache
-        const categoryToKeys = {
-            'tourism': ['tourism'],
-            'sustenance': ['amenity'],
-            'accommodation': ['amenity', 'tourism'],
-            'leisure': ['leisure'],
-            'sport': ['sport'],
-            'historic': ['historic'],
-            'natural': ['natural', 'mountain_pass'],
-            'shop': ['shop'],
-            'amenity': ['amenity'],
-            'transport': ['public_transport', 'railway'],
-            'healthcare': ['amenity', 'healthcare'],
-            'emergency': ['emergency'],
-            'office': ['office'],
-            'craft': ['craft'],
-            'man_made': ['man_made'],
-            'power': ['power'],
-            'barrier': ['barrier'],
-            'place': ['place']
-        };
+        // Define the network fetch operation as a single Promise we can share
+        const fetchPromise = (async () => {
+            const categoryToKeys = {
+                'tourism': ['tourism'],
+                'sustenance': ['amenity'],
+                'accommodation': ['amenity', 'tourism'],
+                'leisure': ['leisure'],
+                'sport': ['sport'],
+                'historic': ['historic'],
+                'natural': ['natural', 'mountain_pass'],
+                'shop': ['shop'],
+                'amenity': ['amenity'],
+                'transport': ['public_transport', 'railway'],
+                'healthcare': ['amenity', 'healthcare'],
+                'emergency': ['emergency'],
+                'office': ['office'],
+                'craft': ['craft'],
+                'man_made': ['man_made'],
+                'power': ['power'],
+                'barrier': ['barrier'],
+                'place': ['place']
+            };
 
-        // On fetch TOUJOURS toutes les clés pour avoir un cache complet
-        const allKeys = new Set();
-        Object.values(categoryToKeys).flat().forEach(k => allKeys.add(k));
-        const keysRegex = Array.from(allKeys).join('|');
-        const nodeQuery = `node[~"^(${keysRegex})$"~"."](poly:"${polyCoords}");`;
+            const allKeys = new Set();
+            Object.values(categoryToKeys).flat().forEach(k => allKeys.add(k));
+            const keysRegex = Array.from(allKeys).join('|');
+            const nodeQuery = `node[~"^(${keysRegex})$"~"."](poly:"${polyCoords}");`;
 
-        // POI Query (Nodes) + Network Query (Ways with Geometry)
-        const query = `
-            [out:json][timeout:60];
-            (
-              ${nodeQuery}
-              way["highway"](poly:"${polyCoords}");
-              way["railway"](poly:"${polyCoords}");
-              way["aerialway"](poly:"${polyCoords}");
-              way["piste:type"](poly:"${polyCoords}");
-              way["waterway"](poly:"${polyCoords}");
-              relation["waterway"](poly:"${polyCoords}");
-              way["natural"="water"](poly:"${polyCoords}");
-              relation["natural"="water"](poly:"${polyCoords}");
-              way["landuse"="reservoir"](poly:"${polyCoords}");
-              relation["landuse"="reservoir"](poly:"${polyCoords}");
-              way["landuse"="basin"](poly:"${polyCoords}");
-              relation["route"~"hiking|foot|bicycle|mtb|ski|piste"](poly:"${polyCoords}");
-            );
-            out geom;
-        `;
+            const query = `
+                [out:json][timeout:60];
+                (
+                  ${nodeQuery}
+                  way["highway"](poly:"${polyCoords}");
+                  way["railway"](poly:"${polyCoords}");
+                  way["aerialway"](poly:"${polyCoords}");
+                  way["piste:type"](poly:"${polyCoords}");
+                  way["waterway"](poly:"${polyCoords}");
+                  relation["waterway"](poly:"${polyCoords}");
+                  way["natural"="water"](poly:"${polyCoords}");
+                  relation["natural"="water"](poly:"${polyCoords}");
+                  way["landuse"="reservoir"](poly:"${polyCoords}");
+                  relation["landuse"="reservoir"](poly:"${polyCoords}");
+                  way["landuse"="basin"](poly:"${polyCoords}");
+                  relation["route"~"hiking|foot|bicycle|mtb|ski|piste"](poly:"${polyCoords}");
+                );
+                out geom;
+            `;
 
-        try {
             console.log("🌍 Téléchargement des POIs depuis Overpass...");
             const response = await fetch(this.overpassUrl, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded'
-                },
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `data=${encodeURIComponent(query)}`
             });
 
@@ -114,10 +127,10 @@ export class ApiService {
                 data = JSON.parse(responseText);
             } catch (e) {
                 throw new Error("The Overpass server returned an invalid format (likely an XML error page). Try switching servers.");
-            }            // Toujours traiter SANS filtre de catégorie pour stocker tout en cache
-            const fullResult = this.processData(data.elements, []);
+            }
 
-            // --- Cache IndexedDB : sauvegarde des données complètes ---
+            // Format and save to cache
+            const fullResult = this.processData(data.elements, []);
             try {
                 await this._idbPut(cacheKey, { timestamp: Date.now(), data: fullResult });
                 await this._cleanupPOICache();
@@ -125,19 +138,26 @@ export class ApiService {
             } catch (e) {
                 console.warn("Impossible d'écrire le cache POI:", e);
             }
+            return fullResult;
+        })();
 
-            // Retourner les données filtrées par les catégories demandées
+        // Store promise to block concurrent requests
+        this._pendingFetches.set(cacheKey, fetchPromise);
+
+        try {
+            const fullResult = await fetchPromise;
             return this._filterByCategories(fullResult, selectedCategories);
-
         } catch (error) {
             console.error("API Error:", error);
-            // Fallback : utiliser le cache même expiré
             if (cachedEntry) {
                 console.warn("⚠️ Utilisation du cache POI expiré (fallback réseau)");
                 return this._filterByCategories(cachedEntry.data, selectedCategories);
             }
-            throw error; // Propagate error to App for handling
+            throw error;
+        } finally {
+            this._pendingFetches.delete(cacheKey);
         }
+
     }
 
     /**
@@ -555,7 +575,10 @@ export class ApiService {
                 const data = await response.json();
                 return data.map(d => {
                     const bbox = d.boundingbox;
-                    // ...
+                    const minLat = parseFloat(bbox[0]);
+                    const maxLat = parseFloat(bbox[1]);
+                    const minLon = parseFloat(bbox[2]);
+                    const maxLon = parseFloat(bbox[3]);
                     return {
                         name: d.name || d.display_name.split(',')[0],
                         fullName: d.display_name,
@@ -899,6 +922,50 @@ export class ApiService {
             }
         }
     }
+
+    /** Vide le cache POI pour une zone spécifique (par ses coordonnées polygone). */
+    async clearZoneCache(latLngs) {
+        if (!latLngs) return;
+        const cacheKey = this._buildPOICacheKey(latLngs);
+        try {
+            await this._idbDelete(cacheKey);
+            console.log(`🗑️ Cache POI zone supprimé : ${cacheKey}`);
+        } catch (e) {
+            console.warn('Erreur suppression cache zone:', e);
+        }
+    }
+
+    /** Vide TOUT le cache : IndexedDB POIs + localStorage (parcs, régions, départements). */
+    async clearAllCaches() {
+        // 1. Vider IndexedDB (POIs)
+        try {
+            const db = await this._openPOICacheDB();
+            await new Promise((resolve, reject) => {
+                const tx = db.transaction('pois', 'readwrite');
+                const req = tx.objectStore('pois').clear();
+                req.onsuccess = () => resolve();
+                req.onerror = () => reject(req.error);
+            });
+            console.log('🗑️ Cache IndexedDB POI entièrement vidé');
+        } catch (e) {
+            console.warn('Erreur vidage IndexedDB:', e);
+        }
+        // 2. Vider les caches localStorage (parcs, régions, départements)
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && (key.startsWith('parks_cache_') || key.startsWith('regions_cache_') ||
+                key.startsWith('depts_cache_') || key.startsWith('pois_cache_'))) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(k => {
+            localStorage.removeItem(k);
+            console.log(`🗑️ localStorage supprimé : ${k}`);
+        });
+        console.log(`🗑️ Reset complet : ${keysToRemove.length} entrées localStorage + IndexedDB vidé`);
+    }
+
     /**
      * Retrouve l'identifiant Wikidata d'une zone administrative active
      */

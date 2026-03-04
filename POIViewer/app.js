@@ -2,6 +2,16 @@ import { MapManager } from './scripts/mapManager.js';
 import { ApiService } from './scripts/api.js';
 import { UiRenderer } from './scripts/uiRenderer.js';
 
+// Global fix for Leaflet.heat Canvas readback performance issue
+const originalGetContext = HTMLCanvasElement.prototype.getContext;
+HTMLCanvasElement.prototype.getContext = function (type, contextAttributes) {
+    if (type === '2d') {
+        contextAttributes = contextAttributes || {};
+        contextAttributes.willReadFrequently = true;
+    }
+    return originalGetContext.call(this, type, contextAttributes);
+};
+
 class App {
     constructor() {
         this.mapManager = new MapManager('map');
@@ -28,6 +38,54 @@ class App {
         this.uiRenderer.onServerChange = (newUrl) => {
             this.apiService.overpassUrl = newUrl;
         };
+
+        // Bind Force Refresh Button (zone-specific)
+        const forceRefreshBtn = document.getElementById('force-refresh-btn');
+        if (forceRefreshBtn) {
+            forceRefreshBtn.addEventListener('click', async () => {
+                if (!this.currentLayer) {
+                    forceRefreshBtn.innerHTML = '⚠️ Aucune zone active';
+                    setTimeout(() => { forceRefreshBtn.innerHTML = '🔄 Rafraîchir cette zone'; }, 1500);
+                    return;
+                }
+                forceRefreshBtn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span> Rafraîchissement...';
+                forceRefreshBtn.style.pointerEvents = 'none';
+                const latLngs = this.mapManager.getBoundsFromLayer(this.currentLayer);
+                await this.apiService.clearZoneCache(latLngs);
+                await this.handleAreaSelection(this.currentLayer);
+                forceRefreshBtn.innerHTML = '✅ Zone rafraîchie !';
+                forceRefreshBtn.style.borderColor = 'rgba(34,197,94,0.5)';
+                forceRefreshBtn.style.color = '#86efac';
+                setTimeout(() => {
+                    forceRefreshBtn.innerHTML = '🔄 Rafraîchir cette zone';
+                    forceRefreshBtn.style.pointerEvents = 'auto';
+                    forceRefreshBtn.style.borderColor = '';
+                    forceRefreshBtn.style.color = '';
+                }, 2000);
+            });
+        }
+
+        // Bind Full Reset Button (everything)
+        const forceResetAllBtn = document.getElementById('force-reset-all-btn');
+        if (forceResetAllBtn) {
+            forceResetAllBtn.addEventListener('click', async () => {
+                forceResetAllBtn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> Reset en cours...';
+                forceResetAllBtn.style.pointerEvents = 'none';
+                await this.apiService.clearAllCaches();
+                forceResetAllBtn.innerHTML = '✅ Tout vidé !';
+                forceResetAllBtn.style.borderColor = 'rgba(34,197,94,0.5)';
+                forceResetAllBtn.style.color = '#86efac';
+                if (this.currentLayer) {
+                    await this.handleAreaSelection(this.currentLayer);
+                }
+                setTimeout(() => {
+                    forceResetAllBtn.innerHTML = '🗑️ Reset complet (tout le cache)';
+                    forceResetAllBtn.style.pointerEvents = 'auto';
+                    forceResetAllBtn.style.borderColor = '';
+                    forceResetAllBtn.style.color = '';
+                }, 2000);
+            });
+        }
 
         // Bind Drawing Event
         this.mapManager.onPolygonCreated = async (layer) => {
@@ -213,21 +271,31 @@ class App {
 
                 // --- CHARGEMENT ASYNCHRONE DE LA DÉMOGRAPHIE (Ne bloque plus la carte) ---
                 if (this.activeZone) {
-                    if (this.activeZone.demoHtml) {
-                        // Si déjà en cache, on met à jour le panneau
+                    if (this.activeZone.demoHtml !== undefined) {
+                        // Si déjà en cache (même vide si erreur), on met à jour le panneau
                         this.uiRenderer.renderMacroStats(filteredPOIs, this.activeZone.demoHtml, this.currentNetworks, this.currentAreaKm2);
                     } else {
-                        // On lance la requête en tâche de fond (sans le mot "await")
-                        this.apiService.getZoneWikidataId(this.activeZone).then(async wikidataId => {
-                            if (wikidataId) {
-                                this.activeZone.wikidata = wikidataId;
-                                const history = await this.apiService.fetchPopulationHistory(wikidataId);
-                                const demoHtml = this.uiRenderer.generateDemographicsKPI(history, this.activeZone.name);
-                                this.activeZone.demoHtml = demoHtml;
-                                // On met à jour l'interface seulement quand la donnée est prête
-                                this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), demoHtml, this.currentNetworks, this.currentAreaKm2);
-                            }
-                        }).catch(e => console.warn("Erreur chargement démographie:", e));
+                        // On lance la requête avec un verrou pour éviter le spam lors des clics multiples
+                        if (!this.activeZone._demoPromise) {
+                            this.activeZone._demoPromise = this.apiService.getZoneWikidataId(this.activeZone).then(async wikidataId => {
+                                if (wikidataId) {
+                                    this.activeZone.wikidata = wikidataId;
+                                    const history = await this.apiService.fetchPopulationHistory(wikidataId);
+                                    const demoHtml = this.uiRenderer.generateDemographicsKPI(history, this.activeZone.name);
+                                    this.activeZone.demoHtml = demoHtml;
+                                } else {
+                                    this.activeZone.demoHtml = ''; // Pas de data, on évite de re-fetch
+                                }
+                            }).catch(e => {
+                                console.warn("Erreur chargement démographie:", e);
+                                this.activeZone.demoHtml = ''; // Marquer comme échoué pour ne pas boucler
+                            });
+                        }
+
+                        // Attacher le rendu d'interface à la complétion de la promesse (qu'elle soit déjà finie ou non)
+                        this.activeZone._demoPromise.finally(() => {
+                            this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), this.activeZone.demoHtml || '', this.currentNetworks, this.currentAreaKm2);
+                        });
                     }
                 }
 

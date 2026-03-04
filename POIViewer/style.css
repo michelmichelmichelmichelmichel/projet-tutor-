@@ -64,6 +64,9 @@ body {
     border-radius: 16px;
     box-shadow: var(--glass-shadow);
     color: var(--color-text);
+    /* Fix for browser rendering dropouts (white/black flashing) with backdrop-filter over maps */
+    transform: translateZ(0);
+    will-change: transform, opacity;
 }
 
 /* Macro Overlay (Top Left) */
