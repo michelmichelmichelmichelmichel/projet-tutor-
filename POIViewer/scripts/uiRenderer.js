@@ -1610,71 +1610,63 @@ export class UiRenderer {
         // ── Async enrichment ──────────────────────────────────────────────────
         if (!this.apiService) return;
 
-        // Run both fetches in parallel
-        Promise.all([
-            this.apiService.fetchWikimediaImages(poi.lat, poi.lng, 5),
-            poi.tags.wikidata ? this.apiService.fetchWikidata(poi.tags.wikidata) : Promise.resolve(null)
-        ]).then(([images, wikidataInfo]) => {
+        // Fetch Wikidata only (no geographic image search)
+        (poi.tags.wikidata ? this.apiService.fetchWikidata(poi.tags.wikidata) : Promise.resolve(null))
+            .then((wikidataInfo) => {
 
-            // If Wikidata has a main image, prepend it to the list
-            if (wikidataInfo?.image) {
-                images = [{ url: wikidataInfo.image, thumbUrl: wikidataInfo.image, title: poi.name }, ...images];
-            }
-            // Deduplicate by URL
-            const seen = new Set();
-            images = images.filter(img => {
-                if (seen.has(img.url)) return false;
-                seen.add(img.url);
-                return true;
-            });
-
-            this._renderGallery(images, poi.name);
-
-            // ── Header links ─────────────────────────────────────────────────
-            const linksContainer = document.getElementById('detail-header-links');
-            if (linksContainer) {
-                const website = poi.tags.website || poi.tags['contact:website'] || poi.tags.url || wikidataInfo?.website;
-                if (website) {
-                    linksContainer.insertAdjacentHTML('beforeend',
-                        `<a href="${website}" target="_blank" class="icon-btn" title="Site Web">🌐</a>`);
+                // Only show images if Wikidata provides one
+                let images = [];
+                if (wikidataInfo?.image) {
+                    images = [{ url: wikidataInfo.image, thumbUrl: wikidataInfo.image, title: poi.name }];
                 }
-                if (wikidataInfo?.wikipedia) {
-                    linksContainer.insertAdjacentHTML('beforeend',
-                        `<a href="${wikidataInfo.wikipedia}" target="_blank" class="icon-btn" title="Article Wikipédia">📖</a>`);
-                }
-            }
 
-            // ── Wikidata block ────────────────────────────────────────────────
-            if (wikidataInfo) {
-                const rows = [];
-                if (wikidataInfo.description) {
-                    rows.push(`<div class="info-row info-row--highlight">
-                        <span class="info-value" style="font-style:italic;color:var(--color-text-muted);line-height:1.5;">"${wikidataInfo.description}"</span>
-                    </div>`);
-                }
-                if (wikidataInfo.population != null)
-                    rows.push(this._infoRow('👥 Population', wikidataInfo.population.toLocaleString('fr-FR') + ' hab.'));
-                if (wikidataInfo.elevation != null)
-                    rows.push(this._infoRow('⛰️ Altitude (Wikidata)', wikidataInfo.elevation + ' m'));
-                if (wikidataInfo.area != null)
-                    rows.push(this._infoRow('📐 Superficie', wikidataInfo.area.toLocaleString('fr-FR') + ' km²'));
-                if (wikidataInfo.inception)
-                    rows.push(this._infoRow('📅 Fondé en', wikidataInfo.inception));
-                if (wikidataInfo.heritage)
-                    rows.push(this._infoRow('🏛️ Classement', wikidataInfo.heritage));
-                if (wikidataInfo.architect)
-                    rows.push(this._infoRow('✏️ Architecte', wikidataInfo.architect));
+                this._renderGallery(images, poi.name);
 
-                if (rows.length > 0) {
-                    const section = document.getElementById('poi-wikidata-section');
-                    const block = document.getElementById('poi-wikidata-block');
-                    if (section && block) {
-                        block.innerHTML = rows.join('');
-                        section.style.display = '';
+                // ── Header links ─────────────────────────────────────────────────
+                const linksContainer = document.getElementById('detail-header-links');
+                if (linksContainer) {
+                    const website = poi.tags.website || poi.tags['contact:website'] || poi.tags.url || wikidataInfo?.website;
+                    if (website) {
+                        linksContainer.insertAdjacentHTML('beforeend',
+                            `<a href="${website}" target="_blank" class="icon-btn" title="Site Web">🌐</a>`);
+                    }
+                    if (wikidataInfo?.wikipedia) {
+                        linksContainer.insertAdjacentHTML('beforeend',
+                            `<a href="${wikidataInfo.wikipedia}" target="_blank" class="icon-btn" title="Article Wikipédia">📖</a>`);
                     }
                 }
-            }
-        }).catch(err => console.warn('POI enrichment error:', err));
+
+                // ── Wikidata block ────────────────────────────────────────────────
+                if (wikidataInfo) {
+                    const rows = [];
+                    if (wikidataInfo.description) {
+                        rows.push(`<div class="info-row info-row--highlight">
+                        <span class="info-value" style="font-style:italic;color:var(--color-text-muted);line-height:1.5;">"${wikidataInfo.description}"</span>
+                    </div>`);
+                    }
+                    if (wikidataInfo.population != null)
+                        rows.push(this._infoRow('👥 Population', wikidataInfo.population.toLocaleString('fr-FR') + ' hab.'));
+                    if (wikidataInfo.elevation != null)
+                        rows.push(this._infoRow('⛰️ Altitude (Wikidata)', wikidataInfo.elevation + ' m'));
+                    if (wikidataInfo.area != null)
+                        rows.push(this._infoRow('📐 Superficie', wikidataInfo.area.toLocaleString('fr-FR') + ' km²'));
+                    if (wikidataInfo.inception)
+                        rows.push(this._infoRow('📅 Fondé en', wikidataInfo.inception));
+                    if (wikidataInfo.heritage)
+                        rows.push(this._infoRow('🏛️ Classement', wikidataInfo.heritage));
+                    if (wikidataInfo.architect)
+                        rows.push(this._infoRow('✏️ Architecte', wikidataInfo.architect));
+
+                    if (rows.length > 0) {
+                        const section = document.getElementById('poi-wikidata-section');
+                        const block = document.getElementById('poi-wikidata-block');
+                        if (section && block) {
+                            block.innerHTML = rows.join('');
+                            section.style.display = '';
+                        }
+                    }
+                }
+            }).catch(err => console.warn('POI enrichment error:', err));
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
