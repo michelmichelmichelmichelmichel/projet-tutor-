@@ -953,7 +953,7 @@ export class UiRenderer {
 
         Plotly.newPlot(container, data, layout, config);
     }
-    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0) {
+    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0) {
         const total = pois.length;
 
         // ── Calcul des KPI hébergement & sentiers (toujours, même si pois filtrés = 0) ──
@@ -1090,8 +1090,19 @@ export class UiRenderer {
 
         // Si aucun POI après filtrage, afficher quand même les KPI + densité + message vide
         if (total === 0) {
-            this.macroStats.innerHTML = demoHtml + kpiCardsHtml + densityHtml + `<div class="stat-item empty"><span class="stat-value">--</span><span class="stat-label">Aucun lieu trouvé</span></div>`;
+            const countLabel = totalRaw > 0
+                ? `${totalRaw.toLocaleString('fr-FR')} POI${totalRaw > 1 ? 's' : ''} trouvé${totalRaw > 1 ? 's' : ''}`
+                : 'POIs disponibles';
+            this.macroStats.innerHTML = demoHtml + kpiCardsHtml + densityHtml + `
+                <div class="stat-item empty" style="text-align:center;padding:18px 12px;">
+                    <span style="font-size:2rem;">🔍</span>
+                    <div style="margin-top:8px;font-size:0.95rem;font-weight:600;color:var(--color-text);">${countLabel} — aucun affiché</div>
+                    <div style="margin-top:6px;font-size:0.8rem;color:var(--color-text-muted);">Activez au moins une catégorie dans les filtres pour visualiser les lieux sur la carte.</div>
+                </div>`;
             this._bindHeatmapToggles();
+            if (totalRaw > 0) {
+                this.showToast(`🗺️ ${countLabel} — activez les filtres pour les afficher`, 'info', 5000);
+            }
             return;
         }
 
@@ -1916,5 +1927,78 @@ export class UiRenderer {
             if (show) this.loadNeighborsBtn.classList.remove('hidden');
             else this.loadNeighborsBtn.classList.add('hidden');
         }
+    }
+
+    /**
+     * Affiche une notification toast temporaire en bas de l'écran.
+     * @param {string} message - Texte à afficher
+     * @param {'info'|'success'|'warning'|'error'} type - Style de la notification
+     * @param {number} duration - Durée en ms (défaut 4000)
+     */
+    showToast(message, type = 'info', duration = 4000) {
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            container.style.cssText = `
+                position: fixed;
+                bottom: 24px;
+                left: 50%;
+                transform: translateX(-50%);
+                z-index: 99999;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+                pointer-events: none;
+            `;
+            document.body.appendChild(container);
+        }
+
+        const colors = {
+            info: { bg: 'rgba(59,130,246,0.18)', border: 'rgba(59,130,246,0.5)', text: '#93c5fd' },
+            success: { bg: 'rgba(16,185,129,0.18)', border: 'rgba(16,185,129,0.5)', text: '#6ee7b7' },
+            warning: { bg: 'rgba(245,158,11,0.18)', border: 'rgba(245,158,11,0.5)', text: '#fcd34d' },
+            error: { bg: 'rgba(239,68,68,0.18)', border: 'rgba(239,68,68,0.5)', text: '#fca5a5' },
+        };
+        const c = colors[type] || colors.info;
+
+        const toast = document.createElement('div');
+        toast.style.cssText = `
+            background: ${c.bg};
+            border: 1px solid ${c.border};
+            color: ${c.text};
+            padding: 12px 22px;
+            border-radius: 12px;
+            font-size: 0.88rem;
+            font-weight: 500;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            box-shadow: 0 4px 24px rgba(0,0,0,0.35);
+            pointer-events: auto;
+            opacity: 0;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+            transform: translateY(10px);
+            max-width: 440px;
+            text-align: center;
+            cursor: pointer;
+            white-space: nowrap;
+        `;
+        toast.textContent = message;
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateY(0)';
+        });
+
+        const fadeOut = () => {
+            toast.style.opacity = '0';
+            toast.style.transform = 'translateY(10px)';
+            setTimeout(() => toast.remove(), 300);
+        };
+
+        toast.addEventListener('click', fadeOut);
+        setTimeout(fadeOut, duration);
     }
 }

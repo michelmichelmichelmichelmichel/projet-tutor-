@@ -118,7 +118,7 @@ class App {
         this.uiRenderer.onSubCategoryFilterChange = () => {
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2);
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
             }
@@ -281,7 +281,7 @@ class App {
                 }
 
                 // Update UI (Macro Stats) - Affiche les POIs, chemins, et soit la démo en cache, soit le spinner
-                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2);
+                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length);
 
                 // Construire et afficher les heatmaps
                 this.updateHeatmaps();
@@ -332,7 +332,7 @@ class App {
                                         </div>
                                     `;
 
-                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2);
+                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length);
                                     this.uiRenderer.renderSparkline();
                                 } catch (err) {
                                     console.error("Erreur lors de l'affichage final de la macro:", err);
