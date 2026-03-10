@@ -14,12 +14,45 @@ export class ApiService {
 
         // Anti-spam lock for concurrent requests on the same area
         this._pendingFetches = new Map();
+        this.wikidataCache = new Map();
+        // Optionnel : un autre proxy si besoin, par ex: "https://corsproxy.io/?" 
+        this.corsProxy = "https://api.allorigins.win/raw?url=";
+        this.inseeData = null;
     }
 
     setCountry(name, code, areaId) {
         this.currentCountryName = name;
         this.currentCountryCode = code;
         this.currentCountryAreaId = areaId;
+    }
+
+    /**
+     * Charge les données INSEE pré-calculées une seule fois
+     */
+    async loadInseeData() {
+        if (this.inseeData) return this.inseeData;
+        try {
+            console.log("Loading INSEE data...");
+            const response = await fetch('./data/insee_data.json');
+            if (response.ok) {
+                this.inseeData = await response.json();
+                console.log("INSEE data loaded successfully.");
+            } else {
+                console.warn("Could not load INSEE data. Status:", response.status);
+            }
+        } catch (error) {
+            console.error("Error loading INSEE data:", error);
+        }
+        return this.inseeData;
+    }
+
+    /**
+     * Récupère les stats INSEE pour une ou plusieurs zones (si on passe un tableau de codes INSEE)
+     * Actuellement, on suppose un seul code INSEE (ex: "06088" pour Nice)
+     */
+    getInseeStats(inseeCode) {
+        if (!this.inseeData || !inseeCode) return null;
+        return this.inseeData[inseeCode] || null;
     }
 
     async fetchPOIs(latLngs, selectedCategories = []) {
@@ -275,6 +308,16 @@ export class ApiService {
                         if (!seenPois[uniqueKey]) seenPois[uniqueKey] = [];
                         seenPois[uniqueKey].push({ lat: el.lat, lng: el.lon });
 
+                        // --- Extraction des données digitales OSM ---
+                        const hasWebsite = !!(el.tags.website || el.tags['contact:website'] || el.tags.url);
+                        
+                        const socialMediaKeys = ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok'];
+                        const hasSocialMedia = Object.keys(el.tags).some(key => 
+                            socialMediaKeys.some(sm => key.includes(sm) || (key.startsWith('contact:') && key.includes(sm)))
+                        );
+
+                        const hasWikivoyage = !!el.tags.wikivoyage;
+
                         pois.push({
                             id: el.id,
                             lat: el.lat,
@@ -282,7 +325,14 @@ export class ApiService {
                             name: poiName,
                             category: info.category,
                             type: info.type,
-                            tags: el.tags
+                            tags: el.tags,
+                            digital: {
+                                hasWebsite,
+                                hasSocialMedia,
+                                hasWikivoyage,
+                                wikidataLanguagesCount: null, // Sera rempli plus tard si fetchWikidata est appelé
+                                wikidataHasWikivoyage: false
+                            }
                         });
                     }
                 }
@@ -622,6 +672,7 @@ export class ApiService {
                         fullName: `${props.nom} (${props.codesPostaux ? props.codesPostaux[0] : props.code})`,
                         type: 'city',
                         code: props.code,
+                        ref: props.code, // NOUVEAU: on expose aussi `ref` (Code INSEE)
                         codeDepartement: props.codeDepartement || null,
                         geometry: geometry,
                         bounds: [[minLat, minLon], [maxLat, maxLon]],
@@ -648,6 +699,7 @@ export class ApiService {
                         fullName: d.display_name,
                         type: 'city',
                         code: d.osm_id,
+                        ref: d.osm_id,
                         wikidata: d.extratags ? d.extratags.wikidata : null, // Capture le wikidata
                         geometry: d.geojson,
                         bounds: [[minLat, minLon], [maxLat, maxLon]],
@@ -759,7 +811,19 @@ export class ApiService {
                 area = parseFloat(parseFloat(areaClaim.amount).toFixed(2));
             }
 
-            return { description, website, image, wikipedia, population, elevation, inception, heritage, architect, area };
+            // --- Données digitales (Sitelinks) ---
+            let wikidataLanguagesCount = 0;
+            let wikidataHasWikivoyage = false;
+
+            if (entity.sitelinks) {
+                const slKeys = Object.keys(entity.sitelinks);
+                // Compter le nombre de pages Wikipedia (clés terminant par 'wiki')
+                wikidataLanguagesCount = slKeys.filter(k => k.endsWith('wiki')).length;
+                // Vérifier si une page Wikivoyage existe (clés terminant par 'wikivoyage')
+                wikidataHasWikivoyage = slKeys.some(k => k.endsWith('wikivoyage'));
+            }
+
+            return { description, website, image, wikipedia, population, elevation, inception, heritage, architect, area, wikidataLanguagesCount, wikidataHasWikivoyage };
 
         } catch (error) {
             console.warn("Wikidata fetch error:", error);

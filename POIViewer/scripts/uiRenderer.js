@@ -946,7 +946,7 @@ export class UiRenderer {
 
         Plotly.newPlot(container, data, layout, config);
     }
-    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0) {
+    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null) {
         const total = pois.length;
 
         // ── Calcul des KPI hébergement & sentiers (toujours, même si pois filtrés = 0) ──
@@ -957,12 +957,43 @@ export class UiRenderer {
         let accommodationCount = 0;
         let totalBeds = 0;
         let totalRooms = 0;
+        let websiteCount = 0;
+        let socialMediaCount = 0;
+        let wikivoyageCount = 0;
+        // Infrastructure KPIs
+        let busStopCount = 0;
+        let trainStationCount = 0;
+        let airportCount = 0;
+        let parkingCount = 0;
+        let sanitaryCount = 0;
+        let chargingCount = 0;
+
+        const busTypes = new Set(['bus_stop', 'bus_station', 'platform']);
+        const trainTypes = new Set(['station', 'halt', 'tram_stop', 'subway_entrance']);
+        const airportTypes = new Set(['aerodrome', 'aeroway', 'airport']);
+
         pois.forEach(p => {
             if (p.category === 'accommodation' || accommodationTypes.has(p.type)) {
                 accommodationCount++;
                 if (p.tags && p.tags.beds) totalBeds += parseInt(p.tags.beds, 10) || 0;
                 if (p.tags && p.tags.rooms) totalRooms += parseInt(p.tags.rooms, 10) || 0;
             }
+            if (p.digital) {
+                if (p.digital.hasWebsite) websiteCount++;
+                if (p.digital.hasSocialMedia) socialMediaCount++;
+                if (p.digital.hasWikivoyage) wikivoyageCount++;
+            }
+            // Transport
+            const pType = p.type || '';
+            if (busTypes.has(pType) || (p.tags && p.tags.bus === 'yes') || (p.tags && p.tags.highway === 'bus_stop')) busStopCount++;
+            if (trainTypes.has(pType) || (p.tags && p.tags.railway === 'station') || (p.tags && p.tags.railway === 'halt')) trainStationCount++;
+            if (airportTypes.has(pType) || (p.tags && p.tags.aeroway === 'aerodrome')) airportCount++;
+            // Parking
+            if (pType === 'parking' || pType === 'parking_space' || pType === 'bicycle_parking' || (p.tags && p.tags.amenity === 'parking')) parkingCount++;
+            // Sanitaire
+            if (pType === 'toilets' || pType === 'shower' || pType === 'drinking_water' || (p.tags && (p.tags.amenity === 'toilets' || p.tags.amenity === 'shower' || p.tags.amenity === 'drinking_water'))) sanitaryCount++;
+            // Bornes de recharge
+            if (pType === 'charging_station' || (p.tags && p.tags.amenity === 'charging_station')) chargingCount++;
         });
 
         // Sentiers piétons (inclut randonnée) / vélo depuis networks
@@ -989,22 +1020,81 @@ export class UiRenderer {
         const kpiLabelStyle = `font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;`;
         const kpiSubStyle = `font-size:0.8rem;color:var(--color-text-muted);margin-top:4px;`;
 
-        const kpiCardsHtml = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;">
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(167,139,250,0.35);background:rgba(167,139,250,0.08);">
-                    <div>
-                        <div style="${kpiLabelStyle}">🏨 Hébergements</div>
-                        <div style="${kpiValueStyle}">${accommodationCount.toLocaleString('fr-FR')}</div>
-                        <div style="${kpiSubStyle}">dans la zone OSM</div>
+        let accommodationHtml = '';
+        if (inseeStats) {
+            // Utiliser les données de l'INSEE pour l'hébergement
+            accommodationHtml = `
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(167,139,250,0.35);background:rgba(167,139,250,0.08);grid-column: span 2; display:flex; flex-direction:column; align-items:flex-start;">
+                    <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div>
+                            <div style="${kpiLabelStyle}">🌟 Données INSEE 2026 : Nombre total d’hébergements dans la zone = Nombre de hôtels + Nombre de Camping + Nombre Hébergement collectifs</div>
+                            <div style="${kpiValueStyle}">${inseeStats.total_loc.toLocaleString('fr-FR')}</div>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px; width:100%;">
+                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
+                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">🏨 Lits dans les hôtels = nombre chambres totales x 2</div>
+                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">${inseeStats.hotel_beds.toLocaleString('fr-FR')} lits</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
+                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">⛺ Lits dans les campings = nombre emplacements x 3</div>
+                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">${inseeStats.camping_beds.toLocaleString('fr-FR')} lits</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
+                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">🏘️ Lits dans les hébergements collectifs = prendre le nombnre de lit dans l'hébergement collectif</div>
+                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">${inseeStats.collective_beds.toLocaleString('fr-FR')} lits</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:12px; font-size:0.75rem; width:100%;">
+                        <div style="color:var(--color-text-muted); margin-bottom:4px;">⭐ Répartition par étoiles (UNIT_LOC pour I551 et I553 pour chaque étoile 1 à 5 et NC) :</div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            ${Object.entries(inseeStats.hotel_stars).filter(([k,v]) => v > 0).map(([k,v]) => `<span style="background:rgba(251,191,36,0.2);color:#fcd34d;padding:2px 6px;border-radius:4px;">${k === 'NC' ? 'Non Classé' : k + '⭐'}: ${v}</span>`).join('') || '<span style="color:var(--color-text-muted);">Aucun classé</span>'}
+                        </div>
                     </div>
                 </div>
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.08);">
-                    <div>
-                        <div style="${kpiLabelStyle}">🛏️ Capacité d'accueil</div>
-                        <div style="${kpiValueStyle}">${totalRooms.toLocaleString('fr-FR')} <span style="font-size:0.85rem;font-weight:400;color:var(--color-text-muted);">chambres</span></div>
-                        <div style="${kpiSubStyle}">🛏️ ${totalBeds.toLocaleString('fr-FR')} lits</div>
+            `;
+        } else {
+            // Affichage par défaut (OSM)
+            accommodationHtml = `
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(167,139,250,0.35);background:rgba(167,139,250,0.08);grid-column: span 2; display:flex; flex-direction:column; align-items:flex-start;">
+                    <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                        <div>
+                            <div style="${kpiLabelStyle}">🌟 Données INSEE 2026 : Nombre total d’hébergements dans la zone = Nombre de hôtels + Nombre de Camping + Nombre Hébergement collectifs</div>
+                            <div style="${kpiValueStyle}">Donnée Indisponible</div>
+                        </div>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px; width:100%;">
+                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
+                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">🏨 Lits dans les hôtels = nombre chambres totales x 2</div>
+                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">N/A</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
+                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">⛺ Lits dans les campings = nombre emplacements x 3</div>
+                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">N/A</div>
+                        </div>
+                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
+                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">🏘️ Lits dans les hébergements collectifs = prendre le nombnre de lit dans l'hébergement collectif</div>
+                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">N/A</div>
+                        </div>
+                    </div>
+                    
+                    <div style="margin-top:12px; font-size:0.75rem; width:100%;">
+                        <div style="color:var(--color-text-muted); margin-bottom:4px;">⭐ Répartition par étoiles (UNIT_LOC pour I551 et I553 pour chaque étoile 1 à 5 et NC) :</div>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                            <span style="color:var(--color-text-muted);">Non disponible pour cette zone</span>
+                        </div>
                     </div>
                 </div>
+            `;
+        }
+
+        // ── Build section contents ─────────────────────────────────────────
+
+        // Section 1: Informations générales (population + density + heatmap) — built later with densityHtml
+        // Section 3: Tourisme (INSEE accommodation + sentiers/pistes KPIs)
+        const trailsHtml = `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
                 <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(5,150,105,0.35);background:rgba(5,150,105,0.08);">
                     <div>
                         <div style="${kpiLabelStyle}">🚶 Sentiers piétons</div>
@@ -1021,6 +1111,44 @@ export class UiRenderer {
                 </div>
             </div>
         `;
+        const section3Html = accommodationHtml + trailsHtml;
+
+        // Section 4: Marketing digitale
+        const section4Html = `
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(16,185,129,0.35);background:rgba(16,185,129,0.08);flex-direction:column;align-items:flex-start;">
+                    <div style="${kpiLabelStyle}">🌐 Sites Web</div>
+                    <div style="${kpiValueStyle}">${websiteCount.toLocaleString('fr-FR')}</div>
+                    <div style="${kpiSubStyle}">${total > 0 ? ((websiteCount / total) * 100).toFixed(1) : 0}% des affichés</div>
+                </div>
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(236,72,153,0.35);background:rgba(236,72,153,0.08);flex-direction:column;align-items:flex-start;">
+                    <div style="${kpiLabelStyle}">📱 Réseaux Sociaux</div>
+                    <div style="${kpiValueStyle}">${socialMediaCount.toLocaleString('fr-FR')}</div>
+                    <div style="${kpiSubStyle}">${total > 0 ? ((socialMediaCount / total) * 100).toFixed(1) : 0}% des affichés</div>
+                </div>
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(245,158,11,0.35);background:rgba(245,158,11,0.08);flex-direction:column;align-items:flex-start;">
+                    <div style="${kpiLabelStyle}">🎒 Wikivoyage</div>
+                    <div style="${kpiValueStyle}">${wikivoyageCount.toLocaleString('fr-FR')}</div>
+                    <div style="${kpiSubStyle}">${total > 0 ? ((wikivoyageCount / total) * 100).toFixed(1) : 0}% des affichés</div>
+                </div>
+            </div>
+        `;
+
+        // ── Collapsible Section Helper ────────────────────────────────────
+        const sectionToggleStyle = `width:100%;display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;padding:10px 14px;cursor:pointer;font-family:"Google Sans",sans-serif;font-size:0.85rem;font-weight:600;transition:background 0.2s ease;margin-bottom:0;`;
+        const buildCollapsibleSection = (title, emoji, contentHtml, sectionId, defaultOpen = true) => {
+            return `
+                <div class="macro-section" style="margin-bottom:12px;">
+                    <button class="macro-section-toggle" data-section="${sectionId}" style="${sectionToggleStyle}">
+                        <span>${emoji} ${title}</span>
+                        <span class="macro-section-chevron" style="font-size:0.7rem;opacity:0.6;transition:transform 0.2s ease;${defaultOpen ? 'transform:rotate(180deg);' : ''}">▾</span>
+                    </button>
+                    <div class="macro-section-body" id="${sectionId}" style="padding:10px 0 0 0;${defaultOpen ? '' : 'display:none;'}">
+                        ${contentHtml}
+                    </div>
+                </div>
+            `;
+        };
 
         // ── Densité Heatmap ────────────────────────────────────────────────
         let densityHtml = '';
@@ -1081,17 +1209,62 @@ export class UiRenderer {
             `;
         }
 
-        // Si aucun POI après filtrage, afficher quand même les KPI + densité + message vide
+        // Si aucun POI après filtrage, afficher quand même les sections + message vide
         if (total === 0) {
+            const areaHtml = areaKm2 > 0 ? `<div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(59,130,246,0.35);background:rgba(59,130,246,0.08);margin-bottom:10px;"><div><div style="${kpiLabelStyle}">📐 Superficie de la zone</div><div style="${kpiValueStyle}">${areaKm2.toFixed(2)} km²</div></div></div>` : '';
+            const section1Html = areaHtml + demoHtml + densityHtml;
+            const infraKpisHtml = `
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.08);flex-direction:column;align-items:flex-start;">
+                        <div style="${kpiLabelStyle}">🚌 Arrêts de bus</div>
+                        <div style="${kpiValueStyle}">${busStopCount.toLocaleString('fr-FR')}</div>
+                    </div>
+                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(139,92,246,0.35);background:rgba(139,92,246,0.08);flex-direction:column;align-items:flex-start;">
+                        <div style="${kpiLabelStyle}">🚆 Gares</div>
+                        <div style="${kpiValueStyle}">${trainStationCount.toLocaleString('fr-FR')}</div>
+                    </div>
+                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(14,165,233,0.35);background:rgba(14,165,233,0.08);flex-direction:column;align-items:flex-start;">
+                        <div style="${kpiLabelStyle}">✈️ Aéroports</div>
+                        <div style="${kpiValueStyle}">${airportCount.toLocaleString('fr-FR')}</div>
+                    </div>
+                </div>
+                ${areaKm2 > 0 ? `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:10px;">
+                    <div style="font-size:0.8rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">📍 Densité transport / km²</div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                        <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">🚌 Bus</div><div style="font-size:1rem;font-weight:700;color:#fbbf24;">${(busStopCount / areaKm2).toFixed(2)}</div></div>
+                        <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">🚆 Gares</div><div style="font-size:1rem;font-weight:700;color:#8b5cf6;">${(trainStationCount / areaKm2).toFixed(2)}</div></div>
+                        <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">✈️ Aéro.</div><div style="font-size:1rem;font-weight:700;color:#0ea5e9;">${(airportCount / areaKm2).toFixed(2)}</div></div>
+                    </div>
+                </div>` : ''}
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(100,116,139,0.35);background:rgba(100,116,139,0.08);flex-direction:column;align-items:flex-start;">
+                        <div style="${kpiLabelStyle}">🅿️ Stationnements</div>
+                        <div style="${kpiValueStyle}">${parkingCount.toLocaleString('fr-FR')}</div>
+                    </div>
+                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.08);flex-direction:column;align-items:flex-start;">
+                        <div style="${kpiLabelStyle}">🚻 Équipements sanitaires</div>
+                        <div style="${kpiValueStyle}">${sanitaryCount.toLocaleString('fr-FR')}</div>
+                    </div>
+                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(34,197,94,0.35);background:rgba(34,197,94,0.08);flex-direction:column;align-items:flex-start;">
+                        <div style="${kpiLabelStyle}">🔌 Bornes de recharge</div>
+                        <div style="${kpiValueStyle}">${chargingCount.toLocaleString('fr-FR')}</div>
+                    </div>
+                </div>
+            `;
             const countLabel = totalRaw > 0
                 ? `${totalRaw.toLocaleString('fr-FR')} POI${totalRaw > 1 ? 's' : ''} trouvé${totalRaw > 1 ? 's' : ''}`
                 : 'POIs disponibles';
-            this.macroStats.innerHTML = demoHtml + kpiCardsHtml + densityHtml + `
-                <div class="stat-item empty" style="text-align:center;padding:18px 12px;">
+            this.macroStats.innerHTML =
+                buildCollapsibleSection('Informations générales', '📊', section1Html, 'section-info', true) +
+                buildCollapsibleSection('Infrastructure \& activités', '🗺️', infraKpisHtml, 'section-infra', true) +
+                buildCollapsibleSection('Tourisme', '🏨', section3Html, 'section-tourisme', true) +
+                buildCollapsibleSection('Marketing digitale', '📱', section4Html, 'section-marketing', false) +
+                `<div class="stat-item empty" style="text-align:center;padding:18px 12px;">
                     <span style="font-size:2rem;">🔍</span>
                     <div style="margin-top:8px;font-size:0.95rem;font-weight:600;color:var(--color-text);">${countLabel} — aucun affiché</div>
                     <div style="margin-top:6px;font-size:0.8rem;color:var(--color-text-muted);">Activez au moins une catégorie dans les filtres pour visualiser les lieux sur la carte.</div>
                 </div>`;
+            this._bindCollapsibleSections();
             this._bindHeatmapToggles();
             if (totalRaw > 0) {
                 this.showToast(`🗺️ ${countLabel} — activez les filtres pour les afficher`, 'info', 5000);
@@ -1173,12 +1346,61 @@ export class UiRenderer {
 
         const config = { responsive: true, displayModeBar: false };
 
-        this.macroStats.innerHTML = demoHtml + kpiCardsHtml + densityHtml; // Injecte démographie + KPI + densité en premier
+        // ── Assemble the 4 sections ────────────────────────────────────────
+        const areaHtml = areaKm2 > 0 ? `<div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(59,130,246,0.35);background:rgba(59,130,246,0.08);margin-bottom:10px;"><div><div style="${kpiLabelStyle}">📐 Superficie de la zone</div><div style="${kpiValueStyle}">${areaKm2.toFixed(2)} km²</div></div></div>` : '';
+        const section1Html = areaHtml + demoHtml + densityHtml;
+        const infraKpisHtml = `
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.08);flex-direction:column;align-items:flex-start;">
+                    <div style="${kpiLabelStyle}">🚌 Arrêts de bus</div>
+                    <div style="${kpiValueStyle}">${busStopCount.toLocaleString('fr-FR')}</div>
+                </div>
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(139,92,246,0.35);background:rgba(139,92,246,0.08);flex-direction:column;align-items:flex-start;">
+                    <div style="${kpiLabelStyle}">🚆 Gares</div>
+                    <div style="${kpiValueStyle}">${trainStationCount.toLocaleString('fr-FR')}</div>
+                </div>
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(14,165,233,0.35);background:rgba(14,165,233,0.08);flex-direction:column;align-items:flex-start;">
+                    <div style="${kpiLabelStyle}">✈️ Aéroports</div>
+                    <div style="${kpiValueStyle}">${airportCount.toLocaleString('fr-FR')}</div>
+                </div>
+            </div>
+            ${areaKm2 > 0 ? `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:10px;">
+                <div style="font-size:0.8rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">📍 Densité transport / km²</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+                    <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">🚌 Bus</div><div style="font-size:1rem;font-weight:700;color:#fbbf24;">${(busStopCount / areaKm2).toFixed(2)}</div></div>
+                    <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">🚆 Gares</div><div style="font-size:1rem;font-weight:700;color:#8b5cf6;">${(trainStationCount / areaKm2).toFixed(2)}</div></div>
+                    <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">✈️ Aéro.</div><div style="font-size:1rem;font-weight:700;color:#0ea5e9;">${(airportCount / areaKm2).toFixed(2)}</div></div>
+                </div>
+            </div>` : ''}
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(100,116,139,0.35);background:rgba(100,116,139,0.08);flex-direction:column;align-items:flex-start;">
+                    <div style="${kpiLabelStyle}">🅿️ Stationnements</div>
+                    <div style="${kpiValueStyle}">${parkingCount.toLocaleString('fr-FR')}</div>
+                </div>
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.08);flex-direction:column;align-items:flex-start;">
+                    <div style="${kpiLabelStyle}">🚻 Équipements sanitaires</div>
+                    <div style="${kpiValueStyle}">${sanitaryCount.toLocaleString('fr-FR')}</div>
+                </div>
+                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(34,197,94,0.35);background:rgba(34,197,94,0.08);flex-direction:column;align-items:flex-start;">
+                    <div style="${kpiLabelStyle}">🔌 Bornes de recharge</div>
+                    <div style="${kpiValueStyle}">${chargingCount.toLocaleString('fr-FR')}</div>
+                </div>
+            </div>
+            <div id="section-infra-content"></div>
+        `;
+        this.macroStats.innerHTML =
+            buildCollapsibleSection('Informations générales', '📊', section1Html, 'section-info', true) +
+            buildCollapsibleSection('Infrastructure \& activités', '🗺️', infraKpisHtml, 'section-infra', true) +
+            buildCollapsibleSection('Tourisme', '🏨', section3Html, 'section-tourisme', true) +
+            buildCollapsibleSection('Marketing digitale', '📱', section4Html, 'section-marketing', false);
+
+        this._bindCollapsibleSections();
         this._bindHeatmapToggles();
 
-
-
         this.macroStats.style.height = 'auto'; // Let it grow
+
+        // ── Section 2: Infrastructure & activités (injected via DOM) ──────
+        const infraContainer = document.getElementById('section-infra-content');
 
         // Header for Chart + Maximize Button
         const chartHeader = document.createElement('div');
@@ -1203,13 +1425,12 @@ export class UiRenderer {
 
         chartHeader.appendChild(chartTitle);
         chartHeader.appendChild(maxBtn);
-        this.macroStats.appendChild(chartHeader);
+        infraContainer.appendChild(chartHeader);
 
         const chartDiv = document.createElement('div');
         chartDiv.style.height = '350px';
-        // Give it an ID to easily identify it
         chartDiv.id = 'mini-chart-div';
-        this.macroStats.appendChild(chartDiv);
+        infraContainer.appendChild(chartDiv);
 
         Plotly.newPlot(chartDiv, data, layout, config);
         this.lastPois = pois;
@@ -1268,7 +1489,7 @@ export class UiRenderer {
 
             section.appendChild(headerRow);
             section.appendChild(miniDiv);
-            this.macroStats.appendChild(section);
+            infraContainer.appendChild(section);
 
             Plotly.newPlot(miniDiv, plotData, miniLayout, miniConfig);
         };
@@ -1453,10 +1674,27 @@ export class UiRenderer {
 
             slopeSection.appendChild(slopeHeaderRow);
             slopeSection.appendChild(slopeDiv);
-            this.macroStats.appendChild(slopeSection);
+            infraContainer.appendChild(slopeSection);
 
             Plotly.newPlot(slopeDiv, slopeData, slopeLayout, miniConfig);
         }
+    }
+
+    /** Bind collapsible section toggles */
+    _bindCollapsibleSections() {
+        document.querySelectorAll('.macro-section-toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const sectionId = btn.dataset.section;
+                const body = document.getElementById(sectionId);
+                const chevron = btn.querySelector('.macro-section-chevron');
+                if (!body) return;
+                const isOpen = body.style.display !== 'none';
+                body.style.display = isOpen ? 'none' : 'block';
+                if (chevron) {
+                    chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+                }
+            });
+        });
     }
 
     /** Lie les checkboxes heatmap après injection dans le DOM */
@@ -1531,6 +1769,14 @@ export class UiRenderer {
                     <div class="poi-section__title">📍 Informations</div>
                     <div class="detail-info" id="poi-osm-block">
                         ${this._buildOsmRows(poi, color)}
+                    </div>
+                </div>
+
+                <!-- Digital Data Block -->
+                <div class="poi-section">
+                    <div class="poi-section__title">💻 Données Digitales</div>
+                    <div class="detail-info" id="poi-digital-block">
+                        ${this._buildDigitalRows(poi, color)}
                     </div>
                 </div>
 
@@ -1637,10 +1883,64 @@ export class UiRenderer {
                         }
                     }
                 }
-            }).catch(err => console.warn('POI enrichment error:', err));
+
+                // --- Mise à jour du bloc des Données Digitales ---
+                if (poi.digital) {
+                    if (wikidataInfo) {
+                        poi.digital.wikidataLanguagesCount = wikidataInfo.wikidataLanguagesCount || 0;
+                        if (wikidataInfo.wikidataHasWikivoyage) {
+                            poi.digital.hasWikivoyage = true;
+                        }
+                    } else {
+                        poi.digital.wikidataLanguagesCount = 0;
+                    }
+                    const digitalBlock = document.getElementById('poi-digital-block');
+                    if (digitalBlock) {
+                        digitalBlock.innerHTML = this._buildDigitalRows(poi, color);
+                    }
+                }
+            }).catch(err => {
+                console.warn('POI enrichment error:', err);
+                if (poi.digital) {
+                    poi.digital.wikidataLanguagesCount = 0;
+                    const digitalBlock = document.getElementById('poi-digital-block');
+                    if (digitalBlock) {
+                        digitalBlock.innerHTML = this._buildDigitalRows(poi, color);
+                    }
+                }
+            });
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    _buildDigitalRows(poi, color) {
+        const d = poi.digital || {};
+        const rows = [];
+        
+        const yesLabel = `<span style="color:#10b981;font-weight:bold;">Oui</span>`;
+        const noLabel = `<span style="color:var(--color-text-muted);opacity:0.8;">Non</span>`;
+        
+        rows.push(this._infoRow('🌐 Site Web', d.hasWebsite ? yesLabel : noLabel));
+        rows.push(this._infoRow('📱 Réseaux Sociaux', d.hasSocialMedia ? yesLabel : noLabel));
+        rows.push(this._infoRow('🎒 Wikivoyage', d.hasWikivoyage ? yesLabel : noLabel));
+        
+        let langLabel = '';
+        if (d.wikidataLanguagesCount === null || d.wikidataLanguagesCount === undefined) {
+             if (poi.tags.wikidata) {
+                  langLabel = `<span style="color:var(--color-text-muted);font-style:italic;">Chargement...</span>`;
+             } else {
+                  langLabel = noLabel;
+             }
+        } else if (d.wikidataLanguagesCount === 0) {
+             langLabel = noLabel;
+        } else {
+             langLabel = `<span style="color:${color};font-weight:bold;">${d.wikidataLanguagesCount} langue(s)</span>`;
+        }
+        
+        rows.push(this._infoRow('🌍 Langues', langLabel));
+        
+        return rows.join('');
+    }
 
     /** Build all OSM info rows from poi.tags */
     _buildOsmRows(poi, color) {

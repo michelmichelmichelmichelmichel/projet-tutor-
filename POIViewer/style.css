@@ -69,6 +69,23 @@ body {
     will-change: transform, opacity;
 }
 
+/* Floating Filters Box (Next to Macro Overlay) */
+#filters-floating-box {
+    position: absolute;
+    top: 20px;
+    left: 420px; /* 60px (macro left) + 350px (macro width) + 10px gap */
+    z-index: var(--z-overlay);
+    padding: 8px;
+    border-radius: 14px;
+    width: auto;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    transform: translateZ(0);
+}
+
+#filters-floating-box .filter-card {
+    min-width: 200px;
+}
+
 /* Macro Overlay (Top Left) */
 #macro-overlay {
     position: absolute;

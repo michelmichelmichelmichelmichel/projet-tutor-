@@ -96,31 +96,6 @@
                 </div>
                 <button id="minimize-macro-btn" class="icon-btn minimize-btn" title="Réduire/Agrandir">−</button>
             </header>
-            <div class="filter-card" style="margin-top: 15px;">
-                <button id="toggle-filters-btn" class="filter-toggle-btn">
-                    <span class="btn-label">🛠️ Catégories POIs</span>
-                    <span class="filter-badge badge--all" id="filter-badge-categories">--/--</span>
-                    <span class="btn-chevron">▾</span>
-                </button>
-                <div id="macro-filters-content" class="filter-card-body"
-                    style="display: none; max-height: 250px; overflow-y: auto;">
-                    <button id="deselect-all-btn" class="filter-action-btn">Tout cocher / décocher</button>
-                </div>
-            </div>
-
-            <div class="filter-card" style="margin-top: 10px;">
-                <button id="toggle-path-filters-btn" class="filter-toggle-btn">
-                    <span class="btn-label">🗺️ Chemins</span>
-                    <span class="filter-badge badge--all" id="filter-badge-paths">--/--</span>
-                    <span class="btn-chevron">▾</span>
-                </button>
-                <div id="path-filters-content" class="filter-card-body"
-                    style="display: none; max-height: 250px; overflow-y: auto;">
-                    <button id="deselect-all-paths-btn" class="filter-action-btn">Tout cocher / décocher</button>
-                    <!-- Path Checkboxes injected here -->
-                </div>
-            </div>
-
             <div id="macro-stats" class="stats-grid">
                 <!-- Stats will be injected here -->
                 <div class="stat-item empty">
@@ -129,6 +104,36 @@
                 </div>
             </div>
 
+        </div>
+
+        <!-- Floating Filters Box (Top Center) -->
+        <div id="filters-floating-box" class="glass-panel">
+            <div style="display: flex; gap: 8px; align-items: flex-start;">
+                <div class="filter-card" style="flex: 1; margin-top: 0;">
+                    <button id="toggle-filters-btn" class="filter-toggle-btn">
+                        <span class="btn-label">🛠️ Catégories POIs</span>
+                        <span class="filter-badge badge--all" id="filter-badge-categories">--/--</span>
+                        <span class="btn-chevron">▾</span>
+                    </button>
+                    <div id="macro-filters-content" class="filter-card-body"
+                        style="display: none; max-height: 250px; overflow-y: auto;">
+                        <button id="deselect-all-btn" class="filter-action-btn">Tout cocher / décocher</button>
+                    </div>
+                </div>
+
+                <div class="filter-card" style="flex: 1; margin-top: 0;">
+                    <button id="toggle-path-filters-btn" class="filter-toggle-btn">
+                        <span class="btn-label">🗺️ Chemins</span>
+                        <span class="filter-badge badge--all" id="filter-badge-paths">--/--</span>
+                        <span class="btn-chevron">▾</span>
+                    </button>
+                    <div id="path-filters-content" class="filter-card-body"
+                        style="display: none; max-height: 250px; overflow-y: auto;">
+                        <button id="deselect-all-paths-btn" class="filter-action-btn">Tout cocher / décocher</button>
+                        <!-- Path Checkboxes injected here -->
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 

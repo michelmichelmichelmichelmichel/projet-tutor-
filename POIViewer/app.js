@@ -39,6 +39,9 @@ class App {
             this.apiService.overpassUrl = newUrl;
         };
 
+        // Load INSEE Data on app start
+        this.apiService.loadInseeData();
+
         // Bind Force Refresh Button (zone-specific)
         const forceRefreshBtn = document.getElementById('force-refresh-btn');
         if (forceRefreshBtn) {
@@ -52,7 +55,12 @@ class App {
                 forceRefreshBtn.style.pointerEvents = 'none';
                 const latLngs = this.mapManager.getBoundsFromLayer(this.currentLayer);
                 await this.apiService.clearZoneCache(latLngs);
-                await this.handleAreaSelection(this.currentLayer);
+                // Re-call handleAreaSelection with the stored activeZone context
+                if (this.activeZone) {
+                    await this.handleAreaSelection(this.currentLayer, this.activeZone.name, this.activeZone.type, this.activeZone.code || this.activeZone.ref);
+                } else {
+                    await this.handleAreaSelection(this.currentLayer);
+                }
                 forceRefreshBtn.innerHTML = '✅ Zone rafraîchie !';
                 forceRefreshBtn.style.borderColor = 'rgba(34,197,94,0.5)';
                 forceRefreshBtn.style.color = '#86efac';
@@ -76,7 +84,12 @@ class App {
                 forceResetAllBtn.style.borderColor = 'rgba(34,197,94,0.5)';
                 forceResetAllBtn.style.color = '#86efac';
                 if (this.currentLayer) {
-                    await this.handleAreaSelection(this.currentLayer);
+                    // Re-call handleAreaSelection with the stored activeZone context
+                    if (this.activeZone) {
+                        await this.handleAreaSelection(this.currentLayer, this.activeZone.name, this.activeZone.type, this.activeZone.code || this.activeZone.ref);
+                    } else {
+                        await this.handleAreaSelection(this.currentLayer);
+                    }
                 }
                 setTimeout(() => {
                     forceResetAllBtn.innerHTML = '🗑️ Reset complet (tout le cache)';
@@ -90,7 +103,7 @@ class App {
         // Bind Drawing Event
         this.mapManager.onPolygonCreated = async (layer) => {
             this.uiRenderer.closeSettings(); // Ferme le panneau dès qu'une zone est validée
-            this.handleAreaSelection(layer);
+            this.handleAreaSelection(layer); // For drawn polygons, activeZone remains null
             this.uiRenderer.toggleLoadNeighborsBtn(false);
         };
 
@@ -103,7 +116,7 @@ class App {
         this.uiRenderer.onFilterChange = () => {
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length);
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
             }
@@ -121,7 +134,7 @@ class App {
         this.uiRenderer.onSubCategoryFilterChange = () => {
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length);
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
             }
@@ -187,7 +200,7 @@ class App {
                 layer = this.mapManager.drawBoundary(park.geometry);
             } else if (park.relationId) {
                 // Parc national/régional (pas de voisins administratifs)
-                this.activeZone = null;
+                this.activeZone = null; // No specific admin context for parks
                 const geoJson = await this.apiService.fetchParkBoundary(park.relationId);
                 if (geoJson) layer = this.mapManager.drawBoundary(geoJson);
             } else if (park.adminType === 'dept') {
@@ -206,7 +219,7 @@ class App {
             }
 
             if (layer) {
-                await this.handleAreaSelection(layer);
+                await this.handleAreaSelection(layer, park.name, this.activeZone ? this.activeZone.type : null, this.activeZone ? (this.activeZone.code || this.activeZone.ref) : null);
 
                 // SUPPRESSION DU CHARGEMENT AUTO DES VOISINS :
                 // this.loadNeighbors();
@@ -221,9 +234,28 @@ class App {
         };
     }
 
-    async handleAreaSelection(layer) {
+    _getInseeStats() {
+        if (this.activeZone && this.activeZone.type === 'commune' && this.activeZone.ref) {
+            const stats = this.apiService.getInseeStats(this.activeZone.ref);
+            if (stats) console.log(`Données INSEE trouvées pour ${this.activeZone.name} (${this.activeZone.ref}):`, stats);
+            return stats;
+        }
+        return null;
+    }
+
+    async handleAreaSelection(layer, name = null, type = null, ref = null) {
         this.currentLayer = layer;
         this.uiRenderer.showLoading(true);
+
+        // Enregistrer la zone active si elle vient d'un preset avec name/type/ref
+        if (name && type) {
+            this.activeZone = { name, type, ref: ref || null };
+            console.log(`[AreaSelected] Name: ${name}, Type: ${type}, Ref: ${ref}`);
+        } else if (!this.activeZone) {
+            // If it's a drawn polygon and no activeZone is set yet
+            this.activeZone = null;
+        }
+
 
         const latLngs = this.mapManager.getBoundsFromLayer(layer);
 
@@ -282,7 +314,7 @@ class App {
                 }
 
                 // Update UI (Macro Stats) - Affiche les POIs, chemins, et soit la démo en cache, soit le spinner
-                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length);
+                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
 
                 // Construire et afficher les heatmaps
                 this.updateHeatmaps();
@@ -333,7 +365,7 @@ class App {
                                         </div>
                                     `;
 
-                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length);
+                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
                                     this.uiRenderer.renderSparkline();
                                 } catch (err) {
                                     console.error("Erreur lors de l'affichage final de la macro:", err);
