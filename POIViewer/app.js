@@ -249,7 +249,8 @@ class App {
 
         // Enregistrer la zone active si elle vient d'un preset avec name/type/ref
         if (name && type) {
-            this.activeZone = { name, type, ref: ref || null };
+            // Fusionner avec l'activeZone existante pour ne pas perdre code/codeDepartement
+            this.activeZone = { ...this.activeZone, name, type, ref: ref || null };
             console.log(`[AreaSelected] Name: ${name}, Type: ${type}, Ref: ${ref}`);
         } else if (!this.activeZone) {
             // If it's a drawn polygon and no activeZone is set yet
@@ -696,17 +697,18 @@ class App {
 
         try {
             let neighbors = [];
-            const { type, code, codeDepartement } = this.activeZone;
+            const { type, code, ref, codeDepartement } = this.activeZone;
+            const zoneCode = code || ref; // code ou ref selon la source
 
             if (type === 'commune') {
-                const deptCode = codeDepartement || (code ? code.substring(0, 2) : null);
+                const deptCode = codeDepartement || (zoneCode ? String(zoneCode).substring(0, 2) : null);
                 if (deptCode) {
-                    neighbors = await this.apiService.fetchNeighborCommunes(deptCode, screenBounds, code);
+                    neighbors = await this.apiService.fetchNeighborCommunes(deptCode, screenBounds, zoneCode);
                 }
             } else if (type === 'dept') {
-                neighbors = await this.apiService.fetchNeighborDepts(screenBounds, code);
+                neighbors = await this.apiService.fetchNeighborDepts(screenBounds, zoneCode);
             } else if (type === 'region') {
-                neighbors = await this.apiService.fetchNeighborRegions(screenBounds, code);
+                neighbors = await this.apiService.fetchNeighborRegions(screenBounds, zoneCode);
             }
 
             if (neighbors.length === 0) return;
