@@ -66,9 +66,8 @@
                 <label style="color: #fff; font-size: 0.85rem;">Serveur Overpass API</label>
                 <select id="overpass-server-select"
                     style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; cursor: pointer;">
-                    <option value="https://overpass.private.coffee/api/interpreter" selected>Private Coffee (Rapide)
-                    </option>
-                    <option value="https://overpass-api.de/api/interpreter">overpass-api.de (Officiel)</option>
+                    <option value="https://overpass.private.coffee/api/interpreter">Private Coffee</option>
+                    <option value="https://overpass-api.de/api/interpreter" selected>overpass-api.de (Officiel)</option>
                     <option value="https://overpass.kumi.systems/api/interpreter">Kumi Systems</option>
                     <option value="https://overpass.osm.ch/api/interpreter">osm.ch (Suisse)</option>
                 </select>
@@ -160,30 +159,27 @@
         <div class="presets-tabs"
             style="display: flex; justify-content: space-between; align-items: center; padding-right: 10px;">
             <div style="display: flex; flex: 1; overflow-x: auto;">
-                <button class="tab-btn" data-tab="countries">Pays</button> <button class="tab-btn active"
-                    data-tab="national">Parcs Nationaux</button>
+                <button class="tab-btn active" data-tab="countries">Pays</button> <button class="tab-btn"
+                    data-tab="national">Zones protegées</button>
                 <button class="tab-btn" data-tab="regional">Parcs Régionaux</button>
-                <button class="tab-btn" data-tab="regions">Régions</button>
-                <button class="tab-btn" data-tab="departments">Départements</button>
+                <span id="admin-tabs-btns" style="display: contents;"></span>
                 <button class="tab-btn" data-tab="cities">Villes</button>
             </div>
             <button id="minimize-presets-btn" class="icon-btn minimize-btn" title="Réduire/Agrandir"
                 style="padding: 4px 8px;">−</button>
         </div>
 
-        <div id="countries-content" class="tab-content">
+        <div id="countries-content" class="tab-content active">
             <div class="search-container" style="padding: 10px 0;">
                 <input type="text" id="country-search-input" placeholder="Rechercher un pays..."
                     style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
             </div>
-            <div id="countries-results" class="presets-list">
-                <p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Tapez le nom d'un
-                    pays...</p>
-            </div>
+            <div id="selected-country-summary" class="country-active-card hidden"></div>
+            <div id="countries-results" class="presets-list"></div>
         </div>
-        <div id="national-content" class="tab-content active">
+        <div id="national-content" class="tab-content">
             <div id="national-list" class="presets-list">
-                <!-- National Parks injected here -->
+                <!-- Protected areas injected here -->
             </div>
         </div>
 
@@ -193,29 +189,14 @@
             </div>
         </div>
 
-        <div id="regions-content" class="tab-content">
-            <div id="regions-list" class="presets-list">
-                <!-- Regions injected here -->
-            </div>
-        </div>
-
-        <div id="departments-content" class="tab-content">
-            <div id="departments-list" class="presets-list">
-                <!-- Departments injected here -->
-            </div>
-        </div>
+        <div id="admin-tabs-contents"></div>
 
         <div id="cities-content" class="tab-content">
             <div class="search-container" style="padding: 10px 0;">
-                <input type="text" id="city-search-input" placeholder="Rechercher une commune..."
+                <input type="text" id="city-search-input" placeholder="Choisissez d'abord un pays..." disabled
                     style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
             </div>
-            <div id="cities-results" class="presets-list">
-                <!-- Search results injected here -->
-                <p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Tapez le nom
-                    d'une
-                    ville...</p>
-            </div>
+            <div id="cities-results" class="presets-list"></div>
         </div>
     </div>
 

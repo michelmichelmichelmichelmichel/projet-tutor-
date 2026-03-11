@@ -80,11 +80,10 @@ class App {
                 forceResetAllBtn.innerHTML = '<span class="spinner" style="width:12px;height:12px;border-width:2px;"></span> Reset en cours...';
                 forceResetAllBtn.style.pointerEvents = 'none';
                 await this.apiService.clearAllCaches();
-                forceResetAllBtn.innerHTML = '✅ Tout vidé !';
+                forceResetAllBtn.innerHTML = 'OK - cache vide';
                 forceResetAllBtn.style.borderColor = 'rgba(34,197,94,0.5)';
                 forceResetAllBtn.style.color = '#86efac';
                 if (this.currentLayer) {
-                    // Re-call handleAreaSelection with the stored activeZone context
                     if (this.activeZone) {
                         await this.handleAreaSelection(this.currentLayer, this.activeZone.name, this.activeZone.type, this.activeZone.code || this.activeZone.ref);
                     } else {
@@ -92,7 +91,7 @@ class App {
                     }
                 }
                 setTimeout(() => {
-                    forceResetAllBtn.innerHTML = '🗑️ Reset complet (tout le cache)';
+                    forceResetAllBtn.innerHTML = 'Reset complet (tout le cache)';
                     forceResetAllBtn.style.pointerEvents = 'auto';
                     forceResetAllBtn.style.borderColor = '';
                     forceResetAllBtn.style.color = '';
@@ -150,16 +149,7 @@ class App {
         };
 
         this.mapManager.onPolygonCleared = () => {
-            this.currentPOIs = [];
-            this.currentLayer = null;
-            this.activeZone = null;
-            this.uiRenderer.clear();
-            if (this.mapManager.networkGroup) this.mapManager.networkGroup.clearLayers();
-            if (this.mapManager.markerGroup) this.mapManager.markerGroup.clearLayers();
-            this.mapManager.clearNeighborZones();
-            this.mapManager.clearSelectionMarker();
-            this.mapManager.clearHeatmapLayers();
-            this.currentNetworks = [];
+            this.resetZoneSelection({ clearDrawnLayer: false });
         };
 
         this.uiRenderer.onPathWeightChange = (weight) => {
@@ -176,10 +166,16 @@ class App {
         // Initialize Presets
         this.uiRenderer.initPresets();
         // NOUVEAU: Zoomer sur la carte lors de la sélection d'un pays
-        this.uiRenderer.onCountrySelected = (bounds) => {
-            if (bounds) {
-                this.mapManager.map.fitBounds(bounds);
-                this.uiRenderer.minimizePresetsPanel(); // Réduit le panneau
+        this.uiRenderer.onCountrySelected = (country) => {
+            this.resetZoneSelection();
+            if (country && country.bounds) {
+                this.mapManager.map.fitBounds(country.bounds);
+                const presetsPanel = document.getElementById('presets-panel');
+                const presetsBtn = document.getElementById('minimize-presets-btn');
+                if (presetsPanel && presetsBtn) {
+                    presetsPanel.classList.remove('minimized');
+                    presetsBtn.textContent = '-';
+                }
             }
         }
         this.uiRenderer.onPresetSelected = async (park) => {
@@ -194,44 +190,62 @@ class App {
                     code: park.code,
                     codeDepartement: park.codeDepartement || (park.code ? String(park.code).substring(0, 2) : null),
                     name: park.name,
-                    wikidata: park.wikidata || null, // Capture le wikidata pour la démographie
+                    wikidata: park.wikidata || null,
                     population: park.population || null
                 };
                 layer = this.mapManager.drawBoundary(park.geometry);
+            } else if (park.adminType === 'dept' || park.adminType === 'region' || park.adminType === 'admin') {
+                this.activeZone = { type: park.adminType, code: park.ref || park.code, name: park.name, wikidata: park.wikidata || null, population: park.population || null };
+                if (park.relationId) {
+                    const geoJson = await this.apiService.fetchParkBoundary(park.relationId);
+                    if (geoJson) layer = this.mapManager.drawBoundary(geoJson);
+                }
             } else if (park.relationId) {
-                // Parc national/régional (pas de voisins administratifs)
-                this.activeZone = null; // No specific admin context for parks
+                this.activeZone = null;
                 const geoJson = await this.apiService.fetchParkBoundary(park.relationId);
                 if (geoJson) layer = this.mapManager.drawBoundary(geoJson);
-            } else if (park.adminType === 'dept') {
-                this.activeZone = { type: 'dept', code: park.ref || park.code, name: park.name };
-                layer = park.bounds ? this.mapManager.drawRectangle(park.bounds) : null;
-            } else if (park.adminType === 'region') {
-                this.activeZone = { type: 'region', code: park.ref || park.code, name: park.name };
-                layer = park.bounds ? this.mapManager.drawRectangle(park.bounds) : null;
             } else {
                 this.activeZone = null;
             }
 
-            // Fallback to bounds
             if (!layer && park.bounds) {
                 layer = this.mapManager.drawRectangle(park.bounds);
             }
 
             if (layer) {
                 await this.handleAreaSelection(layer, park.name, this.activeZone ? this.activeZone.type : null, this.activeZone ? (this.activeZone.code || this.activeZone.ref) : null);
-
-                // SUPPRESSION DU CHARGEMENT AUTO DES VOISINS :
-                // this.loadNeighbors();
-
-                // Afficher le bouton seulement s'il y a une zone active (pas pour les zones dessinées libres)
-                if (this.activeZone) {
-                    this.uiRenderer.toggleLoadNeighborsBtn(true);
-                }
+                this.uiRenderer.toggleLoadNeighborsBtn(this.canLoadNeighborsForActiveZone());
             } else {
                 this.uiRenderer.showLoading(false);
             }
         };
+    }
+
+    resetZoneSelection({ clearDrawnLayer = true } = {}) {
+        this.currentPOIs = [];
+        this.currentNetworks = [];
+        this.currentLayer = null;
+        this.activeZone = null;
+        this.currentAreaKm2 = 0;
+
+        this.uiRenderer.clear();
+        this.uiRenderer.toggleLoadNeighborsBtn(false);
+
+        if (clearDrawnLayer && this.mapManager.drawnItems) {
+            this.mapManager.drawnItems.clearLayers();
+        }
+        if (this.mapManager.networkGroup) this.mapManager.networkGroup.clearLayers();
+        if (this.mapManager.markerGroup) this.mapManager.markerGroup.clearLayers();
+        this.mapManager.clearNeighborZones();
+        this.mapManager.clearSelectionMarker();
+        this.mapManager.clearHeatmapLayers();
+    }
+
+    canLoadNeighborsForActiveZone() {
+        if (!this.activeZone) return false;
+        if (this.apiService.currentCountryCode !== 'fr') return false;
+
+        return ['commune', 'dept', 'region'].includes(this.activeZone.type);
     }
 
     _getInseeStats() {
@@ -685,7 +699,7 @@ class App {
      * Ne fait rien si aucune zone administrative n'est active.
      */
     async loadNeighbors() {
-        if (!this.activeZone) return;
+        if (!this.canLoadNeighborsForActiveZone()) return;
 
         const mapBounds = this.mapManager.map.getBounds();
         const screenBounds = {
@@ -773,3 +787,4 @@ document.addEventListener('DOMContentLoaded', () => {
     const app = new App();
     app.init();
 });
+

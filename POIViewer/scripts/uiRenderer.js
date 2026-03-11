@@ -1,3 +1,5 @@
+import { getAdminLevels } from './adminLevels.js';
+
 export class UiRenderer {
     constructor() {
         // --- FULL SCREEN CHART CONTAINERS ---
@@ -54,61 +56,300 @@ export class UiRenderer {
         ];
 
         this.onPresetSelected = null;
+        this.onCountrySelected = null;
+        this.selectedCountry = null;
+        // Static tabs that depend on a country being selected
+        this.staticCountryDependentTabIds = ['national', 'cities'];
+        // Dynamic admin tabs built per country; populated by rebuildAdminTabs()
+        this.currentAdminTabIds = [];
+        this.loadedPresetCountryByTab = new Map();
+        this.loadingPresetTabs = new Map();
     }
 
     async initPresets() {
-        // --- 1. Logique de changement d'onglets (Tabs) ---
-        const tabBtns = document.querySelectorAll('.tab-btn');
-        const tabContents = document.querySelectorAll('.tab-content');
-
-        tabBtns.forEach(btn => {
-            btn.addEventListener('click', () => {
-                // Retirer la classe active de tous les boutons et contenus
-                tabBtns.forEach(b => b.classList.remove('active'));
-                tabContents.forEach(c => c.classList.remove('active'));
-
-                // Ajouter la classe active au bouton cliqué
-                btn.classList.add('active');
-
-                // Afficher le contenu correspondant
-                const tabId = btn.getAttribute('data-tab');
-                const content = document.getElementById(`${tabId}-content`);
-                if (content) {
-                    content.classList.add('active');
-                }
-            });
-        });
-
-        // --- 2. Parcs Nationaux (Statique) ---
-        const nationalList = document.getElementById('national-list');
-        if (nationalList) {
-            nationalList.innerHTML = ''; // Nettoyer avant
-            this.nationalParks.forEach(park => {
-                const btn = document.createElement('button');
-                btn.className = 'preset-btn';
-                btn.textContent = park.name;
-                btn.addEventListener('click', () => {
-                    if (this.onPresetSelected) this.onPresetSelected(park);
-                    this.minimizePresetsPanel();
-                });
-                nationalList.appendChild(btn);
-            });
-        }
-
-        // --- 3. Listes dynamiques avec l'API (Séquentiel pour éviter l'erreur 429) ---
-        const loadDynamicLists = async () => {
-            await this._populateDynamicList('regional-list', () => this.apiService.fetchParks());
-            await this._populateDynamicList('regions-list', () => this.apiService.fetchRegions());
-            await this._populateDynamicList('departments-list', () => this.apiService.fetchDepartments());
-        };
-        loadDynamicLists();
-
-        // --- 4. Recherches dynamiques (Villes et Pays) ---
+        this._initPresetTabs();
+        this._hidePresetTab('regional');
+        this.setCountryWorkflowState(null);
         this.initCitySearch();
         this.initCountrySearch();
     }
 
+    _initPresetTabs() {
+        // Use event delegation on the tabs row so dynamically added admin tabs work too
+        const tabsRow = document.querySelector('.presets-tabs > div');
+        if (tabsRow) {
+            tabsRow.addEventListener('click', (e) => {
+                const btn = e.target.closest('.tab-btn');
+                if (!btn || btn.disabled || btn.classList.contains('is-disabled')) return;
+
+                document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+
+                btn.classList.add('active');
+                const tabId = btn.getAttribute('data-tab');
+                const content = document.getElementById(`${tabId}-content`);
+                if (content) content.classList.add('active');
+
+                this.loadPresetTab(tabId);
+            });
+        }
+
+        this.activatePresetTab('countries');
+    }
+
     // Ajoutez cette nouvelle méthode dans la classe UiRenderer
+    _hidePresetTab(tabId) {
+        const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+        const content = document.getElementById(`${tabId}-content`);
+
+        if (btn) btn.style.display = 'none';
+        if (content) content.style.display = 'none';
+    }
+
+    activatePresetTab(tabId) {
+        const btns = document.querySelectorAll('.tab-btn');
+        const contents = document.querySelectorAll('.tab-content');
+        const targetBtn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+        const targetContent = document.getElementById(`${tabId}-content`);
+
+        if (!targetBtn || !targetContent || targetBtn.disabled) return;
+
+        btns.forEach(btn => btn.classList.remove('active'));
+        contents.forEach(content => content.classList.remove('active'));
+
+        targetBtn.classList.add('active');
+        targetContent.classList.add('active');
+    }
+
+    setPresetTabEnabled(tabId, enabled) {
+        const btn = document.querySelector(`.tab-btn[data-tab="${tabId}"]`);
+        if (!btn) return;
+
+        btn.disabled = !enabled;
+        btn.classList.toggle('is-disabled', !enabled);
+    }
+
+    /**
+     * Build (or clear) the dynamic admin-level tabs for the selected country.
+     * Creates one tab button + one content div per level defined in adminLevels.js.
+     */
+    rebuildAdminTabs(countryCode) {
+        const levels = countryCode ? getAdminLevels(countryCode) : [];
+        this.currentAdminTabIds = levels.map(l => `admin_${l.adminLevel}`);
+
+        const btnsContainer = document.getElementById('admin-tabs-btns');
+        const contentsContainer = document.getElementById('admin-tabs-contents');
+        if (!btnsContainer || !contentsContainer) return;
+
+        btnsContainer.innerHTML = '';
+        contentsContainer.innerHTML = '';
+
+        levels.forEach(level => {
+            const tabId = `admin_${level.adminLevel}`;
+
+            const btn = document.createElement('button');
+            btn.className = 'tab-btn is-disabled';
+            btn.setAttribute('data-tab', tabId);
+            btn.textContent = level.label;
+            btn.disabled = true;
+            btnsContainer.appendChild(btn);
+
+            const content = document.createElement('div');
+            content.id = `${tabId}-content`;
+            content.className = 'tab-content';
+            content.innerHTML = `<div id="${tabId}-list" class="presets-list"></div>`;
+            contentsContainer.appendChild(content);
+        });
+    }
+
+    clearPresetContainers(containerIds = []) {
+        containerIds.forEach((containerId) => {
+            const container = document.getElementById(containerId);
+            if (container) container.innerHTML = '';
+        });
+    }
+
+    setCountryWorkflowState(country) {
+        const cityInput = document.getElementById('city-search-input');
+        this.loadedPresetCountryByTab.clear();
+
+        if (!country) {
+            this.selectedCountry = null;
+            this.rebuildAdminTabs(null);
+            this.renderSelectedCountrySummary(null);
+            this.staticCountryDependentTabIds.forEach(tabId => this.setPresetTabEnabled(tabId, false));
+            this.activatePresetTab('countries');
+
+            if (cityInput) {
+                cityInput.disabled = true;
+                cityInput.value = '';
+                cityInput.placeholder = "Choisissez d'abord un pays...";
+            }
+
+            this.clearPresetContainers(['national-list', 'cities-results']);
+            return;
+        }
+
+        this.selectedCountry = country;
+        this.rebuildAdminTabs(country.countryCode);
+        this.renderSelectedCountrySummary(country);
+        this.staticCountryDependentTabIds.forEach(tabId => this.setPresetTabEnabled(tabId, true));
+        // Enable the dynamic admin tabs just created
+        this.currentAdminTabIds.forEach(tabId => this.setPresetTabEnabled(tabId, true));
+
+        if (cityInput) {
+            cityInput.disabled = false;
+            cityInput.value = '';
+            cityInput.placeholder = `Rechercher une ville en ${country.name}...`;
+        }
+
+        this.clearPresetContainers(['national-list', 'cities-results']);
+        // No preloading — tabs load lazily when the user clicks them
+    }
+
+    _renderPresetMessage(containerId, message) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        container.innerHTML = `<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">${message}</p>`;
+    }
+
+    _renderPresetLoading(containerId, message = 'Chargement...') {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        container.innerHTML = `<div class="loading-container"><span class="spinner"></span><span>${message}</span></div>`;
+    }
+
+    countryCodeToFlagEmoji(countryCode) {
+        const code = (countryCode || '').trim().toUpperCase();
+        if (!/^[A-Z]{2}$/.test(code)) return '🌍';
+
+        const base = 127397;
+        return String.fromCodePoint(...Array.from(code).map((char) => base + char.charCodeAt(0)));
+    }
+
+    escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    getCountryFlagUrl(countryCode, width = 40, height = 30) {
+        const code = (countryCode || '').trim().toLowerCase();
+        if (!/^[a-z]{2}$/.test(code)) return null;
+
+        return {
+            src: `https://flagcdn.com/${width}x${height}/${code}.png`,
+            srcSet: `https://flagcdn.com/${width * 2}x${height * 2}/${code}.png 2x`
+        };
+    }
+
+    renderCountryFlag(country, imageClass, width = 40, height = 30) {
+        const flagUrl = this.getCountryFlagUrl(country?.countryCode, width, height);
+        const fallback = this.escapeHtml((country?.countryCode || 'OSM').toUpperCase());
+
+        if (!flagUrl) {
+            return `<span class="country-flag-fallback">${fallback}</span>`;
+        }
+
+        return `<img class="${imageClass}" src="${flagUrl.src}" srcset="${flagUrl.srcSet}" alt="" loading="lazy" width="${width}" height="${height}">`;
+    }
+
+    renderSelectedCountrySummary(country) {
+        const summary = document.getElementById('selected-country-summary');
+        if (!summary) return;
+
+        if (!country) {
+            summary.innerHTML = '';
+            summary.classList.add('hidden');
+            return;
+        }
+
+        const safeName = this.escapeHtml(country.name);
+        const code = this.escapeHtml((country.countryCode || '').toUpperCase());
+        const flagMarkup = this.renderCountryFlag(country, 'country-active-flag-image', 48, 36);
+
+        summary.innerHTML = `
+            <div class="country-active-copy">
+                <span class="country-active-label">Pays actif</span>
+                <span class="country-active-name">${safeName}</span>
+                <span class="country-active-meta">${code || 'OSM'}</span>
+            </div>
+            <div class="country-active-flag" aria-hidden="true">${flagMarkup}</div>
+        `;
+        summary.classList.remove('hidden');
+    }
+
+    getPresetTabConfig(tabId) {
+        const countryName = this.selectedCountry ? this.selectedCountry.name : 'ce pays';
+
+        if (tabId === 'national') {
+            return {
+                containerId: 'national-list',
+                loadingMessage: `Chargement des zones protégées pour ${countryName}...`,
+                emptyMessage: 'Aucune zone protégée trouvée.',
+                fetchMethod: () => this.apiService.fetchParks()
+            };
+        }
+
+        if (tabId.startsWith('admin_')) {
+            const adminLevel = tabId.replace('admin_', '');
+            const levels = getAdminLevels(this.selectedCountry?.countryCode);
+            const levelCfg = levels.find(l => l.adminLevel === adminLevel);
+            const label = levelCfg ? levelCfg.label : `Admin ${adminLevel}`;
+            return {
+                containerId: `${tabId}-list`,
+                loadingMessage: `Chargement de ${label.toLowerCase()} pour ${countryName}...`,
+                emptyMessage: `Aucun(e) ${label.toLowerCase()} trouvé(e).`,
+                fetchMethod: () => this.apiService.fetchAdminLevel(adminLevel)
+            };
+        }
+
+        return null;
+    }
+
+    loadPresetTab(tabId, { force = false } = {}) {
+        if (!this.apiService || !this.selectedCountry) return Promise.resolve();
+        if (tabId === 'countries' || tabId === 'cities') return Promise.resolve();
+
+        const config = this.getPresetTabConfig(tabId);
+        const currentCountryAreaId = this.apiService.currentCountryAreaId;
+        if (!config || !currentCountryAreaId) return Promise.resolve();
+
+        if (!force && this.loadedPresetCountryByTab.get(tabId) === currentCountryAreaId) {
+            return Promise.resolve();
+        }
+
+        const requestKey = `${tabId}:${currentCountryAreaId}`;
+        if (this.loadingPresetTabs.has(requestKey)) {
+            return this.loadingPresetTabs.get(requestKey);
+        }
+
+        const request = this._populateDynamicList(config.containerId, config.fetchMethod, {
+            loadingMessage: config.loadingMessage,
+            emptyMessage: config.emptyMessage,
+            countryAreaId: currentCountryAreaId
+        }).then((didRender) => {
+            if (didRender !== false) {
+                this.loadedPresetCountryByTab.set(tabId, currentCountryAreaId);
+            }
+            return didRender;
+        }).catch((error) => {
+            console.error(error);
+            this._renderPresetMessage(config.containerId, 'Chargement impossible pour le moment.');
+            throw error;
+        }).finally(() => {
+            this.loadingPresetTabs.delete(requestKey);
+        });
+
+        this.loadingPresetTabs.set(requestKey, request);
+        return request;
+    }
+
     initCountrySearch() {
         const input = document.getElementById('country-search-input');
         const resultsContainer = document.getElementById('countries-results');
@@ -117,11 +358,11 @@ export class UiRenderer {
 
         let timeout;
         input.addEventListener('input', (e) => {
-            const query = e.target.value;
+            const query = e.target.value.trim();
             clearTimeout(timeout);
             timeout = setTimeout(async () => {
-                if (query.length < 3) {
-                    resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Tapez au moins 3 caractères...</p>';
+                if (query.length < 2) {
+                    resultsContainer.innerHTML = '';
                     return;
                 }
 
@@ -132,52 +373,41 @@ export class UiRenderer {
                     resultsContainer.innerHTML = '';
 
                     if (results.length === 0) {
-                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucun pays trouvé.</p>';
+                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucun pays trouve.</p>';
                         return;
                     }
 
+                    const fragment = document.createDocumentFragment();
                     results.forEach(country => {
+                        const safeName = this.escapeHtml(country.name);
+                        const code = this.escapeHtml((country.countryCode || '').toUpperCase());
+                        const flagMarkup = this.renderCountryFlag(country, 'country-flag-image');
                         const btn = document.createElement('button');
-                        btn.className = 'preset-btn';
-                        btn.style.width = '100%';
-                        btn.style.textAlign = 'left';
-                        btn.style.display = 'block';
-                        btn.innerHTML = `<strong>${country.name}</strong>`;
+                        btn.className = 'preset-btn country-option-btn';
+                        btn.innerHTML = `
+                            <span class="country-flag" aria-hidden="true">${flagMarkup}</span>
+                            <span class="country-option-copy">
+                                <span class="country-option-name">${safeName}</span>
+                                <span class="country-option-meta">${code || 'OSM'}</span>
+                            </span>
+                        `;
 
-                        btn.addEventListener('click', async () => { // <-- AJOUT DE async
-                            // 1. Définir le pays actif dans l'API
-                            this.apiService.setCountry(country.name, country.countryCode, country.areaId);
-
-                            // 2. Feedback visuel de chargement immédiat
-                            resultsContainer.innerHTML = `<div class="loading-container"><span class="spinner"></span><span style="color: var(--color-primary); font-size: 0.9rem;">Chargement des données pour ${country.name}...</span></div>`;
-
-                            // 3. Modifier le placeholder de la ville
-                            const cityInput = document.getElementById('city-search-input');
-                            if (cityInput) cityInput.placeholder = `Rechercher une ville en ${country.name}...`;
-
-                            // 4. Zoomer tout de suite sur la carte pour fluidifier l'expérience
-                            if (this.onCountrySelected) this.onCountrySelected(country.bounds);
-
-                            // 5. Rafraichir les listes SÉQUENTIELLEMENT (avec await)
-                            try {
-                                await this._populateDynamicList('regional-list', () => this.apiService.fetchParks());
-                                await this._populateDynamicList('regions-list', () => this.apiService.fetchRegions());
-                                await this._populateDynamicList('departments-list', () => this.apiService.fetchDepartments());
-
-                                resultsContainer.innerHTML = `<p style="color: var(--color-primary); font-size: 0.9rem; padding: 10px;">✅ Filtre Pays appliqué : <b>${country.name}</b></p>`;
-                            } catch (err) {
-                                console.error(err);
-                                resultsContainer.innerHTML = `<p style="color: #fbbf24; font-size: 0.9rem; padding: 10px;">⚠️ Pays appliqué, mais le serveur est surchargé (certaines listes peuvent être vides).</p>`;
-                            }
+                        btn.addEventListener('click', () => {
+                            this.apiService.setCountry(country.name, country.countryCode, country.areaId, country.bounds);
+                            this.setCountryWorkflowState(country);
+                            if (this.onCountrySelected) this.onCountrySelected(country);
+                            input.value = country.name;
+                            resultsContainer.innerHTML = '';
                         });
-                        resultsContainer.appendChild(btn);
+                        fragment.appendChild(btn);
                     });
+                    resultsContainer.appendChild(fragment);
 
                 } catch (e) {
                     console.error(e);
                     resultsContainer.innerHTML = '<p class="empty-state" style="color:var(--color-danger)">Erreur de recherche.</p>';
                 }
-            }, 500);
+            }, 300);
         });
     }
 
@@ -187,14 +417,17 @@ export class UiRenderer {
 
         if (!input || !resultsContainer) return;
 
-        // Debounce input
         let timeout;
         input.addEventListener('input', (e) => {
-            const query = e.target.value;
+            const query = e.target.value.trim();
             clearTimeout(timeout);
             timeout = setTimeout(async () => {
-                if (query.length < 3) {
-                    resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Tapez au moins 3 caractères...</p>';
+                if (!this.apiService || !this.apiService.currentCountryCode) {
+                    resultsContainer.innerHTML = '';
+                    return;
+                }
+                if (query.length < 2) {
+                    resultsContainer.innerHTML = '';
                     return;
                 }
 
@@ -205,10 +438,11 @@ export class UiRenderer {
                     resultsContainer.innerHTML = '';
 
                     if (results.length === 0) {
-                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucune ville trouvée.</p>';
+                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucune ville trouvee.</p>';
                         return;
                     }
 
+                    const fragment = document.createDocumentFragment();
                     results.forEach(city => {
                         const btn = document.createElement('button');
                         btn.className = 'preset-btn';
@@ -221,54 +455,69 @@ export class UiRenderer {
                             if (this.onPresetSelected) this.onPresetSelected(city);
                             this.minimizePresetsPanel();
                         });
-                        resultsContainer.appendChild(btn);
+                        fragment.appendChild(btn);
                     });
+                    resultsContainer.appendChild(fragment);
 
                 } catch (e) {
                     console.error(e);
                     resultsContainer.innerHTML = '<p class="empty-state" style="color:var(--color-danger)">Erreur de recherche.</p>';
                 }
-            }, 500); // 500ms debounce
+            }, 250);
         });
     }
 
-    async _populateDynamicList(containerId, fetchMethod) {
+    async _populateDynamicList(containerId, fetchMethod, options = {}) {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        // Show loading state
-        container.innerHTML = '<div class="loading-container"><span class="spinner"></span><span>Chargement...</span></div>';
+        const loadingMessage = options.loadingMessage || 'Chargement...';
+        const emptyMessage = options.emptyMessage || 'Aucun element trouve.';
+        const requestCountryAreaId = options.countryAreaId || this.apiService?.currentCountryAreaId;
+
+        container.innerHTML = `<div class="loading-container"><span class="spinner"></span><span>${loadingMessage}</span></div>`;
 
         let items = [];
         if (this.apiService) {
             items = await fetchMethod();
+            if (requestCountryAreaId !== this.apiService.currentCountryAreaId) {
+                return false;
+            }
         } else {
             console.warn(`ApiService not available for ${containerId}`);
         }
 
-        // Déduire le type administratif selon le conteneur pour les voisins
-        const adminType = containerId === 'departments-list' ? 'dept'
-            : containerId === 'regions-list' ? 'region'
-                : null;
+        // Déduire le type administratif selon le conteneur
+        // Pour la France, mapper les niveaux OSM aux types "region"/"dept" utilisés par l'API GéoGouv
+        let adminType = null;
+        let adminLevel = null;
+        if (containerId.startsWith('admin_') && containerId.endsWith('-list')) {
+            adminLevel = containerId.replace('admin_', '').replace('-list', '');
+            const isFr = this.apiService?.currentCountryCode === 'fr';
+            adminType = isFr && adminLevel === '4' ? 'region'
+                : isFr && adminLevel === '6' ? 'dept'
+                : 'admin';
+        }
 
         container.innerHTML = '';
         if (items.length === 0) {
-            container.innerHTML = '<span class="loading-text" style="color:var(--color-text-muted); font-size:0.9rem;">Aucun élément trouvé (ou erreur).</span>';
+            container.innerHTML = `<span class="loading-text" style="color:var(--color-text-muted); font-size:0.9rem;">${emptyMessage}</span>`;
         } else {
+            const fragment = document.createDocumentFragment();
             items.forEach(item => {
                 const btn = document.createElement('button');
                 btn.className = 'preset-btn';
                 btn.textContent = item.name;
                 btn.addEventListener('click', () => {
-                    // Enrichir avec adminType et code pour la détection des voisins
                     const enrichedItem = adminType
-                        ? { ...item, adminType, code: item.ref || item.code }
+                        ? { ...item, adminType, adminLevel, code: item.ref || item.code }
                         : item;
                     if (this.onPresetSelected) this.onPresetSelected(enrichedItem);
                     this.minimizePresetsPanel();
                 });
-                container.appendChild(btn);
+                fragment.appendChild(btn);
             });
+            container.appendChild(fragment);
         }
     }
 
@@ -2274,3 +2523,4 @@ export class UiRenderer {
         setTimeout(fadeOut, duration);
     }
 }
+

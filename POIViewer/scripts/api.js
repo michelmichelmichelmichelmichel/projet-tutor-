@@ -1,6 +1,8 @@
+// adminLevels.js is used by uiRenderer; api.js uses fetchAdminLevel directly
+
 export class ApiService {
     constructor() {
-        this.overpassUrl = 'https://overpass.private.coffee/api/interpreter';
+        this.overpassUrl = 'https://overpass-api.de/api/interpreter';
         this.nominatimUrl = 'https://nominatim.openstreetmap.org/search';
         this.geoGouvUrl = 'https://geo.api.gouv.fr/communes';
         this.wikidataUrl = 'https://query.wikidata.org/sparql';
@@ -8,9 +10,9 @@ export class ApiService {
         this._dbPromise = null;
 
         // État du pays actuel (France par défaut)
-        this.currentCountryAreaId = 3601403916;
-        this.currentCountryCode = 'fr';
-        this.currentCountryName = 'France';
+        this.currentCountryAreaId = null;
+        this.currentCountryCode = null;
+        this.currentCountryName = null;
 
         // Anti-spam lock for concurrent requests on the same area
         this._pendingFetches = new Map();
@@ -18,12 +20,46 @@ export class ApiService {
         // Optionnel : un autre proxy si besoin, par ex: "https://corsproxy.io/?" 
         this.corsProxy = "https://api.allorigins.win/raw?url=";
         this.inseeData = null;
+        // Version du cache — incrémenter pour invalider les anciennes entrées
+        this._cacheVersion = 'v3';
     }
 
-    setCountry(name, code, areaId) {
+    /**
+     * Choisit le meilleur nom depuis les tags OSM : français > anglais > local
+     */
+    _pickName(tags) {
+        return tags['name:fr'] || tags['name:en'] || tags.name || null;
+    }
+
+    /**
+     * Wrapper centralisé pour toutes les requêtes Overpass — logue chaque appel.
+     */
+    async _overpassFetch(query, context = '') {
+        const server = this.overpassUrl;
+        const preview = query.replace(/\s+/g, ' ').trim();
+        console.log(`%c[Overpass] ${context || 'requête'}`, 'color:#4ade80;font-weight:bold',
+            `\nServeur : ${server}\nQuery   : ${preview}`);
+        const t0 = performance.now();
+        const response = await fetch(server, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: `data=${encodeURIComponent(query)}`
+        });
+        const ms = Math.round(performance.now() - t0);
+        if (response.ok) {
+            console.log(`%c[Overpass] ✅ ${context || 'ok'} — ${ms} ms (HTTP ${response.status})`, 'color:#4ade80');
+        } else {
+            console.warn(`[Overpass] ⚠️ ${context || 'erreur'} — HTTP ${response.status} (${ms} ms)`);
+        }
+        return response;
+    }
+
+    setCountry(name, code, areaId, bounds = null) {
         this.currentCountryName = name;
         this.currentCountryCode = code;
         this.currentCountryAreaId = areaId;
+        // bounds = [[minLat, minLon], [maxLat, maxLon]]
+        this.currentCountryBounds = bounds;
     }
 
     /**
@@ -181,12 +217,7 @@ export class ApiService {
                 out geom;
             `;
 
-            console.log("🌍 Téléchargement des POIs depuis Overpass...");
-            const response = await fetch(this.overpassUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `data=${encodeURIComponent(query)}`
-            });
+            const response = await this._overpassFetch(query, 'POIs');
 
             if (!response.ok) throw new Error(`Overpass API Error: ${response.statusText}`);
 
@@ -435,17 +466,46 @@ export class ApiService {
 
 
     async fetchParkBoundary(relationId) {
-        // Fetch simplified GeoJSON from polygons.openstreetmap.fr
-        // params=0 means default simplification
-        const url = `http://polygons.openstreetmap.fr/get_geojson.py?id=${relationId}&params=0`;
-        try {
-            const response = await fetch(url);
-            if (!response.ok) throw new Error("Network response was not ok");
-            return await response.json();
-        } catch (error) {
-            console.error("Error fetching park boundary:", error);
-            return null;
+        if (!relationId) return null;
+
+        const cacheKey = `boundary_geojson_${relationId}`;
+        const cacheDuration = 30 * 24 * 60 * 60 * 1000;
+        const cached = localStorage.getItem(cacheKey);
+
+        if (cached) {
+            try {
+                const { timestamp, data } = JSON.parse(cached);
+                if (Date.now() - timestamp < cacheDuration) return data;
+            } catch (e) { }
         }
+
+        const urls = [
+            `https://polygons.openstreetmap.fr/get_geojson.py?id=${relationId}&params=0`,
+            `http://polygons.openstreetmap.fr/get_geojson.py?id=${relationId}&params=0`
+        ];
+
+        for (const url of urls) {
+            try {
+                const response = await fetch(url);
+                if (!response.ok) continue;
+
+                const data = await response.json();
+                try {
+                    localStorage.setItem(cacheKey, JSON.stringify({
+                        timestamp: Date.now(),
+                        data
+                    }));
+                } catch (cacheError) {
+                    console.warn(`Boundary cache skipped for relation ${relationId}:`, cacheError);
+                }
+                return data;
+            } catch (error) {
+                console.warn(`Boundary fetch failed for ${url}:`, error);
+            }
+        }
+
+        console.error(`Error fetching boundary for relation ${relationId}.`);
+        return null;
     }
 
     async fetchParksFromCollection(collectionId) {
@@ -457,24 +517,22 @@ export class ApiService {
         `;
 
         try {
-            const response = await fetch(this.overpassUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `data=${encodeURIComponent(query)}`
-            });
+            const response = await this._overpassFetch(query, 'parcs (collection)');
 
             if (!response.ok) throw new Error(`Overpass API Error: ${response.statusText}`);
 
             const data = await response.json();
 
-            const parks = data.elements.map(el => ({
-                name: el.tags.name,
-                relationId: el.id,
-                bounds: [
-                    [el.bounds.minlat, el.bounds.minlon],
-                    [el.bounds.maxlat, el.bounds.maxlon]
-                ]
-            }));
+            const parks = data.elements
+                .filter(el => el.tags && (el.tags['name:fr'] || el.tags['name:en'] || el.tags.name))
+                .map(el => ({
+                    name: this._pickName(el.tags),
+                    relationId: el.id,
+                    bounds: [
+                        [el.bounds.minlat, el.bounds.minlon],
+                        [el.bounds.maxlat, el.bounds.maxlon]
+                    ]
+                }));
 
             // Sort by name
             return parks.sort((a, b) => a.name.localeCompare(b.name));
@@ -488,7 +546,7 @@ export class ApiService {
     async searchCountries(query) {
         if (!query || query.length < 3) return [];
         // AJOUT DE &addressdetails=1 à la fin de l'URL pour forcer Nominatim à renvoyer le code pays
-        const url = `https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(query)}&format=json&featuretype=country&limit=5&addressdetails=1`;
+        const url = `https://nominatim.openstreetmap.org/search?country=${encodeURIComponent(query)}&format=json&featuretype=country&limit=5&addressdetails=1&accept-language=fr,en`;
 
         try {
             const resp = await fetch(url);
@@ -514,7 +572,9 @@ export class ApiService {
     }
 
     async fetchParks() {
-        const CACHE_KEY = `parks_cache_${this.currentCountryAreaId}`;
+        if (!this.currentCountryAreaId) return [];
+
+        const CACHE_KEY = `parks_cache_${this._cacheVersion}_${this.currentCountryAreaId}`;
         const CACHE_DURATION = 24 * 60 * 60 * 1000;
         const cached = localStorage.getItem(CACHE_KEY);
         if (cached) {
@@ -531,25 +591,20 @@ export class ApiService {
               relation["boundary"="national_park"](area.searchArea);
               relation["boundary"="protected_area"]["protect_class"~"2|5"](area.searchArea);
             );
-            out tags bb;
+            out ids tags qt;
         `;
 
         try {
-            const response = await fetch(this.overpassUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `data=${encodeURIComponent(query)}`
-            });
+            const response = await this._overpassFetch(query, 'zones protégées');
             if (!response.ok) throw new Error(`Erreur Overpass: ${response.status}`);
             const data = await response.json();
             const parks = data.elements
-                .filter(el => el.tags && el.tags.name)
+                .filter(el => el.tags && (el.tags['name:fr'] || el.tags['name:en'] || el.tags.name))
                 .map(el => ({
-                    name: el.tags.name,
+                    name: this._pickName(el.tags),
                     relationId: el.id,
                     wikidata: el.tags.wikidata || null,
-                    population: el.tags.population ? parseInt(el.tags.population, 10) : null,
-                    bounds: [[el.bounds.minlat, el.bounds.minlon], [el.bounds.maxlat, el.bounds.maxlon]]
+                    population: el.tags.population ? parseInt(el.tags.population, 10) : null
                 }))
                 .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -562,16 +617,21 @@ export class ApiService {
         }
     }
 
-    async fetchRegions() {
-        return this._fetchAdminArea(`regions_cache_${this.currentCountryAreaId}`, '4');
-    }
-
-    async fetchDepartments() {
-        return this._fetchAdminArea(`depts_cache_${this.currentCountryAreaId}`, '6');
+    /**
+     * Fetch all administrative relations at the given OSM admin_level for the current country.
+     * @param {string} adminLevel - OSM admin_level value (e.g. '4', '6')
+     */
+    async fetchAdminLevel(adminLevel) {
+        return this._fetchAdminArea(
+            `admin_${adminLevel}_cache_${this._cacheVersion}_${this.currentCountryAreaId}`,
+            adminLevel
+        );
     }
 
     // Helper for Regions/Departments
     async _fetchAdminArea(cacheKey, adminLevel) {
+        if (!this.currentCountryAreaId) return [];
+
         const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000;
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
@@ -582,19 +642,14 @@ export class ApiService {
         }
 
         const query = `
-            [out:json][timeout:90];
+            [out:json][timeout:50];
             area(${this.currentCountryAreaId})->.searchArea;
             relation["boundary"="administrative"]["admin_level"="${adminLevel}"](area.searchArea);
-            out tags bb;
+            out ids tags qt;
         `;
 
         try {
-            console.log(`🌍 Téléchargement admin_level=${adminLevel} depuis Overpass (Area)...`);
-            const response = await fetch(this.overpassUrl, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `data=${encodeURIComponent(query)}`
-            });
+            const response = await this._overpassFetch(query, `admin_level=${adminLevel}`);
 
             if (response.status === 429) {
                 console.warn("⚠️ Trop de requêtes (429).");
@@ -611,17 +666,13 @@ export class ApiService {
             const data = await response.json();
 
             const results = data.elements
-                .filter(el => el.tags && el.tags.name)
+                .filter(el => el.tags && (el.tags['name:fr'] || el.tags['name:en'] || el.tags.name))
                 .map(el => ({
-                    name: el.tags.name,
+                    name: this._pickName(el.tags),
                     ref: el.tags['ref:INSEE'] || el.tags.ref,
                     relationId: el.id,
                     wikidata: el.tags.wikidata || null,
-                    population: el.tags.population ? parseInt(el.tags.population, 10) : null,
-                    bounds: [
-                        [el.bounds.minlat, el.bounds.minlon],
-                        [el.bounds.maxlat, el.bounds.maxlon]
-                    ]
+                    population: el.tags.population ? parseInt(el.tags.population, 10) : null
                 }))
                 .sort((a, b) => a.name.localeCompare(b.name));
 
@@ -641,6 +692,7 @@ export class ApiService {
 
     async searchCommunes(query) {
         if (!query || query.length < 3) return [];
+        if (!this.currentCountryCode || !this.currentCountryName) return [];
 
         if (this.currentCountryCode === 'fr') {
             // API GeoGouv pour la France (très rapide et précise)
@@ -684,7 +736,7 @@ export class ApiService {
             } catch (error) { console.error(error); return []; }
         } else {
             // Nominatim OSM pour l'international avec polygones
-            const url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(query)}&country=${encodeURIComponent(this.currentCountryName)}&format=json&polygon_geojson=1&extratags=1&limit=10`;
+            const url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(query)}&country=${encodeURIComponent(this.currentCountryName)}&format=json&polygon_geojson=1&extratags=1&limit=10&accept-language=fr,en`;
             try {
                 const response = await fetch(url);
                 const data = await response.json();
@@ -1137,11 +1189,7 @@ export class ApiService {
 
         if (query) {
             try {
-                const response = await fetch(this.overpassUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: `data=${encodeURIComponent(query)}`
-                });
+                const response = await this._overpassFetch(query, 'démographie zone');
 
                 if (response.ok) {
                     const data = await response.json();
