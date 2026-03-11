@@ -73,7 +73,7 @@ body {
 #filters-floating-box {
     position: absolute;
     top: 20px;
-    left: 420px; /* 60px (macro left) + 350px (macro width) + 10px gap */
+    left: 420px; /* fallback, updated dynamically or via CSS */
     z-index: var(--z-overlay);
     padding: 8px;
     border-radius: 14px;
@@ -92,10 +92,12 @@ body {
     top: 20px;
     left: 60px;
     /* Offset for Leaflet controls */
-    width: 350px;
+    min-width: 350px;
+    width: fit-content;
+    max-width: 520px;
     padding: 24px;
     z-index: var(--z-overlay);
-    transition: opacity 0.3s ease, transform 0.3s ease, height 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease, width 0.3s ease;
     overflow: hidden;
     /*permet l'ajout de la scroll bar*/
     max-height: calc(100vh - 40px);
