@@ -28,44 +28,38 @@
         <!-- Map Container -->
         <div id="map"></div>
 
-        <button id="load-neighbors-btn" class="glass-btn hidden"
-            style="position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%); z-index: 1000; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; background: var(--color-primary); color: white; border: none; box-shadow: var(--glass-shadow); transition: all 0.3s ease;">
+        <!-- Charger zones voisines -->
+        <button id="load-neighbors-btn" class="glass-btn hidden">
             🗺️ Charger les zones voisines
         </button>
-        <!-- ⚙️ Floating Appearance Button + Panel -->
-        <button id="settings-toggle-btn" class="glass-btn icon-btn"
-            style="position: absolute; top: 255px; left: 10px; z-index: 1001; width: 34px; height: 34px; border-radius: 4px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: all 0.3s ease; background: var(--glass-bg); backdrop-filter: blur(12px); border: 1px solid var(--glass-border); box-shadow: var(--glass-shadow);">⚙️</button>
 
-        <div id="appearance-settings-panel" class="glass-panel hidden"
-            style="position: absolute; top: 255px; left: 55px; width: 280px; padding: 20px; z-index: 1001; transition: all 0.3s ease;">
-            <h3
-                style="font-size: 0.9rem; margin-bottom: 12px; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.05em; display: flex; justify-content: space-between; align-items: center;">
+        <!-- ⚙️ Bouton Paramètres -->
+        <button id="settings-toggle-btn" class="glass-btn icon-btn" title="Paramètres d'affichage">⚙️</button>
+
+        <!-- Panneau Paramètres -->
+        <div id="appearance-settings-panel" class="glass-panel hidden">
+            <h3 class="settings-title">
                 🎨 Apparence
-                <span id="close-settings" style="cursor:pointer; opacity: 0.6; font-size: 1.2rem;">✕</span>
+                <span id="close-settings">✕</span>
             </h3>
 
             <div class="filter-section">
-                <label
-                    style="color: #fff; font-size: 0.85rem; display: flex; align-items: center; justify-content: space-between;">
+                <label class="filter-section__label">
                     <span>Épaisseur des tracés</span>
-                    <span id="path-weight-value" style="color: var(--color-primary); font-weight: bold;">100%</span>
+                    <span id="path-weight-value" class="filter-section__value">100%</span>
                 </label>
                 <input type="range" id="path-weight-slider" min="0" max="300" value="100" step="10"
-                    style="width: 100%; margin-top: 8px; cursor: pointer; accent-color: var(--color-primary);">
+                    class="filter-section__range">
             </div>
 
-            <div class="filter-section"
-                style="margin-top: 15px; display: flex; align-items: center; justify-content: space-between;">
-                <label style="color: #fff; font-size: 0.85rem;">Couleur de la zone</label>
-                <input type="color" id="polygon-color-picker" value="#3388ff"
-                    style="cursor: pointer; border: none; width: 40px; height: 25px; padding: 0; background: none; border-radius: 4px;">
+            <div class="filter-section filter-section--row">
+                <label class="filter-section__label">Couleur de la zone</label>
+                <input type="color" id="polygon-color-picker" value="#3388ff" class="color-picker">
             </div>
 
-            <!-- Ajout de la sélection du serveur Overpass -->
-            <div class="filter-section" style="margin-top: 15px; display: flex; flex-direction: column; gap: 8px;">
-                <label style="color: #fff; font-size: 0.85rem;">Serveur Overpass API</label>
-                <select id="overpass-server-select"
-                    style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white; cursor: pointer;">
+            <div class="filter-section">
+                <label class="filter-section__label">Serveur Overpass API</label>
+                <select id="overpass-server-select" class="settings-select">
                     <option value="https://overpass.private.coffee/api/interpreter">Private Coffee</option>
                     <option value="https://overpass-api.de/api/interpreter" selected>overpass-api.de (Officiel)</option>
                     <option value="https://overpass.kumi.systems/api/interpreter">Kumi Systems</option>
@@ -73,63 +67,63 @@
                 </select>
             </div>
 
-            <div class="filter-section" style="margin-top: 15px;">
-                <button id="force-refresh-btn"
-                    style="width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(59,130,246,0.4); background: rgba(59,130,246,0.12); color: #93c5fd; font-size: 0.85rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 6px;">
+            <div class="filter-section">
+                <button id="force-refresh-btn" class="settings-btn settings-btn--info">
                     🔄 Rafraîchir cette zone
                 </button>
-                <span style="font-size: 0.7rem; color: var(--color-text-muted); margin-top: 4px; display: block;">Vide
-                    le cache de la zone active et re-télécharge</span>
-                <button id="force-reset-all-btn"
-                    style="width: 100%; margin-top: 8px; padding: 6px 10px; border-radius: 8px; border: 1px solid rgba(239,68,68,0.3); background: rgba(239,68,68,0.08); color: #fca5a5; font-size: 0.78rem; cursor: pointer; transition: all 0.3s ease; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                <span class="settings-btn__hint">Vide le cache de la zone active et re-télécharge</span>
+                <button id="force-reset-all-btn" class="settings-btn settings-btn--danger">
                     🗑️ Reset complet (tout le cache)
                 </button>
             </div>
         </div>
 
-        <!-- Macro View Overlay (Statistics & Instructions) -->
-        <div id="macro-overlay" class="glass-panel visible">
-            <header style="display: flex; justify-content: space-between; align-items: start;">
-                <div>
-                    <h1>Exploration du Territoire</h1>
-                </div>
-                <button id="minimize-macro-btn" class="icon-btn minimize-btn" title="Réduire/Agrandir">−</button>
-            </header>
-            <div id="macro-stats" class="stats-grid">
-                <!-- Stats will be injected here -->
-                <div class="stat-item empty">
-                    <span class="stat-value">--</span>
-                    <span class="stat-label">Points d'Intérêt</span>
+        <!-- Barre supérieure gauche : Stats + Filtres -->
+        <div id="top-bar">
+            <!-- Macro View Overlay (Statistics & Instructions) -->
+            <div id="macro-overlay" class="glass-panel visible">
+                <header class="macro-header">
+                    <div>
+                        <h1>Exploration du Territoire</h1>
+                    </div>
+                    <button id="minimize-macro-btn" class="icon-btn minimize-btn" title="Réduire/Agrandir">−</button>
+                </header>
+                <div id="macro-stats" class="stats-grid">
+                    <!-- Stats will be injected here -->
+                    <div class="stat-item empty">
+                        <span class="stat-value">--</span>
+                        <span class="stat-label">Points d'Intérêt</span>
+                    </div>
                 </div>
             </div>
 
-        </div>
-
-        <!-- Floating Filters Box (Top Center) -->
-        <div id="filters-floating-box" class="glass-panel">
-            <div style="display: flex; gap: 8px; align-items: flex-start;">
-                <div class="filter-card" style="flex: 1; margin-top: 0;">
-                    <button id="toggle-filters-btn" class="filter-toggle-btn">
-                        <span class="btn-label">🛠️ Catégories POIs</span>
-                        <span class="filter-badge badge--all" id="filter-badge-categories">--/--</span>
-                        <span class="btn-chevron">▾</span>
-                    </button>
-                    <div id="macro-filters-content" class="filter-card-body"
-                        style="display: none; max-height: 250px; overflow-y: auto;">
-                        <button id="deselect-all-btn" class="filter-action-btn">Tout cocher / décocher</button>
+            <!-- Floating Filters Box -->
+            <div id="filters-floating-box">
+                <div class="filters-row">
+                    <div class="filter-card">
+                        <button id="toggle-filters-btn" class="filter-toggle-btn">
+                            <span class="btn-label">Catégories POIs</span>
+                            <span class="filter-badge badge--all" id="filter-badge-categories">--/--</span>
+                            <span class="btn-chevron">▾</span>
+                        </button>
+                        <div id="macro-filters-content" class="filter-card-body"
+                            style="display: none; max-height: 250px; overflow-y: auto;">
+                            <button id="deselect-all-btn" class="filter-action-btn">Tout cocher / décocher</button>
+                        </div>
                     </div>
-                </div>
 
-                <div class="filter-card" style="flex: 1; margin-top: 0;">
-                    <button id="toggle-path-filters-btn" class="filter-toggle-btn">
-                        <span class="btn-label">🗺️ Chemins</span>
-                        <span class="filter-badge badge--all" id="filter-badge-paths">--/--</span>
-                        <span class="btn-chevron">▾</span>
-                    </button>
-                    <div id="path-filters-content" class="filter-card-body"
-                        style="display: none; max-height: 250px; overflow-y: auto;">
-                        <button id="deselect-all-paths-btn" class="filter-action-btn">Tout cocher / décocher</button>
-                        <!-- Path Checkboxes injected here -->
+                    <div class="filter-card">
+                        <button id="toggle-path-filters-btn" class="filter-toggle-btn">
+                            <span class="btn-label">Chemins</span>
+                            <span class="filter-badge badge--all" id="filter-badge-paths">--/--</span>
+                            <span class="btn-chevron">▾</span>
+                        </button>
+                        <div id="path-filters-content" class="filter-card-body"
+                            style="display: none; max-height: 250px; overflow-y: auto;">
+                            <button id="deselect-all-paths-btn" class="filter-action-btn">Tout cocher /
+                                décocher</button>
+                            <!-- Path Checkboxes injected here -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -144,8 +138,7 @@
         </div>
 
         <div class="filters-container" id="micro-filters-container">
-            <input type="text" id="poi-search-input" placeholder="Rechercher par nom..." class="search-input"
-                style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--glass-border); background: rgba(0,0,0,0.3); color: white;">
+            <input type="text" id="poi-search-input" placeholder="Rechercher par nom..." class="search-input">
         </div>
 
         <div id="poi-list" class="poi-list">
@@ -156,27 +149,26 @@
 
     <!-- Presets Panel (Tabbed) -->
     <div id="presets-panel" class="glass-panel">
-        <div class="presets-tabs"
-            style="display: flex; justify-content: space-between; align-items: center; padding-right: 10px;">
-            <div style="display: flex; flex: 1; overflow-x: auto;">
-                <button class="tab-btn active" data-tab="countries">Pays</button> <button class="tab-btn"
-                    data-tab="national">Zones protegées</button>
+        <div class="presets-tabs">
+            <div class="presets-tabs__list">
+                <button class="tab-btn active" data-tab="countries">Pays</button>
+                <button class="tab-btn" data-tab="national">Zones protegées</button>
                 <button class="tab-btn" data-tab="regional">Parcs Régionaux</button>
                 <span id="admin-tabs-btns" style="display: contents;"></span>
                 <button class="tab-btn" data-tab="cities">Villes</button>
             </div>
-            <button id="minimize-presets-btn" class="icon-btn minimize-btn" title="Réduire/Agrandir"
-                style="padding: 4px 8px;">−</button>
+            <button id="minimize-presets-btn" class="icon-btn minimize-btn" title="Réduire/Agrandir">−</button>
         </div>
 
         <div id="countries-content" class="tab-content active">
-            <div class="search-container" style="padding: 10px 0;">
+            <div class="tab-search">
                 <input type="text" id="country-search-input" placeholder="Rechercher un pays..."
-                    style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
+                    class="preset-search-input">
             </div>
             <div id="selected-country-summary" class="country-active-card hidden"></div>
             <div id="countries-results" class="presets-list"></div>
         </div>
+
         <div id="national-content" class="tab-content">
             <div id="national-list" class="presets-list">
                 <!-- Protected areas injected here -->
@@ -192,9 +184,9 @@
         <div id="admin-tabs-contents"></div>
 
         <div id="cities-content" class="tab-content">
-            <div class="search-container" style="padding: 10px 0;">
+            <div class="tab-search">
                 <input type="text" id="city-search-input" placeholder="Choisissez d'abord un pays..." disabled
-                    style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid rgba(255,255,255,0.2); background: rgba(0,0,0,0.2); color: white;">
+                    class="preset-search-input">
             </div>
             <div id="cities-results" class="presets-list"></div>
         </div>
