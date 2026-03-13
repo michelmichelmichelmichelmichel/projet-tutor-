@@ -1227,7 +1227,7 @@ export class UiRenderer {
         let websiteCount = 0;
         let socialMediaCount = 0;
         let wikivoyageCount = 0;
-        // Infrastructure KPIs
+        // Infrastructures KPIs
         let busStopCount = 0;
         let trainStationCount = 0;
         let airportCount = 0;
@@ -1380,7 +1380,7 @@ export class UiRenderer {
         `;
         const section3Html = accommodationHtml + trailsHtml;
 
-        // Section 4: Marketing digitale
+        // Section 4: Marketing digital
         const section4Html = `
             <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
                 <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(16,185,129,0.35);background:rgba(16,185,129,0.08);flex-direction:column;align-items:flex-start;">
@@ -1523,9 +1523,9 @@ export class UiRenderer {
                 : 'POIs disponibles';
             this.macroStats.innerHTML =
                 buildCollapsibleSection('Informations générales', '📊', section1Html, 'section-info', true) +
-                buildCollapsibleSection('Infrastructure \& activités', '🗺️', infraKpisHtml, 'section-infra', true) +
+                buildCollapsibleSection('Infrastructures \& activités', '🗺️', infraKpisHtml, 'section-infra', true) +
                 buildCollapsibleSection('Tourisme', '🏨', section3Html, 'section-tourisme', true) +
-                buildCollapsibleSection('Marketing digitale', '📱', section4Html, 'section-marketing', false) +
+                buildCollapsibleSection('Marketing digital', '📱', section4Html, 'section-marketing', false) +
                 `<div class="stat-item empty" style="text-align:center;padding:18px 12px;">
                     <span style="font-size:2rem;">🔍</span>
                     <div style="margin-top:8px;font-size:0.95rem;font-weight:600;color:var(--color-text);">${countLabel} — aucun affiché</div>
@@ -1658,16 +1658,16 @@ export class UiRenderer {
         `;
         this.macroStats.innerHTML =
             buildCollapsibleSection('Informations générales', '📊', section1Html, 'section-info', true) +
-            buildCollapsibleSection('Infrastructure \& activités', '🗺️', infraKpisHtml, 'section-infra', true) +
+            buildCollapsibleSection('Infrastructures \& activités', '🗺️', infraKpisHtml, 'section-infra', true) +
             buildCollapsibleSection('Tourisme', '🏨', section3Html, 'section-tourisme', true) +
-            buildCollapsibleSection('Marketing digitale', '📱', section4Html, 'section-marketing', false);
+            buildCollapsibleSection('Marketing digital', '📱', section4Html, 'section-marketing', false);
 
         this._bindCollapsibleSections();
         this._bindHeatmapToggles();
 
         this.macroStats.style.height = 'auto'; // Let it grow
 
-        // ── Section 2: Infrastructure & activités (injected via DOM) ──────
+        // ── Section 2: Infrastructures & activités (injected via DOM) ──────
         const infraContainer = document.getElementById('section-infra-content');
 
         // Header for Chart + Maximize Button
