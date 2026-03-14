@@ -214,6 +214,24 @@ export class UiRenderer {
         container.innerHTML = `<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">${message}</p>`;
     }
 
+    _renderPresetError(containerId, message, onRetry = null) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        container.innerHTML = `
+            <div class="load-error-block load-error-block--small">
+                <span class="load-error-block__icon">⚠️</span>
+                <p class="load-error-block__msg">${this.escapeHtml(message)}</p>
+                ${onRetry ? '<button class="load-error-block__retry-btn">Reessayer</button>' : ''}
+            </div>
+        `;
+
+        if (onRetry) {
+            container.querySelector('.load-error-block__retry-btn')
+                ?.addEventListener('click', onRetry);
+        }
+    }
+
     _renderPresetLoading(containerId, message = 'Chargement...') {
         const container = document.getElementById(containerId);
         if (!container) return;
@@ -340,14 +358,38 @@ export class UiRenderer {
             return didRender;
         }).catch((error) => {
             console.error(error);
-            this._renderPresetMessage(config.containerId, 'Chargement impossible pour le moment.');
-            throw error;
+            if (currentCountryAreaId !== this.apiService.currentCountryAreaId) {
+                return false;
+            }
+
+            this._renderPresetError(
+                config.containerId,
+                this._getPresetLoadErrorMessage(error),
+                () => this.loadPresetTab(tabId, { force: true })
+            );
+            return false;
         }).finally(() => {
             this.loadingPresetTabs.delete(requestKey);
         });
 
         this.loadingPresetTabs.set(requestKey, request);
         return request;
+    }
+
+    _getPresetLoadErrorMessage(error) {
+        const message = error?.message || '';
+
+        if (message === 'API Timeout') {
+            return 'Le serveur Overpass a expire avant de repondre.';
+        }
+        if (message === 'API Limit Reached') {
+            return 'Le serveur Overpass refuse temporairement la requete.';
+        }
+        if (/Failed to fetch|NetworkError|Load failed/i.test(message)) {
+            return 'Impossible de joindre le serveur Overpass.';
+        }
+
+        return 'Chargement impossible pour le moment.';
     }
 
     initCountrySearch() {
@@ -475,7 +517,7 @@ export class UiRenderer {
         const emptyMessage = options.emptyMessage || 'Aucun element trouve.';
         const requestCountryAreaId = options.countryAreaId || this.apiService?.currentCountryAreaId;
 
-        container.innerHTML = `<div class="loading-container"><span class="spinner"></span><span>${loadingMessage}</span></div>`;
+        this._renderPresetLoading(containerId, loadingMessage);
 
         let items = [];
         if (this.apiService) {
@@ -601,8 +643,6 @@ export class UiRenderer {
         const serverSelect = document.getElementById('overpass-server-select');
         if (serverSelect) {
             serverSelect.addEventListener('change', (e) => {
-                console.log('%c[Test API] Connexion à : ' + e.target.value, 'color: #3388ff; font-weight: bold;');
-                fetch(e.target.value + "?data=[out:json];node(42.7,0.5,42.8,0.6)[amenity];out 1;").then(r => console.log('%c[Test API] Réponse OK (' + r.status + ') du serveur ' + e.target.value, 'color: lime; font-weight: bold;')).catch(err => console.error('[Test API] Erreur : ', err));
                 if (this.onServerChange) {
                     this.onServerChange(e.target.value);
                 }
@@ -1085,9 +1125,9 @@ export class UiRenderer {
     showError(message = 'Impossible de charger les données.', onRetry = null) {
         const errorBlock = (small = false) => `
             <div class="load-error-block${small ? ' load-error-block--small' : ''}">
-                <span class="load-error-block__icon">⚠️</span>
+                <span class="load-error-block__icon"></span>
                 <p class="load-error-block__msg">${message}</p>
-                ${onRetry ? `<button class="load-error-block__retry-btn">🔄 Réessayer</button>` : ''}
+                ${onRetry ? `<button class="load-error-block__retry-btn">Réessayer</button>` : ''}
             </div>`;
 
         this.macroStats.innerHTML = errorBlock(true);
@@ -1118,7 +1158,6 @@ export class UiRenderer {
         let displayedPopulation = '';
         let yearText = '';
 
-        // Stocker l'historique pour l'utiliser lors du tracé du sparkline plus tard
         this.currentDemoHistory = history;
 
         if (history && history.length > 0) {
@@ -1127,46 +1166,41 @@ export class UiRenderer {
             yearText = `(${latest.year})`;
 
             if (history.length > 1) {
-                // Comparer avec l'année précédente disponible
                 const previous = history[history.length - 2];
                 const diff = latest.population - previous.population;
                 const percent = ((diff / previous.population) * 100).toFixed(2);
                 const isPositive = diff >= 0;
-                const color = isPositive ? '#34d399' : '#f87171'; // Vert ou Rouge
+                const color = isPositive ? '#34d399' : '#f87171';
                 const sign = isPositive ? '+' : '';
 
                 variationHtml = `
-                    <div style="text-align: right; margin-left: auto;">
-                        <div style="font-size: 1.1rem; color: ${color}; font-weight: bold;">${sign}${percent}%</div>
-                        <div style="font-size: 0.75rem; color: var(--color-text-muted);">depuis ${previous.year}</div>
-                    </div>
-                `;
-
-                // Préparer le conteneur pour le sparkline
-                sparklineHtml = `<div id="sparkline-container" style="width: 120px; height: 50px; margin-left: 20px;"></div>`;
+                    <div class="demo-kpi__variation">
+                        <div class="demo-kpi__pct" style="color:${color};">${sign}${percent}%</div>
+                        <div class="demo-kpi__since">depuis ${previous.year}</div>
+                    </div>`;
+                sparklineHtml = `<div id="sparkline-container" style="width:100px;height:40px;margin-left:16px;"></div>`;
             }
         } else if (osmPopulation) {
             displayedPopulation = osmPopulation.toLocaleString('fr-FR');
             yearText = `(Source OpenStreetMap)`;
             variationHtml = `
-                <div style="text-align: right; margin-left: auto; font-size: 0.75rem; color: var(--color-text-muted); opacity: 0.8; font-style: italic;">
-                    Aucun historique<br>disponible
+                <div class="demo-kpi__variation" style="opacity:0.7;font-style:italic;">
+                    <div class="demo-kpi__since">Aucun historique<br>disponible</div>
                 </div>`;
         } else {
             return '';
         }
 
         return `
-            <div class="kpi-card glass-panel" style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 16px; margin-bottom: 16px; display: flex; align-items: center;">
-                <div style="flex-shrink: 0;">
-                    <div style="font-size: 0.8rem; color: var(--color-text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 4px;">👥 Résidents <span style="font-size:0.75rem">${yearText}</span></div>
-                    <div style="font-size: 1.8rem; font-weight: 700; color: #fff; line-height: 1;">${displayedPopulation}</div>
-                    <div style="font-size: 0.8rem; color: var(--color-primary); margin-top: 4px;">${zoneName}</div>
+            <div class="demo-kpi">
+                <div class="demo-kpi__main">
+                    <div class="demo-kpi__label">👥 Résidents <span style="font-size:0.66rem">${yearText}</span></div>
+                    <div class="demo-kpi__value">${displayedPopulation}</div>
+                    <div class="demo-kpi__zone">${zoneName}</div>
                 </div>
                 ${sparklineHtml}
                 ${variationHtml}
-            </div>
-        `;
+            </div>`;
     }
 
     /**
@@ -1281,140 +1315,170 @@ export class UiRenderer {
             }
         });
 
-        // ── KPI Cards HTML ─────────────────────────────────────────────────
-        const kpiCardStyle = `background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:12px;padding:14px 16px;display:flex;align-items:center;justify-content:space-between;`;
-        const kpiValueStyle = `font-size:1.6rem;font-weight:700;color:#fff;line-height:1;`;
-        const kpiLabelStyle = `font-size:0.75rem;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;`;
-        const kpiSubStyle = `font-size:0.8rem;color:var(--color-text-muted);margin-top:4px;`;
+        // ── HELPERS ────────────────────────────────────────────────────────
+        // Barre horizontale proportionnelle avec label, valeur, couleur
+        const pBar = (label, value, max, color, suffix = '') => {
+            const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+            const fmt = typeof value === 'number' ? (Number.isInteger(value) ? value.toLocaleString('fr-FR') : value.toFixed(2)) : value;
+            return `<div class="ind-row">
+                <div class="ind-row__head">
+                    <span class="ind-row__label">${label}</span>
+                    <span class="ind-row__val" style="color:${color};">${fmt}${suffix}</span>
+                </div>
+                <div class="ind-row__track"><div class="ind-row__fill" style="width:${pct}%;background:${color};"></div></div>
+            </div>`;
+        };
 
+        // Stat inline compacte
+        const inlineStat = (label, value, color) => {
+            return `<div class="ind-inline">
+                <span class="ind-inline__label">${label}</span>
+                <span class="ind-inline__val" style="color:${color};">${typeof value === 'number' ? value.toLocaleString('fr-FR') : value}</span>
+            </div>`;
+        };
+
+        const formatChartMetric = (value) => {
+            if (!Number.isFinite(value) || value <= 0) return '0';
+            if (value >= 100) return value.toFixed(0);
+            if (value >= 10) return value.toFixed(1);
+            if (value >= 1) return value.toFixed(2);
+            if (value >= 0.1) return value.toFixed(2);
+            return value.toFixed(3);
+        };
+
+        const buildTreemapTrace = (treemapData, valueLabel = 'elements') => ([{
+            type: 'treemap',
+            ids: treemapData.ids,
+            labels: treemapData.labels,
+            parents: treemapData.parents,
+            values: treemapData.values,
+            branchvalues: 'total',
+            sort: false,
+            marker: {
+                colors: treemapData.colors,
+                line: { width: 2, color: 'rgba(255,255,255,0.34)' },
+                pad: { b: 5, l: 5, r: 5, t: 16 }
+            },
+            tiling: {
+                packing: 'squarify',
+                squarifyratio: 1.15
+            },
+            pathbar: { visible: false },
+            root: { color: 'rgba(255,255,255,0.025)' },
+            textfont: { family: 'Outfit, sans-serif', color: '#ffffff', size: 12 },
+            textposition: 'middle center',
+            texttemplate: '%{label}<br><span style="font-size:11px">%{value}</span>',
+            hovertemplate: `<b>%{label}</b><br>%{value} ${valueLabel}<extra></extra>`
+        }]);
+
+        // ── SECTION 3 : Tourisme ──────────────────────────────────────────
         let accommodationHtml = '';
         if (inseeStats) {
-            // Utiliser les données de l'INSEE pour l'hébergement
+            const totalBeds = inseeStats.hotel_beds + inseeStats.camping_beds + inseeStats.collective_beds;
+            const maxBeds = Math.max(inseeStats.hotel_beds, inseeStats.camping_beds, inseeStats.collective_beds, 1);
+            let starsHtml = Object.entries(inseeStats.hotel_stars).filter(([k, v]) => v > 0)
+                .map(([k, v]) => `<span class="kpi-star-badge">${k === 'NC' ? 'NC' : k + '★'} ${v}</span>`).join('')
+                || '<span class="kpi-sub">Aucun classement</span>';
+            const starEntries = Object.entries(inseeStats.hotel_stars)
+                .filter(([, value]) => value > 0)
+                .sort(([a], [b]) => {
+                    const aRank = a === 'NC' ? -1 : Number(a);
+                    const bRank = b === 'NC' ? -1 : Number(b);
+                    return bRank - aRank;
+                });
+            starsHtml = starEntries.length > 0
+                ? `<div class="kpi-stars__title">Classement des hotels</div>${starEntries.map(([rank, count]) => {
+                    const isUnclassified = rank === 'NC';
+                    const tierText = isUnclassified ? 'NC' : '★'.repeat(Number(rank));
+                    const labelText = isUnclassified
+                        ? 'Non classes'
+                        : `${rank} etoile${Number(rank) > 1 ? 's' : ''}`;
+                    const countText = `${count} hotel${count > 1 ? 's' : ''}`;
+                    return `
+                        <div class="kpi-star-badge">
+                            <span class="kpi-star-badge__tier">${tierText}</span>
+                            <span class="kpi-star-badge__label">${labelText}</span>
+                            <span class="kpi-star-badge__count">${countText}</span>
+                        </div>`;
+                }).join('')}`
+                : '<span class="kpi-sub">Aucun classement</span>';
             accommodationHtml = `
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(167,139,250,0.35);background:rgba(167,139,250,0.08);grid-column: span 2; display:flex; flex-direction:column; align-items:flex-start;">
-                    <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <div>
-                            <div style="${kpiLabelStyle}">🌟 Données INSEE 2026 : Nombre total d’hébergements dans la zone = Nombre de hôtels + Nombre de Camping + Nombre Hébergement collectifs</div>
-                            <div style="${kpiValueStyle}">${inseeStats.total_loc.toLocaleString('fr-FR')}</div>
-                        </div>
+                <div class="ind-block ind-block--purple">
+                    <div class="ind-block__header">
+                        <span class="ind-block__title">INSEE 2026</span>
+                        <span class="ind-block__big">${inseeStats.total_loc.toLocaleString('fr-FR')} <span class="ind-block__unit">hebergements</span></span>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px; width:100%;">
-                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
-                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">🏨 Lits dans les hôtels = nombre chambres totales x 2</div>
-                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">${inseeStats.hotel_beds.toLocaleString('fr-FR')} lits</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
-                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">⛺ Lits dans les campings = nombre emplacements x 3</div>
-                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">${inseeStats.camping_beds.toLocaleString('fr-FR')} lits</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
-                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">🏘️ Lits dans les hébergements collectifs = prendre le nombnre de lit dans l'hébergement collectif</div>
-                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">${inseeStats.collective_beds.toLocaleString('fr-FR')} lits</div>
-                        </div>
+                    ${pBar('Lits hotels', inseeStats.hotel_beds, maxBeds, '#c4b5fd', ' lits')}
+                    ${pBar('Lits campings', inseeStats.camping_beds, maxBeds, '#a78bfa', ' lits')}
+                    ${pBar('Lits collectifs', inseeStats.collective_beds, maxBeds, '#8b5cf6', ' lits')}
+                    <div class="ind-block__footer">
+                        <span class="ind-block__total">${totalBeds.toLocaleString('fr-FR')} lits au total</span>
+                        <div class="kpi-stars">${starsHtml}</div>
                     </div>
-                    
-                    <div style="margin-top:12px; font-size:0.75rem; width:100%;">
-                        <div style="color:var(--color-text-muted); margin-bottom:4px;">⭐ Répartition par étoiles (UNIT_LOC pour I551 et I553 pour chaque étoile 1 à 5 et NC) :</div>
-                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                            ${Object.entries(inseeStats.hotel_stars).filter(([k, v]) => v > 0).map(([k, v]) => `<span style="background:rgba(251,191,36,0.2);color:#fcd34d;padding:2px 6px;border-radius:4px;">${k === 'NC' ? 'Non Classé' : k + '⭐'}: ${v}</span>`).join('') || '<span style="color:var(--color-text-muted);">Aucun classé</span>'}
-                        </div>
-                    </div>
-                </div>
-            `;
+                </div>`;
         } else {
-            // Affichage par défaut (OSM)
             accommodationHtml = `
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(167,139,250,0.35);background:rgba(167,139,250,0.08);grid-column: span 2; display:flex; flex-direction:column; align-items:flex-start;">
-                    <div style="width:100%; display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                        <div>
-                            <div style="${kpiLabelStyle}">🌟 Données INSEE 2026 : Nombre total d’hébergements dans la zone = Nombre de hôtels + Nombre de Camping + Nombre Hébergement collectifs</div>
-                            <div style="${kpiValueStyle}">Donnée Indisponible</div>
-                        </div>
+                <div class="ind-block ind-block--purple" style="opacity:0.5;">
+                    <div class="ind-block__header">
+                        <span class="ind-block__title">INSEE 2026</span>
+                        <span class="ind-block__big" style="opacity:0.4;">Indisponible</span>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px; width:100%;">
-                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
-                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">🏨 Lits dans les hôtels = nombre chambres totales x 2</div>
-                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">N/A</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
-                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">⛺ Lits dans les campings = nombre emplacements x 3</div>
-                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">N/A</div>
-                        </div>
-                        <div style="background:rgba(255,255,255,0.05); padding:8px; border-radius:8px;">
-                            <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:2px;">🏘️ Lits dans les hébergements collectifs = prendre le nombnre de lit dans l'hébergement collectif</div>
-                            <div style="font-size:1.1rem;font-weight:700;color:#fff;">N/A</div>
-                        </div>
-                    </div>
-                    
-                    <div style="margin-top:12px; font-size:0.75rem; width:100%;">
-                        <div style="color:var(--color-text-muted); margin-bottom:4px;">⭐ Répartition par étoiles (UNIT_LOC pour I551 et I553 pour chaque étoile 1 à 5 et NC) :</div>
-                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                            <span style="color:var(--color-text-muted);">Non disponible pour cette zone</span>
-                        </div>
-                    </div>
-                </div>
-            `;
+                    <div class="kpi-sub" style="padding:6px 0;">Donnees INSEE non disponibles pour cette zone</div>
+                </div>`;
         }
 
-        // ── Build section contents ─────────────────────────────────────────
-
-        // Section 1: Informations générales (population + density + heatmap) — built later with densityHtml
-        // Section 3: Tourisme (INSEE accommodation + sentiers/pistes KPIs)
+        // Sentiers : ratio visuel piétons vs vélo (stacked bar)
+        const totalTrailsCount = pedestrianTrailCount + cyclingTrailCount;
+        const pedPct = totalTrailsCount > 0 ? (pedestrianTrailCount / totalTrailsCount * 100) : 50;
         const trailsHtml = `
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;">
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(5,150,105,0.35);background:rgba(5,150,105,0.08);">
-                    <div>
-                        <div style="${kpiLabelStyle}">🚶 Sentiers piétons</div>
-                        <div style="${kpiValueStyle}">${pedestrianTrailCount.toLocaleString('fr-FR')}</div>
-                        <div style="${kpiSubStyle}">chemins & randos confondus</div>
+            <div class="ind-block ind-block--green" style="margin-top:6px;">
+                <div class="ind-block__header">
+                    <span class="ind-block__title">Sentiers & pistes</span>
+                    <span class="ind-block__big">${totalTrailsCount.toLocaleString('fr-FR')} <span class="ind-block__unit">traces</span></span>
+                </div>
+                <div class="ind-stacked">
+                    <div class="ind-stacked__bar">
+                        <div class="ind-stacked__seg" style="width:${pedPct}%;background:#34d399;" title="Pietons ${pedestrianTrailCount}"></div>
+                        <div class="ind-stacked__seg" style="width:${100 - pedPct}%;background:#60a5fa;" title="Velo ${cyclingTrailCount}"></div>
+                    </div>
+                    <div class="ind-stacked__legend">
+                        <span><span class="heatmap-dot" style="background:#34d399;"></span> Pietons <b>${pedestrianTrailCount.toLocaleString('fr-FR')}</b></span>
+                        <span><span class="heatmap-dot" style="background:#60a5fa;"></span> Velo <b>${cyclingTrailCount.toLocaleString('fr-FR')}</b></span>
                     </div>
                 </div>
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(59,130,246,0.35);background:rgba(59,130,246,0.08);">
-                    <div>
-                        <div style="${kpiLabelStyle}">🚴 Pistes cyclables</div>
-                        <div style="${kpiValueStyle}">${cyclingTrailCount.toLocaleString('fr-FR')}</div>
-                        <div style="${kpiSubStyle}">voies dans la zone</div>
-                    </div>
-                </div>
-            </div>
-        `;
+            </div>`;
         const section3Html = accommodationHtml + trailsHtml;
 
-        // Section 4: Marketing digital
+        // ── SECTION 4 : Marketing digital ─────────────────────────────────
+        const webPct = total > 0 ? (websiteCount / total * 100) : 0;
+        const socPct = total > 0 ? (socialMediaCount / total * 100) : 0;
+        const wikiPct = total > 0 ? (wikivoyageCount / total * 100) : 0;
         const section4Html = `
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(16,185,129,0.35);background:rgba(16,185,129,0.08);flex-direction:column;align-items:flex-start;">
-                    <div style="${kpiLabelStyle}">🌐 Sites Web</div>
-                    <div style="${kpiValueStyle}">${websiteCount.toLocaleString('fr-FR')}</div>
-                    <div style="${kpiSubStyle}">${total > 0 ? ((websiteCount / total) * 100).toFixed(1) : 0}% des affichés</div>
+            <div class="ind-block">
+                <div class="ind-block__header">
+                    <span class="ind-block__title">Presence numerique</span>
+                    <span class="ind-block__big">${total.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs analyses</span></span>
                 </div>
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(236,72,153,0.35);background:rgba(236,72,153,0.08);flex-direction:column;align-items:flex-start;">
-                    <div style="${kpiLabelStyle}">📱 Réseaux Sociaux</div>
-                    <div style="${kpiValueStyle}">${socialMediaCount.toLocaleString('fr-FR')}</div>
-                    <div style="${kpiSubStyle}">${total > 0 ? ((socialMediaCount / total) * 100).toFixed(1) : 0}% des affichés</div>
+                ${pBar('Site web', webPct, 100, '#34d399', '%')}
+                ${pBar('Reseaux sociaux', socPct, 100, '#ec4899', '%')}
+                ${pBar('Wikivoyage', wikiPct, 100, '#fbbf24', '%')}
+                <div class="ind-row__head" style="margin-top:4px;opacity:0.6;">
+                    <span class="ind-row__label">${websiteCount + socialMediaCount + wikivoyageCount} POIs avec au moins 1 presence</span>
                 </div>
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(245,158,11,0.35);background:rgba(245,158,11,0.08);flex-direction:column;align-items:flex-start;">
-                    <div style="${kpiLabelStyle}">🎒 Wikivoyage</div>
-                    <div style="${kpiValueStyle}">${wikivoyageCount.toLocaleString('fr-FR')}</div>
-                    <div style="${kpiSubStyle}">${total > 0 ? ((wikivoyageCount / total) * 100).toFixed(1) : 0}% des affichés</div>
-                </div>
-            </div>
-        `;
+            </div>`;
 
         // ── Collapsible Section Helper ────────────────────────────────────
-        const sectionToggleStyle = `width:100%;display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;color:#fff;padding:10px 14px;cursor:pointer;font-family:"Google Sans",sans-serif;font-size:0.85rem;font-weight:600;transition:background 0.2s ease;margin-bottom:0;`;
-        const buildCollapsibleSection = (title, emoji, contentHtml, sectionId, defaultOpen = true) => {
+        const buildCollapsibleSection = (title, contentHtml, sectionId, defaultOpen = true) => {
             return `
-                <div class="macro-section" style="margin-bottom:12px;">
-                    <button class="macro-section-toggle" data-section="${sectionId}" style="${sectionToggleStyle}">
-                        <span>${emoji} ${title}</span>
-                        <span class="macro-section-chevron" style="font-size:0.7rem;opacity:0.6;transition:transform 0.2s ease;${defaultOpen ? 'transform:rotate(180deg);' : ''}">▾</span>
+                <div class="macro-section">
+                    <button class="macro-section-toggle" data-section="${sectionId}">
+                        <span>${title}</span>
+                        <span class="macro-section-chevron" ${defaultOpen ? 'style="transform:rotate(180deg)"' : ''}>▾</span>
                     </button>
-                    <div class="macro-section-body" id="${sectionId}" style="padding:10px 0 0 0;${defaultOpen ? '' : 'display:none;'}">
+                    <div class="macro-section-body" id="${sectionId}" ${defaultOpen ? '' : 'style="display:none"'}>
                         ${contentHtml}
                     </div>
-                </div>
-            `;
+                </div>`;
         };
 
         // ── Densité Heatmap ────────────────────────────────────────────────
@@ -1423,119 +1487,105 @@ export class UiRenderer {
             const accomDensity = accommodationCount / areaKm2;
             const pedDensity = pedestrianTrailCount / areaKm2;
             const cycleDensity = cyclingTrailCount / areaKm2;
-
-            // Fonction pour limiter la barre entre 0 et 100%
-            // On utilise un seuil adaptatif : le max des 3 densités or 1 minimum
             const maxDensity = Math.max(accomDensity, pedDensity, cycleDensity, 0.1);
 
-            const densityBar = (label, emoji, value, color, colorRgb) => {
+            const densityBar = (label, value, color, colorRgb) => {
                 const pct = Math.min((value / maxDensity) * 100, 100);
                 const formatted = value < 0.01 ? value.toExponential(1) : value.toFixed(2);
                 return `
-                    <div style="margin-bottom:10px;">
-                        <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px;">
-                            <span style="font-size:0.8rem;color:#fff;">${emoji} ${label}</span>
-                            <span style="font-size:0.85rem;font-weight:600;color:${color};">${formatted} <span style="font-size:0.7rem;font-weight:400;color:var(--color-text-muted);">/ km²</span></span>
+                    <div class="density-bar">
+                        <div class="density-bar__header">
+                            <span class="density-bar__label">${label}</span>
+                            <span class="density-bar__value" style="color:${color};">${formatted} <span class="density-bar__unit">/ km²</span></span>
                         </div>
-                        <div style="background:rgba(255,255,255,0.08);border-radius:6px;height:8px;overflow:hidden;">
-                            <div style="height:100%;width:${pct}%;border-radius:6px;background:linear-gradient(90deg, rgba(${colorRgb},0.4), rgba(${colorRgb},1));transition:width 0.6s ease;"></div>
+                        <div class="density-bar__track">
+                            <div class="density-bar__fill" style="width:${pct}%;background:linear-gradient(90deg,rgba(${colorRgb},0.4),rgba(${colorRgb},1));"></div>
                         </div>
                     </div>`;
             };
 
             densityHtml = `
-                <div id="density-heatmap-panel" style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px 16px;margin-bottom:16px;">
-                    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:12px;">
-                        <span style="font-size:0.8rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;">🗺️ Densité par km²</span>
-                        <span style="font-size:0.75rem;color:var(--color-text-muted);">Surface : ${areaKm2.toFixed(1)} km²</span>
+                <div id="density-heatmap-panel" class="density-panel">
+                    <div class="density-panel__title">
+                        <span>Densite par km²</span>
+                        <span class="density-bar__unit">Surface : ${areaKm2.toFixed(1)} km²</span>
                     </div>
-                    ${densityBar('Hébergements', '🏨', accomDensity, '#a78bfa', '167,139,250')}
-                    ${densityBar('Sentiers piétons', '🚶', pedDensity, '#34d399', '5,150,105')}
-                    ${densityBar('Pistes cyclables', '🚴', cycleDensity, '#60a5fa', '59,130,246')}
-                    <div style="margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
-                        <div style="font-size:0.75rem;font-weight:600;color:var(--color-text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">🔥 Heatmap sur la carte</div>
-                        <div style="display:flex;gap:12px;flex-wrap:wrap;">
-                            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.8rem;color:#fff;">
+                    ${densityBar('Hebergements', accomDensity, '#a78bfa', '167,139,250')}
+                    ${densityBar('Sentiers pietons', pedDensity, '#34d399', '5,150,105')}
+                    ${densityBar('Pistes cyclables', cycleDensity, '#60a5fa', '59,130,246')}
+                    <div class="heatmap-toggles">
+                        <div class="heatmap-toggles__title">Heatmap sur la carte</div>
+                        <div class="heatmap-toggles__row">
+                            <label class="heatmap-toggle-label">
                                 <input type="checkbox" class="heatmap-toggle" data-heat="accommodation" style="accent-color:#a78bfa;">
-                                <span style="width:8px;height:8px;border-radius:50%;background:#a78bfa;display:inline-block;"></span>
-                                Héberg.
+                                <span class="heatmap-dot" style="background:#a78bfa;"></span> Héberg.
                             </label>
-                            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.8rem;color:#fff;">
+                            <label class="heatmap-toggle-label">
                                 <input type="checkbox" class="heatmap-toggle" data-heat="pedestrian" style="accent-color:#34d399;">
-                                <span style="width:8px;height:8px;border-radius:50%;background:#34d399;display:inline-block;"></span>
-                                Piétons
+                                <span class="heatmap-dot" style="background:#34d399;"></span> Piétons
                             </label>
-                            <label style="display:flex;align-items:center;gap:5px;cursor:pointer;font-size:0.8rem;color:#fff;">
+                            <label class="heatmap-toggle-label">
                                 <input type="checkbox" class="heatmap-toggle" data-heat="cycling" style="accent-color:#60a5fa;">
-                                <span style="width:8px;height:8px;border-radius:50%;background:#60a5fa;display:inline-block;"></span>
-                                Vélo
+                                <span class="heatmap-dot" style="background:#60a5fa;"></span> Vélo
                             </label>
                         </div>
                     </div>
-                </div>
-            `;
+                </div>`;
         }
 
-        // Si aucun POI après filtrage, afficher quand même les sections + message vide
+        // ── Helper: infra KPI block (réutilisé dans les 2 branches) ──────
+        const transportTotal = busStopCount + trainStationCount + airportCount;
+        const servicesTotal = parkingCount + sanitaryCount + chargingCount;
+
+        const buildInfraKpis = () => {
+            const maxTransport = Math.max(busStopCount, trainStationCount, airportCount, 1);
+            const maxServices = Math.max(parkingCount, sanitaryCount, chargingCount, 1);
+
+            let html = `
+                <div class="ind-block" style="margin-bottom:6px;">
+                    <div class="ind-block__header">
+                        <span class="ind-block__title">Transports</span>
+                        <span class="ind-block__big">${transportTotal.toLocaleString('fr-FR')} <span class="ind-block__unit">points d'acces</span></span>
+                    </div>
+                    ${pBar('Arrets de bus', busStopCount, maxTransport, '#fbbf24')}
+                    ${pBar('Gares', trainStationCount, maxTransport, '#8b5cf6')}
+                    ${pBar('Aeroports', airportCount, maxTransport, '#0ea5e9')}
+                </div>
+                <div class="ind-block" style="margin-bottom:6px;">
+                    <div class="ind-block__header">
+                        <span class="ind-block__title">Services & equipements</span>
+                        <span class="ind-block__big">${servicesTotal.toLocaleString('fr-FR')} <span class="ind-block__unit">installations</span></span>
+                    </div>
+                    ${pBar('Stationnements', parkingCount, maxServices, '#64748b')}
+                    ${pBar('Sanitaires', sanitaryCount, maxServices, '#06b6d4')}
+                    ${pBar('Bornes recharge', chargingCount, maxServices, '#22c55e')}
+                </div>`;
+            return html;
+        };
+
+        // Si aucun POI après filtrage
         if (total === 0) {
-            const areaHtml = areaKm2 > 0 ? `<div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(59,130,246,0.35);background:rgba(59,130,246,0.08);margin-bottom:10px;"><div><div style="${kpiLabelStyle}">📐 Superficie de la zone</div><div style="${kpiValueStyle}">${areaKm2.toFixed(2)} km²</div></div></div>` : '';
+            const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
             const section1Html = areaHtml + demoHtml + densityHtml;
-            const infraKpisHtml = `
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.08);flex-direction:column;align-items:flex-start;">
-                        <div style="${kpiLabelStyle}">🚌 Arrêts de bus</div>
-                        <div style="${kpiValueStyle}">${busStopCount.toLocaleString('fr-FR')}</div>
-                    </div>
-                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(139,92,246,0.35);background:rgba(139,92,246,0.08);flex-direction:column;align-items:flex-start;">
-                        <div style="${kpiLabelStyle}">🚆 Gares</div>
-                        <div style="${kpiValueStyle}">${trainStationCount.toLocaleString('fr-FR')}</div>
-                    </div>
-                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(14,165,233,0.35);background:rgba(14,165,233,0.08);flex-direction:column;align-items:flex-start;">
-                        <div style="${kpiLabelStyle}">✈️ Aéroports</div>
-                        <div style="${kpiValueStyle}">${airportCount.toLocaleString('fr-FR')}</div>
-                    </div>
-                </div>
-                ${areaKm2 > 0 ? `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:10px;">
-                    <div style="font-size:0.8rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">📍 Densité transport / km²</div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                        <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">🚌 Bus</div><div style="font-size:1rem;font-weight:700;color:#fbbf24;">${(busStopCount / areaKm2).toFixed(2)}</div></div>
-                        <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">🚆 Gares</div><div style="font-size:1rem;font-weight:700;color:#8b5cf6;">${(trainStationCount / areaKm2).toFixed(2)}</div></div>
-                        <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">✈️ Aéro.</div><div style="font-size:1rem;font-weight:700;color:#0ea5e9;">${(airportCount / areaKm2).toFixed(2)}</div></div>
-                    </div>
-                </div>` : ''}
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(100,116,139,0.35);background:rgba(100,116,139,0.08);flex-direction:column;align-items:flex-start;">
-                        <div style="${kpiLabelStyle}">🅿️ Stationnements</div>
-                        <div style="${kpiValueStyle}">${parkingCount.toLocaleString('fr-FR')}</div>
-                    </div>
-                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.08);flex-direction:column;align-items:flex-start;">
-                        <div style="${kpiLabelStyle}">🚻 Équipements sanitaires</div>
-                        <div style="${kpiValueStyle}">${sanitaryCount.toLocaleString('fr-FR')}</div>
-                    </div>
-                    <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(34,197,94,0.35);background:rgba(34,197,94,0.08);flex-direction:column;align-items:flex-start;">
-                        <div style="${kpiLabelStyle}">🔌 Bornes de recharge</div>
-                        <div style="${kpiValueStyle}">${chargingCount.toLocaleString('fr-FR')}</div>
-                    </div>
-                </div>
-            `;
+            const infraKpisHtml = buildInfraKpis() + '<div id="section-infra-content"></div>';
             const countLabel = totalRaw > 0
                 ? `${totalRaw.toLocaleString('fr-FR')} POI${totalRaw > 1 ? 's' : ''} trouvé${totalRaw > 1 ? 's' : ''}`
                 : 'POIs disponibles';
             this.macroStats.innerHTML =
-                buildCollapsibleSection('Informations générales', '📊', section1Html, 'section-info', true) +
-                buildCollapsibleSection('Infrastructures \& activités', '🗺️', infraKpisHtml, 'section-infra', true) +
-                buildCollapsibleSection('Tourisme', '🏨', section3Html, 'section-tourisme', true) +
-                buildCollapsibleSection('Marketing digital', '📱', section4Html, 'section-marketing', false) +
-                `<div class="stat-item empty" style="text-align:center;padding:18px 12px;">
-                    <span style="font-size:2rem;">🔍</span>
-                    <div style="margin-top:8px;font-size:0.95rem;font-weight:600;color:var(--color-text);">${countLabel} — aucun affiché</div>
-                    <div style="margin-top:6px;font-size:0.8rem;color:var(--color-text-muted);">Activez au moins une catégorie dans les filtres pour visualiser les lieux sur la carte.</div>
+                buildCollapsibleSection('Informations generales', section1Html, 'section-info', true) +
+                buildCollapsibleSection('Infrastructure & activites', infraKpisHtml, 'section-infra', true) +
+                buildCollapsibleSection('Tourisme', section3Html, 'section-tourisme', true) +
+                buildCollapsibleSection('Marketing digital', section4Html, 'section-marketing', true) +
+                `<div class="stat-item empty">
+                    <span style="font-size:1.5rem;"></span>
+                    <div class="kpi-label" style="margin-top:6px;font-size:0.82rem;font-weight:600;color:var(--color-text);">${countLabel} — aucun affiché</div>
+                    <div class="kpi-sub">Activez une catégorie dans les filtres.</div>
                 </div>`;
             this._bindCollapsibleSections();
             this._bindHeatmapToggles();
             this.lastPois = pois; // SYNC: Even if empty, update lastPois reference
             if (totalRaw > 0) {
-                this.showToast(`🗺️ ${countLabel} — activez les filtres pour les afficher`, 'info', 5000);
+                this.showToast(`${countLabel} — activez les filtres pour les afficher`, 'info', 5000);
             }
             return;
         }
@@ -1545,7 +1595,7 @@ export class UiRenderer {
         const parents = [''];
         const ids = [rootId];
         const values = [total];
-        const colors = ['#ffffff'];
+        const colors = ['rgba(255,255,255,0.08)'];
 
         const categoryCounts = {};
         const typeCounts = {};
@@ -1559,31 +1609,31 @@ export class UiRenderer {
         });
 
         // Ajout des catégories (Parents)
-        Object.keys(categoryCounts).forEach(catId => {
+        Object.entries(categoryCounts).sort((a, b) => b[1] - a[1]).forEach(([catId, categoryCount]) => {
             const catDef = this.categories.find(c => c.id === catId);
             const label = catDef ? catDef.label : catId;
             const color = this.getCategoryColor(catId);
 
             ids.push(catId);
-            labels.push(`<b style="font-size:16px">${this.getCategoryEmoji(catId)} ${label.toUpperCase()}</b>`); parents.push(rootId);
-            values.push(categoryCounts[catId]);
-            colors.push(color); // Couleur pleine pour le parent
+            labels.push(`${this.getCategoryEmoji(catId)} ${label}`);
+            parents.push(rootId);
+            values.push(categoryCount);
+            colors.push(color);
         });
 
         // Ajout des types (Enfants/Feuilles) avec effet de dégradé
-        Object.keys(typeCounts).forEach(typeKey => {
+        Object.entries(typeCounts).sort((a, b) => b[1] - a[1]).forEach(([typeKey, count]) => {
             const [catId, typeName] = typeKey.split('__');
-            const count = typeCounts[typeKey];
             const label = this.translateType(typeName);
             const baseColor = this.getCategoryColor(catId);
 
             ids.push(typeKey);
-            labels.push(`${label} (${count})`);
+            labels.push(label);
             parents.push(catId);
             values.push(count);
 
             // MODIFICATION ICI : Éclaircissement (+35) pour simuler le dégradé de l'image
-            colors.push(this.adjustColor(baseColor, 35));
+            colors.push(this.adjustColor(baseColor, 24));
         });
 
         const data = [{
@@ -1606,61 +1656,29 @@ export class UiRenderer {
         }];
 
         const layout = {
-            margin: { t: 0, l: 0, r: 0, b: 0 },
+            margin: { t: 6, l: 0, r: 0, b: 0 },
             paper_bgcolor: 'rgba(0,0,0,0)',
             plot_bgcolor: 'rgba(0,0,0,0)',
-            font: { family: "Outfit, sans-serif", color: "#ffffff", size: 12 }
+            font: { family: "Outfit, sans-serif", color: "#ffffff", size: 12 },
+            hoverlabel: {
+                bgcolor: 'rgba(5,10,18,0.92)',
+                bordercolor: 'rgba(255,255,255,0.14)',
+                font: { family: 'Outfit, sans-serif', color: '#ffffff', size: 12 }
+            }
         };
 
         const config = { responsive: true, displayModeBar: false };
+        const mainTreemapData = buildTreemapTrace({ ids, labels, parents, values, colors }, 'POI');
 
         // ── Assemble the 4 sections ────────────────────────────────────────
-        const areaHtml = areaKm2 > 0 ? `<div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(59,130,246,0.35);background:rgba(59,130,246,0.08);margin-bottom:10px;"><div><div style="${kpiLabelStyle}">📐 Superficie de la zone</div><div style="${kpiValueStyle}">${areaKm2.toFixed(2)} km²</div></div></div>` : '';
+        const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
         const section1Html = areaHtml + demoHtml + densityHtml;
-        const infraKpisHtml = `
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(251,191,36,0.35);background:rgba(251,191,36,0.08);flex-direction:column;align-items:flex-start;">
-                    <div style="${kpiLabelStyle}">🚌 Arrêts de bus</div>
-                    <div style="${kpiValueStyle}">${busStopCount.toLocaleString('fr-FR')}</div>
-                </div>
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(139,92,246,0.35);background:rgba(139,92,246,0.08);flex-direction:column;align-items:flex-start;">
-                    <div style="${kpiLabelStyle}">🚆 Gares</div>
-                    <div style="${kpiValueStyle}">${trainStationCount.toLocaleString('fr-FR')}</div>
-                </div>
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(14,165,233,0.35);background:rgba(14,165,233,0.08);flex-direction:column;align-items:flex-start;">
-                    <div style="${kpiLabelStyle}">✈️ Aéroports</div>
-                    <div style="${kpiValueStyle}">${airportCount.toLocaleString('fr-FR')}</div>
-                </div>
-            </div>
-            ${areaKm2 > 0 ? `<div style="background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:10px;">
-                <div style="font-size:0.8rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">📍 Densité transport / km²</div>
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-                    <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">🚌 Bus</div><div style="font-size:1rem;font-weight:700;color:#fbbf24;">${(busStopCount / areaKm2).toFixed(2)}</div></div>
-                    <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">🚆 Gares</div><div style="font-size:1rem;font-weight:700;color:#8b5cf6;">${(trainStationCount / areaKm2).toFixed(2)}</div></div>
-                    <div style="text-align:center;"><div style="font-size:0.7rem;color:var(--color-text-muted);">✈️ Aéro.</div><div style="font-size:1rem;font-weight:700;color:#0ea5e9;">${(airportCount / areaKm2).toFixed(2)}</div></div>
-                </div>
-            </div>` : ''}
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(100,116,139,0.35);background:rgba(100,116,139,0.08);flex-direction:column;align-items:flex-start;">
-                    <div style="${kpiLabelStyle}">🅿️ Stationnements</div>
-                    <div style="${kpiValueStyle}">${parkingCount.toLocaleString('fr-FR')}</div>
-                </div>
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(6,182,212,0.35);background:rgba(6,182,212,0.08);flex-direction:column;align-items:flex-start;">
-                    <div style="${kpiLabelStyle}">🚻 Équipements sanitaires</div>
-                    <div style="${kpiValueStyle}">${sanitaryCount.toLocaleString('fr-FR')}</div>
-                </div>
-                <div class="kpi-card glass-panel" style="${kpiCardStyle}border-color:rgba(34,197,94,0.35);background:rgba(34,197,94,0.08);flex-direction:column;align-items:flex-start;">
-                    <div style="${kpiLabelStyle}">🔌 Bornes de recharge</div>
-                    <div style="${kpiValueStyle}">${chargingCount.toLocaleString('fr-FR')}</div>
-                </div>
-            </div>
-            <div id="section-infra-content"></div>
-        `;
+        const infraKpisHtml = buildInfraKpis() + `<div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
-            buildCollapsibleSection('Informations générales', '📊', section1Html, 'section-info', true) +
-            buildCollapsibleSection('Infrastructures \& activités', '🗺️', infraKpisHtml, 'section-infra', true) +
-            buildCollapsibleSection('Tourisme', '🏨', section3Html, 'section-tourisme', true) +
-            buildCollapsibleSection('Marketing digital', '📱', section4Html, 'section-marketing', false);
+            buildCollapsibleSection('Informations generales', section1Html, 'section-info', true) +
+            buildCollapsibleSection('Infrastructure & activites', infraKpisHtml, 'section-infra', true) +
+            buildCollapsibleSection('Tourisme', section3Html, 'section-tourisme', true) +
+            buildCollapsibleSection('Marketing digital', section4Html, 'section-marketing', true);
 
         this._bindCollapsibleSections();
         this._bindHeatmapToggles();
@@ -1672,87 +1690,93 @@ export class UiRenderer {
 
         // Header for Chart + Maximize Button
         const chartHeader = document.createElement('div');
-        chartHeader.style.display = 'flex';
-        chartHeader.style.justifyContent = 'space-between';
-        chartHeader.style.alignItems = 'center';
-        chartHeader.style.marginBottom = '5px';
+        chartHeader.className = 'mini-treemap-header';
 
         const chartTitle = document.createElement('span');
-        chartTitle.style.fontSize = '0.9rem';
-        chartTitle.style.fontWeight = '600';
-        chartTitle.style.color = '#fff';
+        chartTitle.className = 'mini-treemap-title';
         chartTitle.textContent = 'Répartition';
+
+        const chartTitleGroup = document.createElement('div');
+        chartTitleGroup.className = 'mini-treemap-title-group';
+        chartTitle.textContent = 'Repartition des POI';
+
+        const chartMeta = document.createElement('span');
+        chartMeta.className = 'mini-treemap-meta';
+        chartMeta.textContent = `${Object.keys(categoryCounts).length} categories`;
 
         const maxBtn = document.createElement('button');
         maxBtn.className = 'maximize-btn';
         maxBtn.innerHTML = '⤢ Agrandir';
         maxBtn.title = 'Voir en plein écran';
         maxBtn.addEventListener('click', () => {
-            this._toggleFullScreenChart(data, layout);
+            this._toggleFullScreenChart(mainTreemapData, layout);
         });
 
-        chartHeader.appendChild(chartTitle);
+        chartTitleGroup.appendChild(chartTitle);
+        chartTitleGroup.appendChild(chartMeta);
+        chartHeader.appendChild(chartTitleGroup);
         chartHeader.appendChild(maxBtn);
         infraContainer.appendChild(chartHeader);
 
         const chartDiv = document.createElement('div');
-        chartDiv.style.height = '350px';
+        chartDiv.style.height = '300px';
         chartDiv.id = 'mini-chart-div';
+        chartDiv.className = 'mini-chart-canvas mini-chart-canvas--lg';
         infraContainer.appendChild(chartDiv);
 
-        Plotly.newPlot(chartDiv, data, layout, config);
+        Plotly.newPlot(chartDiv, mainTreemapData, layout, config);
         this.lastPois = pois;
 
         // ── 3 MINI TREEMAPS ────────────────────────────────────────────────
         const miniLayout = {
-            margin: { t: 0, l: 0, r: 0, b: 0 },
+            margin: { t: 6, l: 0, r: 0, b: 0 },
             paper_bgcolor: 'rgba(0,0,0,0)',
             plot_bgcolor: 'rgba(0,0,0,0)',
-            font: { family: "Outfit, sans-serif", color: "#ffffff", size: 11 }
+            font: { family: "Outfit, sans-serif", color: "#ffffff", size: 11 },
+            hoverlabel: {
+                bgcolor: 'rgba(5,10,18,0.92)',
+                bordercolor: 'rgba(255,255,255,0.14)',
+                font: { family: 'Outfit, sans-serif', color: '#ffffff', size: 11 }
+            }
         };
         const miniConfig = { responsive: true, displayModeBar: false };
 
-        const addMiniTreemap = (titleText, emoji, treemapData) => {
-            if (!treemapData || treemapData.values.length <= 1) return; // Rien à afficher
+        const addMiniTreemap = (titleText, treemapData, metaText = '') => {
+            if (!treemapData || treemapData.values.length <= 1) return;
 
             const section = document.createElement('div');
-            section.style.cssText = 'margin-top:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;';
+            section.className = 'mini-treemap-section';
 
-            // Header + bouton Agrandir
             const headerRow = document.createElement('div');
-            headerRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;';
+            headerRow.className = 'mini-treemap-header';
+
+            const headerGroup = document.createElement('div');
+            headerGroup.className = 'mini-treemap-title-group';
 
             const header = document.createElement('span');
-            header.style.cssText = 'font-size:0.8rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;';
-            header.textContent = `${emoji} ${titleText}`;
-            headerRow.appendChild(header);
+            header.className = 'mini-treemap-title';
+            header.textContent = titleText;
+            headerGroup.appendChild(header);
+
+            if (metaText) {
+                const meta = document.createElement('span');
+                meta.className = 'mini-treemap-meta';
+                meta.textContent = metaText;
+                headerGroup.appendChild(meta);
+            }
 
             const miniDiv = document.createElement('div');
-            miniDiv.style.height = '220px';
+            miniDiv.style.height = '200px';
+            miniDiv.className = 'mini-chart-canvas';
 
-            const plotData = [{
-                type: 'treemap',
-                ids: treemapData.ids,
-                labels: treemapData.labels,
-                parents: treemapData.parents,
-                values: treemapData.values,
-                marker: {
-                    colors: treemapData.colors,
-                    line: { width: 1.5, color: 'rgba(255,255,255,0.5)' },
-                    pad: { b: 4, l: 4, r: 4, t: 12 }
-                },
-                textfont: { family: 'Outfit, sans-serif', color: '#ffffff' },
-                textposition: 'top left',
-                textinfo: 'label+value',
-                hoverinfo: 'label+value+percent parent',
-                branchvalues: 'total'
-            }];
+            const plotData = buildTreemapTrace(treemapData);
 
             const maxBtn = document.createElement('button');
             maxBtn.className = 'maximize-btn';
             maxBtn.innerHTML = '⤢ Agrandir';
             maxBtn.title = 'Voir en plein écran';
             maxBtn.addEventListener('click', () => this._toggleFullScreenChart(plotData, miniLayout));
+            headerRow.appendChild(headerGroup);
             headerRow.appendChild(maxBtn);
 
             section.appendChild(headerRow);
@@ -1782,20 +1806,20 @@ export class UiRenderer {
         if (Object.keys(accomCounts).length > 0) {
             const totalAccom = Object.values(accomCounts).reduce((a, b) => a + b, 0);
             const accomTreemap = {
-                ids: ['AccomRoot'], labels: [`Total (${totalAccom})`], parents: [''], values: [totalAccom],
-                colors: ['#a78bfa']
+                ids: ['AccomRoot'], labels: ['Hebergements'], parents: [''], values: [totalAccom],
+                colors: ['rgba(167,139,250,0.25)']
             };
             const baseColors = ['#c4b5fd', '#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95', '#ddd6fe', '#ede9fe', '#e9d5ff', '#d8b4fe', '#b794f4', '#9f7aea', '#805ad5'];
             let ci = 0;
             Object.entries(accomCounts).sort((a, b) => b[1] - a[1]).forEach(([key, count]) => {
                 accomTreemap.ids.push(key);
-                accomTreemap.labels.push(`${accomTags[key]} (${count})`);
+                accomTreemap.labels.push(accomTags[key]);
                 accomTreemap.parents.push('AccomRoot');
                 accomTreemap.values.push(count);
                 accomTreemap.colors.push(baseColors[ci % baseColors.length]);
                 ci++;
             });
-            addMiniTreemap('Hébergements par type', '🏨', accomTreemap);
+            addMiniTreemap('Hebergements par type', accomTreemap, `${Object.keys(accomCounts).length} types`);
         }
 
         // ─── 2. Treemap Sentiers piétons par sac_scale ────────────────────
@@ -1816,18 +1840,18 @@ export class UiRenderer {
         if (Object.keys(sacCounts).length > 0) {
             const totalSac = Object.values(sacCounts).reduce((a, b) => a + b, 0);
             const sacTreemap = {
-                ids: ['SacRoot'], labels: [`Total (${totalSac})`], parents: [''], values: [totalSac],
-                colors: ['#34d399']
+                ids: ['SacRoot'], labels: ['Sentiers pietons'], parents: [''], values: [totalSac],
+                colors: ['rgba(52,211,153,0.25)']
             };
             const sacColors = { 'hiking': '#facc15', 'mountain_hiking': '#ef4444', 'demanding_mountain_hiking': '#dc2626', 'alpine_hiking': '#1e1e1e', 'demanding_alpine_hiking': '#000000' };
             Object.entries(sacCounts).sort((a, b) => b[1] - a[1]).forEach(([key, count]) => {
                 sacTreemap.ids.push(key);
-                sacTreemap.labels.push(`${sacLabels[key]} (${count})`);
+                sacTreemap.labels.push(sacLabels[key]);
                 sacTreemap.parents.push('SacRoot');
                 sacTreemap.values.push(count);
                 sacTreemap.colors.push(sacColors[key] || '#6ee7b7');
             });
-            addMiniTreemap('Sentiers piétons par difficulté', '🚶', sacTreemap);
+            addMiniTreemap('Sentiers pietons par difficulte', sacTreemap, `${Object.keys(sacCounts).length} niveaux`);
         }
 
         // ─── 3. Treemap Chemins vélo par catégorie ────────────────────────
@@ -1851,37 +1875,36 @@ export class UiRenderer {
         if (Object.keys(cycleCounts).length > 0) {
             const totalCycle = Object.values(cycleCounts).reduce((a, b) => a + b, 0);
             const cycleTreemap = {
-                ids: ['CycleRoot'], labels: [`Total (${totalCycle})`], parents: [''], values: [totalCycle],
-                colors: ['#60a5fa']
+                ids: ['CycleRoot'], labels: ['Offre cyclable'], parents: [''], values: [totalCycle],
+                colors: ['rgba(96,165,250,0.25)']
             };
             const cycleColors = { 'bicycle_routes': '#f97316', 'cycleways': '#3b82f6', 'tracks': '#854d0e' };
             Object.entries(cycleCounts).sort((a, b) => b[1] - a[1]).forEach(([key, count]) => {
                 cycleTreemap.ids.push(key);
-                cycleTreemap.labels.push(`${cycleCats[key]} (${count})`);
+                cycleTreemap.labels.push(cycleCats[key]);
                 cycleTreemap.parents.push('CycleRoot');
                 cycleTreemap.values.push(count);
                 cycleTreemap.colors.push(cycleColors[key] || '#93c5fd');
             });
-            addMiniTreemap('Chemins vélo par type', '🚴', cycleTreemap);
+            addMiniTreemap('Chemins velo par type', cycleTreemap, `${Object.keys(cycleCounts).length} segments`);
         }
 
         // ── SLOPE CHART : Ratio Sentiers Piétons vs Vélo ──────────────────
         const totalTrails = pedestrianTrailCount + cyclingTrailCount;
-        if (totalTrails > 0) {
+        if (false && totalTrails > 0) {
             const slopeSection = document.createElement('div');
-            slopeSection.style.cssText = 'margin-top:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:12px;';
+            slopeSection.className = 'mini-treemap-section';
 
-            // Header + bouton Agrandir
             const slopeHeaderRow = document.createElement('div');
-            slopeHeaderRow.style.cssText = 'display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;';
+            slopeHeaderRow.className = 'mini-treemap-header';
 
             const slopeHeader = document.createElement('span');
-            slopeHeader.style.cssText = 'font-size:0.8rem;font-weight:700;color:#fff;text-transform:uppercase;letter-spacing:0.04em;';
-            slopeHeader.textContent = '📊 Slope Chart — Randonnée vs Cyclisme';
+            slopeHeader.className = 'mini-treemap-title';
+            slopeHeader.textContent = 'Randonnee vs Cyclisme';
             slopeHeaderRow.appendChild(slopeHeader);
 
             const slopeDiv = document.createElement('div');
-            slopeDiv.style.height = '200px';
+            slopeDiv.style.height = '180px';
 
             // Slope line color based on dominant side
             let slopeColor;
@@ -1892,7 +1915,7 @@ export class UiRenderer {
             const slopeData = [
                 // The connecting line
                 {
-                    x: ['Randonnée 🚶', 'Cyclisme 🚴'],
+                    x: ['Randonnee', 'Cyclisme'],
                     y: [pedestrianTrailCount, cyclingTrailCount],
                     mode: 'lines+markers+text',
                     type: 'scatter',
@@ -1945,6 +1968,114 @@ export class UiRenderer {
             infraContainer.appendChild(slopeSection);
 
             Plotly.newPlot(slopeDiv, slopeData, slopeLayout, miniConfig);
+        }
+
+        const offerMetrics = [
+            { label: 'Sentiers pietons', raw: pedestrianTrailCount, color: '#34d399' },
+            { label: 'Offre cyclable', raw: cyclingTrailCount, color: '#60a5fa' },
+            { label: 'Hebergements', raw: accommodationCount, color: '#a78bfa' },
+            { label: 'Acces transport', raw: transportTotal, color: '#fbbf24' },
+            { label: 'Services visiteurs', raw: servicesTotal, color: '#06b6d4' }
+        ]
+            .filter(item => item.raw > 0)
+            .map(item => ({
+                ...item,
+                metric: areaKm2 > 0 ? (item.raw / areaKm2) : item.raw
+            }))
+            .sort((a, b) => b.metric - a.metric);
+
+        if (offerMetrics.length > 1) {
+            const offerSection = document.createElement('div');
+            offerSection.className = 'mini-treemap-section';
+
+            const offerHeaderRow = document.createElement('div');
+            offerHeaderRow.className = 'mini-treemap-header';
+
+            const offerHeaderGroup = document.createElement('div');
+            offerHeaderGroup.className = 'mini-treemap-title-group';
+
+            const offerHeader = document.createElement('span');
+            offerHeader.className = 'mini-treemap-title';
+            offerHeader.textContent = areaKm2 > 0 ? 'Intensite de l offre' : 'Volume de l offre';
+            offerHeaderGroup.appendChild(offerHeader);
+
+            const offerMeta = document.createElement('span');
+            offerMeta.className = 'mini-treemap-meta';
+            offerMeta.textContent = areaKm2 > 0 ? 'normalise par km2' : 'comparaison brute';
+            offerHeaderGroup.appendChild(offerMeta);
+
+            const offerDiv = document.createElement('div');
+            offerDiv.style.height = '220px';
+            offerDiv.className = 'mini-chart-canvas';
+
+            const offerData = [{
+                type: 'bar',
+                orientation: 'h',
+                x: offerMetrics.map(item => item.metric),
+                y: offerMetrics.map(item => item.label),
+                marker: {
+                    color: offerMetrics.map(item => item.color),
+                    line: { color: 'rgba(255,255,255,0.18)', width: 1.2 }
+                },
+                text: offerMetrics.map(item => areaKm2 > 0
+                    ? `${formatChartMetric(item.metric)}/km2`
+                    : item.raw.toLocaleString('fr-FR')),
+                textposition: 'outside',
+                cliponaxis: false,
+                hovertemplate: areaKm2 > 0
+                    ? '<b>%{y}</b><br>%{x:.2f} / km2<br>%{customdata[0]} elements recenses<extra></extra>'
+                    : '<b>%{y}</b><br>%{x} elements recenses<extra></extra>',
+                customdata: offerMetrics.map(item => [item.raw.toLocaleString('fr-FR')])
+            }];
+
+            const offerLayout = {
+                margin: { t: 6, l: 108, r: 34, b: 28 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Outfit, sans-serif', color: '#fff', size: 11 },
+                xaxis: {
+                    showgrid: true,
+                    gridcolor: 'rgba(255,255,255,0.08)',
+                    zeroline: false,
+                    tickfont: { size: 10, color: 'rgba(255,255,255,0.55)' },
+                    title: areaKm2 > 0
+                        ? { text: 'elements / km2', font: { size: 10, color: 'rgba(255,255,255,0.5)' } }
+                        : undefined
+                },
+                yaxis: {
+                    automargin: true,
+                    autorange: 'reversed',
+                    tickfont: { size: 11, color: '#fff' }
+                },
+                bargap: 0.28,
+                showlegend: false,
+                hoverlabel: {
+                    bgcolor: 'rgba(5,10,18,0.92)',
+                    bordercolor: 'rgba(255,255,255,0.14)',
+                    font: { family: 'Outfit, sans-serif', color: '#ffffff', size: 11 }
+                }
+            };
+
+            const offerMaxBtn = document.createElement('button');
+            offerMaxBtn.className = 'maximize-btn';
+            offerMaxBtn.innerHTML = '⤢ Agrandir';
+            offerMaxBtn.title = 'Voir en plein écran';
+            offerMaxBtn.addEventListener('click', () => this._toggleFullScreenChart(offerData, offerLayout));
+            offerHeaderRow.appendChild(offerHeaderGroup);
+            offerHeaderRow.appendChild(offerMaxBtn);
+
+            const offerCaption = document.createElement('div');
+            offerCaption.className = 'mini-chart-caption';
+            offerCaption.textContent = areaKm2 > 0
+                ? 'Lecture normalisee pour comparer des zones de tailles differentes.'
+                : 'Comparaison directe des volumes recenses dans la zone active.';
+
+            offerSection.appendChild(offerHeaderRow);
+            offerSection.appendChild(offerDiv);
+            offerSection.appendChild(offerCaption);
+            infraContainer.appendChild(offerSection);
+
+            Plotly.newPlot(offerDiv, offerData, offerLayout, miniConfig);
         }
     }
 
@@ -2034,7 +2165,7 @@ export class UiRenderer {
 
                 <!-- OSM Static Block -->
                 <div class="poi-section">
-                    <div class="poi-section__title">📍 Informations</div>
+                    <div class="poi-section__title">Informations</div>
                     <div class="detail-info" id="poi-osm-block">
                         ${this._buildOsmRows(poi, color)}
                     </div>
@@ -2042,7 +2173,7 @@ export class UiRenderer {
 
                 <!-- Digital Data Block -->
                 <div class="poi-section">
-                    <div class="poi-section__title">💻 Données Digitales</div>
+                    <div class="poi-section__title">Données Digitales</div>
                     <div class="detail-info" id="poi-digital-block">
                         ${this._buildDigitalRows(poi, color)}
                     </div>
@@ -2061,13 +2192,13 @@ export class UiRenderer {
                 <div style="margin-top:16px;text-align:center;display:flex;justify-content:center;gap:15px;">
                     <a href="https://www.openstreetmap.org/node/${poi.id}" target="_blank"
                        style="font-size:0.75rem;color:var(--color-text-muted);text-decoration:none;opacity:0.7;">
-                       🗺️ Voir sur OpenStreetMap
+                       Voir sur OpenStreetMap
                     </a>
                     <span id="poi-wikipedia-bottom-link-container">
                         ${this._getWikipediaUrl(poi.tags) ? `
                             <a href="${this._getWikipediaUrl(poi.tags)}" target="_blank"
                                style="font-size:0.75rem;color:var(--color-text-muted);text-decoration:none;opacity:0.7;">
-                               📖 Voir sur Wikipédia
+                               Voir sur Wikipédia
                             </a>
                         ` : ''}
                     </span>
@@ -2103,11 +2234,11 @@ export class UiRenderer {
                     const website = poi.tags.website || poi.tags['contact:website'] || poi.tags.url || wikidataInfo?.website;
                     if (website) {
                         linksContainer.insertAdjacentHTML('beforeend',
-                            `<a href="${website}" target="_blank" class="icon-btn" title="Site Web">🌐</a>`);
+                            `<a href="${website}" target="_blank" class="icon-btn" title="Site Web">Site web</a>`);
                     }
                     if (wikidataInfo?.wikipedia) {
                         linksContainer.insertAdjacentHTML('beforeend',
-                            `<a href="${wikidataInfo.wikipedia}" target="_blank" class="icon-btn" title="Article Wikipédia">📖</a>`);
+                            `<a href="${wikidataInfo.wikipedia}" target="_blank" class="icon-btn" title="Article Wikipédia">Wikipédia</a>`);
 
                         // Update bottom link if it was missing or different
                         const bottomContainer = document.getElementById('poi-wikipedia-bottom-link-container');
@@ -2115,7 +2246,7 @@ export class UiRenderer {
                             bottomContainer.innerHTML = `
                                 <a href="${wikidataInfo.wikipedia}" target="_blank"
                                    style="font-size:0.75rem;color:var(--color-text-muted);text-decoration:none;opacity:0.7;">
-                                   📖 Voir sur Wikipédia
+                                   Voir sur Wikipédia
                                 </a>`;
                         }
                     }
@@ -2130,17 +2261,17 @@ export class UiRenderer {
                     </div>`);
                     }
                     if (wikidataInfo.population != null)
-                        rows.push(this._infoRow('👥 Population', wikidataInfo.population.toLocaleString('fr-FR') + ' hab.'));
+                        rows.push(this._infoRow('Population', wikidataInfo.population.toLocaleString('fr-FR') + ' hab.'));
                     if (wikidataInfo.elevation != null)
-                        rows.push(this._infoRow('⛰️ Altitude (Wikidata)', wikidataInfo.elevation + ' m'));
+                        rows.push(this._infoRow('Altitude', wikidataInfo.elevation + ' m'));
                     if (wikidataInfo.area != null)
-                        rows.push(this._infoRow('📐 Superficie', wikidataInfo.area.toLocaleString('fr-FR') + ' km²'));
+                        rows.push(this._infoRow('Superficie', wikidataInfo.area.toLocaleString('fr-FR') + ' km²'));
                     if (wikidataInfo.inception)
-                        rows.push(this._infoRow('📅 Fondé en', wikidataInfo.inception));
+                        rows.push(this._infoRow('Fondé en', wikidataInfo.inception));
                     if (wikidataInfo.heritage)
-                        rows.push(this._infoRow('🏛️ Classement', wikidataInfo.heritage));
+                        rows.push(this._infoRow('Classement', wikidataInfo.heritage));
                     if (wikidataInfo.architect)
-                        rows.push(this._infoRow('✏️ Architecte', wikidataInfo.architect));
+                        rows.push(this._infoRow('Architecte', wikidataInfo.architect));
 
                     if (rows.length > 0) {
                         const section = document.getElementById('poi-wikidata-section');
@@ -2188,9 +2319,9 @@ export class UiRenderer {
         const yesLabel = `<span style="color:#10b981;font-weight:bold;">Oui</span>`;
         const noLabel = `<span style="color:var(--color-text-muted);opacity:0.8;">Non</span>`;
 
-        rows.push(this._infoRow('🌐 Site Web', d.hasWebsite ? yesLabel : noLabel));
-        rows.push(this._infoRow('📱 Réseaux Sociaux', d.hasSocialMedia ? yesLabel : noLabel));
-        rows.push(this._infoRow('🎒 Wikivoyage', d.hasWikivoyage ? yesLabel : noLabel));
+        rows.push(this._infoRow('Site Web', d.hasWebsite ? yesLabel : noLabel));
+        rows.push(this._infoRow('Réseaux Sociaux', d.hasSocialMedia ? yesLabel : noLabel));
+        rows.push(this._infoRow('Wikivoyage', d.hasWikivoyage ? yesLabel : noLabel));
 
         let langLabel = '';
         if (d.wikidataLanguagesCount === null || d.wikidataLanguagesCount === undefined) {
@@ -2205,7 +2336,7 @@ export class UiRenderer {
             langLabel = `<span style="color:${color};font-weight:bold;">${d.wikidataLanguagesCount} langue(s)</span>`;
         }
 
-        rows.push(this._infoRow('🌍 Langues', langLabel));
+        rows.push(this._infoRow('Langues', langLabel));
 
         return rows.join('');
     }
@@ -2216,42 +2347,42 @@ export class UiRenderer {
         const rows = [];
 
         const address = this.formatAddress(t);
-        if (address) rows.push(this._infoRow('📬 Adresse', address));
+        if (address) rows.push(this._infoRow('Adresse', address));
 
         const phone = t.phone || t['contact:phone'];
-        if (phone) rows.push(this._infoRow('📞 Téléphone',
+        if (phone) rows.push(this._infoRow('Téléphone',
             `<a href="tel:${phone}" style="color:${color}">${phone}</a>`));
 
         const email = t.email || t['contact:email'];
-        if (email) rows.push(this._infoRow('✉️ Email',
+        if (email) rows.push(this._infoRow('Email',
             `<a href="mailto:${email}" style="color:${color}">${email}</a>`));
 
-        if (t.opening_hours) rows.push(this._infoRow('🕐 Horaires', this._renderOpeningHours(t.opening_hours)));
+        if (t.opening_hours) rows.push(this._infoRow('Horaires', this._renderOpeningHours(t.opening_hours)));
 
         const website = t.website || t['contact:website'] || t.url;
-        if (website) rows.push(this._infoRow('🌐 Site Web',
+        if (website) rows.push(this._infoRow('Site Web',
             `<a href="${website}" target="_blank" style="color:${color}">Ouvrir ↗</a>`));
 
-        if (t.cuisine) rows.push(this._infoRow('🍽️ Cuisine', t.cuisine.replace(/_/g, ' ')));
-        if (t.stars) rows.push(this._infoRow('⭐ Étoiles', t.stars));
-        if (t.operator) rows.push(this._infoRow('🏢 Opérateur', t.operator));
-        if (t.brand) rows.push(this._infoRow('🏷️ Enseigne', t.brand));
-        if (t.ele) rows.push(this._infoRow('⛰️ Altitude', t.ele + ' m'));
-        if (t.capacity) rows.push(this._infoRow('👤 Capacité', t.capacity + ' pers.'));
-        if (t.start_date) rows.push(this._infoRow('📅 Création', t.start_date));
-        if (t.fee) rows.push(this._infoRow('💰 Tarif', t.fee === 'yes' ? 'Payant' : t.fee === 'no' ? 'Gratuit' : t.fee));
-        if (t.access) rows.push(this._infoRow('🔒 Accès', t.access));
-        if (t.wheelchair) rows.push(this._infoRow('♿ Accessibilité',
-            t.wheelchair === 'yes' ? '✅ Accessible PMR' :
-                t.wheelchair === 'limited' ? '⚠️ Accès limité' : '❌ Non accessible'));
-        if (t.description) rows.push(this._infoRow('📝 Description', t.description));
+        if (t.cuisine) rows.push(this._infoRow('Cuisine', t.cuisine.replace(/_/g, ' ')));
+        if (t.stars) rows.push(this._infoRow('Étoiles', t.stars));
+        if (t.operator) rows.push(this._infoRow('Opérateur', t.operator));
+        if (t.brand) rows.push(this._infoRow('Enseigne', t.brand));
+        if (t.ele) rows.push(this._infoRow('Altitude', t.ele + ' m'));
+        if (t.capacity) rows.push(this._infoRow('Capacité', t.capacity + ' pers.'));
+        if (t.start_date) rows.push(this._infoRow('Création', t.start_date));
+        if (t.fee) rows.push(this._infoRow('Tarif', t.fee === 'yes' ? 'Payant' : t.fee === 'no' ? 'Gratuit' : t.fee));
+        if (t.access) rows.push(this._infoRow('Accès', t.access));
+        if (t.wheelchair) rows.push(this._infoRow('Accessibilité',
+            t.wheelchair === 'yes' ? 'Accessible PMR' :
+                t.wheelchair === 'limited' ? 'Accès limité' : 'Non accessible'));
+        if (t.description) rows.push(this._infoRow('Description', t.description));
         if (t.wikipedia && !t.wikidata) {
             const wikiTitle = t.wikipedia.replace(/^fr:/, '');
-            rows.push(this._infoRow('📖 Wikipédia',
+            rows.push(this._infoRow('Wikipédia',
                 `<a href="https://fr.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}" target="_blank" style="color:${color}">Voir l'article ↗</a>`));
         }
 
-        rows.push(this._infoRow('🌐 Coordonnées',
+        rows.push(this._infoRow('Coordonnées',
             `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
 
         return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée OSM disponible.</p>';
@@ -2333,6 +2464,25 @@ export class UiRenderer {
 
     setApiService(apiService) {
         this.apiService = apiService;
+        this.syncOverpassServerSelect(apiService?.overpassUrl);
+    }
+
+    syncOverpassServerSelect(url, { notify = false, previousUrl = null } = {}) {
+        const serverSelect = document.getElementById('overpass-server-select');
+        if (!serverSelect || !url) return;
+
+        if (serverSelect.value !== url) {
+            serverSelect.value = url;
+        }
+
+        if (notify) {
+            const nextLabel = serverSelect.selectedOptions?.[0]?.textContent?.trim() || url;
+            const previousOption = previousUrl
+                ? Array.from(serverSelect.options).find(option => option.value === previousUrl)
+                : null;
+            const previousLabel = previousOption?.textContent?.trim() || previousUrl || 'ancien serveur';
+            this.showToast(`Serveur Overpass bascule vers ${nextLabel} apres echec de ${previousLabel}.`, 'warning', 5000);
+        }
     }
 
     formatAddress(tags) {
@@ -2359,14 +2509,15 @@ export class UiRenderer {
         this.renderMicroList(filtered);
     }
     getCategoryEmoji(category) {
-        const emojis = {
-            'tourism': '📷', 'sustenance': '🍴', 'accommodation': '🛏️', 'amenity': '🚻',
-            'natural': '🌳', 'historic': '🏛️', 'leisure': '🎡', 'shop': '🛒',
-            'transport': '🚌', 'craft': '🎨', 'office': '💼',
-            'place': '📍', 'sport': '⚽', 'healthcare': '⚕️',
-            'other': '❓'
-        };
-        return emojis[category] || emojis['other'];
+        return "";
+        // const emojis = {
+        //     'tourism': '📷', 'sustenance': '🍴', 'accommodation': '🛏️', 'amenity': '🚻',
+        //     'natural': '🌳', 'historic': '🏛️', 'leisure': '🎡', 'shop': '🛒',
+        //     'transport': '🚌', 'craft': '🎨', 'office': '💼',
+        //     'place': '📍', 'sport': '⚽', 'healthcare': '⚕️',
+        //     'other': '❓'
+        // };
+        // return emojis[category] || emojis['other'];
     }
 
     translateType(type) {
@@ -2420,7 +2571,7 @@ export class UiRenderer {
         overlay.id = 'fullscreen-chart-overlay';
         overlay.innerHTML = `
             <div class="header">
-                 <div class="title">Statistiques Détaillées (Treemap)</div>
+                 <div class="title">Vue détaillé</div>
                  <button id="fullscreen-chart-button-close">Fermer ✕</button>
             </div>
             <div id="fullscreen-chart-container" class="chart-container"></div>

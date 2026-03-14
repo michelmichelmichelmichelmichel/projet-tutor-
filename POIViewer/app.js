@@ -38,6 +38,12 @@ class App {
         this.uiRenderer.onServerChange = (newUrl) => {
             this.apiService.overpassUrl = newUrl;
         };
+        this.apiService.onOverpassServerChange = (newUrl, meta = {}) => {
+            this.uiRenderer.syncOverpassServerSelect(newUrl, {
+                notify: meta.reason === 'fallback-success',
+                previousUrl: meta.previousUrl || null
+            });
+        };
 
         // Load INSEE Data on app start
         this.apiService.loadInseeData();

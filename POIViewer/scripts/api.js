@@ -3,6 +3,13 @@
 export class ApiService {
     constructor() {
         this.overpassUrl = 'https://overpass-api.de/api/interpreter';
+        this.overpassFallbackUrls = [
+            'https://overpass.private.coffee/api/interpreter',
+            'https://overpass-api.de/api/interpreter',
+            'https://overpass.kumi.systems/api/interpreter',
+            'https://overpass.osm.ch/api/interpreter'
+        ];
+        this.onOverpassServerChange = null;
         this.nominatimUrl = 'https://nominatim.openstreetmap.org/search';
         this.geoGouvUrl = 'https://geo.api.gouv.fr/communes';
         this.wikidataUrl = 'https://query.wikidata.org/sparql';
@@ -35,23 +42,78 @@ export class ApiService {
      * Wrapper centralisé pour toutes les requêtes Overpass — logue chaque appel.
      */
     async _overpassFetch(query, context = '') {
-        const server = this.overpassUrl;
         const preview = query.replace(/\s+/g, ' ').trim();
         console.log(`%c[Overpass] ${context || 'requête'}`, 'color:#4ade80;font-weight:bold',
-            `\nServeur : ${server}\nQuery   : ${preview}`);
-        const t0 = performance.now();
-        const response = await fetch(server, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `data=${encodeURIComponent(query)}`
-        });
-        const ms = Math.round(performance.now() - t0);
-        if (response.ok) {
-            console.log(`%c[Overpass] ✅ ${context || 'ok'} — ${ms} ms (HTTP ${response.status})`, 'color:#4ade80');
-        } else {
-            console.warn(`[Overpass] ⚠️ ${context || 'erreur'} — HTTP ${response.status} (${ms} ms)`);
+            `\nServeur principal : ${this.overpassUrl}\nQuery   : ${preview}`);
+
+        const servers = this._getOverpassServers();
+        let lastResponse = null;
+        let lastError = null;
+
+        for (let i = 0; i < servers.length; i++) {
+            const server = servers[i];
+            const t0 = performance.now();
+
+            try {
+                const response = await fetch(server, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `data=${encodeURIComponent(query)}`
+                });
+                const ms = Math.round(performance.now() - t0);
+
+                if (response.ok) {
+                    if (server !== this.overpassUrl) {
+                        this._setPreferredOverpassServer(server, {
+                            reason: 'fallback-success',
+                            previousUrl: this.overpassUrl,
+                            context
+                        });
+                    }
+                    console.log(`%c[Overpass] ✅ ${context || 'ok'} — ${ms} ms (HTTP ${response.status}) via ${server}`, 'color:#4ade80');
+                    return response;
+                }
+
+                console.warn(`[Overpass] ⚠️ ${context || 'erreur'} — HTTP ${response.status} (${ms} ms) via ${server}`);
+                lastResponse = response;
+
+                if (!this._isRetryableOverpassStatus(response.status) || i === servers.length - 1) {
+                    return response;
+                }
+
+                console.warn(`[Overpass] Retrying ${context || 'request'} on fallback mirror...`);
+            } catch (error) {
+                const ms = Math.round(performance.now() - t0);
+                lastError = error;
+                console.warn(`[Overpass] Network error for ${context || 'request'} after ${ms} ms via ${server}:`, error);
+
+                if (i === servers.length - 1) {
+                    throw error;
+                }
+
+                console.warn(`[Overpass] Retrying ${context || 'request'} on fallback mirror...`);
+            }
         }
-        return response;
+
+        if (lastError) throw lastError;
+        return lastResponse;
+    }
+
+    _getOverpassServers() {
+        return [...new Set([this.overpassUrl, ...this.overpassFallbackUrls].filter(Boolean))];
+    }
+
+    _isRetryableOverpassStatus(status) {
+        return [429, 500, 502, 503, 504].includes(status);
+    }
+
+    _setPreferredOverpassServer(url, meta = {}) {
+        if (!url || url === this.overpassUrl) return;
+        this.overpassUrl = url;
+
+        if (typeof this.onOverpassServerChange === 'function') {
+            this.onOverpassServerChange(url, meta);
+        }
     }
 
     setCountry(name, code, areaId, bounds = null) {
@@ -577,9 +639,11 @@ export class ApiService {
         const CACHE_KEY = `parks_cache_${this._cacheVersion}_${this.currentCountryAreaId}`;
         const CACHE_DURATION = 24 * 60 * 60 * 1000;
         const cached = localStorage.getItem(CACHE_KEY);
+        let cachedData = null;
         if (cached) {
             try {
                 const { timestamp, data } = JSON.parse(cached);
+                cachedData = data;
                 if (Date.now() - timestamp < CACHE_DURATION) return data;
             } catch (e) { }
         }
@@ -596,6 +660,16 @@ export class ApiService {
 
         try {
             const response = await this._overpassFetch(query, 'zones protégées');
+            if (response.status === 429) {
+                console.warn("⚠️ Trop de requetes (429).");
+                if (cachedData) return cachedData;
+                throw new Error("API Limit Reached");
+            }
+            if (response.status === 504) {
+                console.warn("⚠️ Timeout Overpass (504).");
+                if (cachedData) return cachedData;
+                throw new Error("API Timeout");
+            }
             if (!response.ok) throw new Error(`Erreur Overpass: ${response.status}`);
             const data = await response.json();
             const parks = data.elements
@@ -612,8 +686,8 @@ export class ApiService {
             return parks;
         } catch (error) {
             console.error("Erreur chargement parcs:", error);
-            if (cached) return JSON.parse(cached).data;
-            return [];
+            if (cachedData) return cachedData;
+            throw error;
         }
     }
 
@@ -634,9 +708,11 @@ export class ApiService {
 
         const CACHE_DURATION = 30 * 24 * 60 * 60 * 1000;
         const cached = localStorage.getItem(cacheKey);
+        let cachedData = null;
         if (cached) {
             try {
                 const { timestamp, data } = JSON.parse(cached);
+                cachedData = data;
                 if (Date.now() - timestamp < CACHE_DURATION) return data;
             } catch (e) { }
         }
@@ -653,12 +729,12 @@ export class ApiService {
 
             if (response.status === 429) {
                 console.warn("⚠️ Trop de requêtes (429).");
-                if (cached) return JSON.parse(cached).data;
+                if (cachedData) return cachedData;
                 throw new Error("API Limit Reached");
             }
             if (response.status === 504) {
                 console.warn("⚠️ Timeout Overpass (504).");
-                if (cached) return JSON.parse(cached).data;
+                if (cachedData) return cachedData;
                 throw new Error("API Timeout");
             }
             if (!response.ok) throw new Error(`Erreur Overpass: ${response.status}`);
@@ -685,8 +761,8 @@ export class ApiService {
 
         } catch (error) {
             console.error(`Erreur chargement admin_level=${adminLevel}:`, error);
-            if (cached) return JSON.parse(cached).data;
-            return [];
+            if (cachedData) return cachedData;
+            throw error;
         }
     }
 
