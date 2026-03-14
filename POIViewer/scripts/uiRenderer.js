@@ -809,9 +809,27 @@ export class UiRenderer {
 
         if (this.deselectAllBtn) {
             this.deselectAllBtn.addEventListener('click', () => {
-                const inputs = this.macroFiltersContent.querySelectorAll('input[type="checkbox"]');
-                const anyChecked = Array.from(inputs).some(i => i.checked);
-                inputs.forEach(input => input.checked = !anyChecked);
+                const mainCheckboxes = this.macroFiltersContent.querySelectorAll(':scope > div > div > label > input[type="checkbox"]');
+                const anyChecked = Array.from(mainCheckboxes).some(i => i.checked);
+                const newState = !anyChecked;
+
+                mainCheckboxes.forEach(checkbox => {
+                    checkbox.checked = newState;
+                    // Trigger manual change to sync sub-categories
+                    const wrapper = checkbox.closest('[data-cat-id]');
+                    const subContainer = wrapper ? wrapper.querySelector('.sub-cat-list') : null;
+                    if (subContainer) {
+                        subContainer.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                            cb.checked = newState;
+                            if (!newState) {
+                                this.excludedSubCategories.add(cb.value);
+                            } else {
+                                this.excludedSubCategories.delete(cb.value);
+                            }
+                        });
+                    }
+                });
+
                 this.updateFilterButtonText();
                 if (this.onFilterChange) this.onFilterChange();
             });
@@ -1243,7 +1261,7 @@ export class UiRenderer {
         let websiteCount = 0;
         let socialMediaCount = 0;
         let wikivoyageCount = 0;
-        // Infrastructure KPIs
+        // Infrastructures KPIs
         let busStopCount = 0;
         let trainStationCount = 0;
         let airportCount = 0;
@@ -1565,6 +1583,7 @@ export class UiRenderer {
                 </div>`;
             this._bindCollapsibleSections();
             this._bindHeatmapToggles();
+            this.lastPois = pois; // SYNC: Even if empty, update lastPois reference
             if (totalRaw > 0) {
                 this.showToast(`${countLabel} — activez les filtres pour les afficher`, 'info', 5000);
             }
@@ -1666,7 +1685,7 @@ export class UiRenderer {
 
         this.macroStats.style.height = 'auto'; // Let it grow
 
-        // ── Section 2: Infrastructure & activités (injected via DOM) ──────
+        // ── Section 2: Infrastructures & activités (injected via DOM) ──────
         const infraContainer = document.getElementById('section-infra-content');
 
         // Header for Chart + Maximize Button
@@ -2096,7 +2115,7 @@ export class UiRenderer {
             return;
         }
 
-        // C'est ici que la ligne fautive a été supprimée !
+        this.lastPois = pois; // SYNC: Update the source of truth for the list
 
         this.poiList.innerHTML = pois.map(poi => this.createPoiCard(poi)).join('');
         this.poiList.querySelectorAll('.poi-card').forEach(card => {
@@ -2483,7 +2502,7 @@ export class UiRenderer {
         if (searchQuery.length > 0) {
             filtered = filtered.filter(p =>
                 p.name.toLowerCase().includes(searchQuery) ||
-                (p.tags.type && p.tags.type.toLowerCase().includes(searchQuery))
+                (p.type && p.type.toLowerCase().includes(searchQuery))
             );
         }
 

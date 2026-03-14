@@ -97,6 +97,9 @@ body {
 /* ============================================
    MACRO OVERLAY
    ============================================ */
+#filters-floating-box .filter-card {
+    min-width: 250px;
+}
 
 #macro-overlay {
     min-width: 320px;
@@ -1207,7 +1210,27 @@ body {
 }
 .tab-content.active {
     display: block;
-    animation: fadeIn 0.15s ease-out;
+    animation: fadeIn 0.2s ease-out;
+}
+
+#admin-tabs-contents>.tab-content.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(5px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tab-content::-webkit-scrollbar {
+    width: 6px;
 }
 #admin-tabs-contents > .tab-content.active { display: block; }
 
