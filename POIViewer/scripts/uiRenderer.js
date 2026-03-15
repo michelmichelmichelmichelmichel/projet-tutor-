@@ -2546,7 +2546,9 @@ export class UiRenderer {
             'swimming_pool': 'Piscine', 'park': 'Parc', 'garden': 'Jardin',
             'nature_reserve': 'Réserve naturelle', 'convenience': 'Supérette', 'bakery': 'Boulangerie',
             'supermarket': 'Supermarché', 'clothes': 'Vêtements', 'hairdresser': 'Coiffeur',
-            'yes': 'Oui', 'antenna': 'Antenne', 'mast': 'Mât', 'tower': 'Tour'
+            'yes': 'Oui', 'antenna': 'Antenne', 'mast': 'Mât', 'tower': 'Tour',
+            'station': 'Gare', 'halt': 'Halte ferroviaire', 'stop': 'Gare',
+            'aerodrome': 'Aérodrome', 'airport': 'Aéroport'
         };
         const normalizedType = type.toLowerCase().replace(/-/g, '_');
         return translations[normalizedType] || type.replace(/_/g, ' ');

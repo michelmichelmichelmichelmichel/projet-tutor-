@@ -240,7 +240,7 @@ export class ApiService {
                 'natural': ['natural', 'mountain_pass', 'waterway'],
                 'shop': ['shop'],
                 'amenity': ['amenity'],
-                'transport': ['public_transport', 'railway'],
+                'transport': ['public_transport', 'railway', 'aeroway'],
                 'healthcare': ['amenity', 'healthcare'],
                 'office': ['office'],
                 'craft': ['craft']
@@ -403,9 +403,9 @@ export class ApiService {
 
                         // --- Extraction des données digitales OSM ---
                         const hasWebsite = !!(el.tags.website || el.tags['contact:website'] || el.tags.url);
-                        
+
                         const socialMediaKeys = ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok'];
-                        const hasSocialMedia = Object.keys(el.tags).some(key => 
+                        const hasSocialMedia = Object.keys(el.tags).some(key =>
                             socialMediaKeys.some(sm => key.includes(sm) || (key.startsWith('contact:') && key.includes(sm)))
                         );
 
@@ -475,10 +475,9 @@ export class ApiService {
     }
 
     detectCategoryAndType(tags) {
-        // ... existing code ...
         // Order matters for priority
         if (tags.tourism) return { category: 'tourism', type: tags.tourism };
-        // ... (abbreviated for context, actually just appending method to class)
+
         if (tags.historic) return { category: 'historic', type: tags.historic };
         if (tags.natural) return { category: 'natural', type: tags.natural };
         if (tags.leisure) return { category: 'leisure', type: tags.leisure };
