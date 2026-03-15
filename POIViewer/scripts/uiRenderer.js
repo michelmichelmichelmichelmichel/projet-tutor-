@@ -1573,7 +1573,7 @@ export class UiRenderer {
                 : 'POIs disponibles';
             this.macroStats.innerHTML =
                 buildCollapsibleSection('Informations generales', section1Html, 'section-info', true) +
-                buildCollapsibleSection('Infrastructure & activites', infraKpisHtml, 'section-infra', true) +
+                buildCollapsibleSection('Infrastructures & activites', infraKpisHtml, 'section-infra', true) +
                 buildCollapsibleSection('Tourisme', section3Html, 'section-tourisme', true) +
                 buildCollapsibleSection('Marketing digital', section4Html, 'section-marketing', true) +
                 `<div class="stat-item empty">
@@ -1676,7 +1676,7 @@ export class UiRenderer {
         const infraKpisHtml = buildInfraKpis() + `<div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
             buildCollapsibleSection('Informations generales', section1Html, 'section-info', true) +
-            buildCollapsibleSection('Infrastructure & activites', infraKpisHtml, 'section-infra', true) +
+            buildCollapsibleSection('Infrastructures & activites', infraKpisHtml, 'section-infra', true) +
             buildCollapsibleSection('Tourisme', section3Html, 'section-tourisme', true) +
             buildCollapsibleSection('Marketing digital', section4Html, 'section-marketing', true);
 
