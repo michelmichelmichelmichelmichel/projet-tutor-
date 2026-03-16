@@ -119,6 +119,7 @@ class App {
 
         // Bind Filter Change (client-side only — no re-fetch needed since all POIs are always loaded)
         this.uiRenderer.onFilterChange = () => {
+            this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
                 this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
@@ -137,6 +138,7 @@ class App {
 
         // Bind Sub-Category Filter Change (Client-side only, no API refetch)
         this.uiRenderer.onSubCategoryFilterChange = () => {
+            this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
                 this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
@@ -147,6 +149,9 @@ class App {
 
         // Bind POI Selection (List Click)
         this.uiRenderer.onPoiSelected = (poi) => {
+            this.selectedPoiType = poi.type;
+            this.addMarkersToMap(this.getFilteredPOIs());
+
             this.mapManager.zoomToLocation(poi.lat, poi.lng);
             // Afficher le marqueur de sélection après le début du vol (1.6 s = durée flyTo + petite marge)
             setTimeout(() => {
@@ -233,6 +238,7 @@ class App {
         this.currentLayer = null;
         this.activeZone = null;
         this.currentAreaKm2 = 0;
+        this.selectedPoiType = null;
 
         this.uiRenderer.clear();
         this.uiRenderer.toggleLoadNeighborsBtn(false);
@@ -761,18 +767,40 @@ class App {
         this.mapManager.markerGroup.clearLayers();
 
         pois.forEach(poi => {
-            const marker = L.circleMarker([poi.lat, poi.lng], {
-                radius: 6,
-                fillColor: this.uiRenderer.getCategoryColor(poi.category),
-                color: '#fff',
-                weight: 1,
-                opacity: 1,
-                fillOpacity: 0.8
-            });
+            let isHighlighted = this.selectedPoiType && poi.type === this.selectedPoiType;
+            let marker;
+
+            if (isHighlighted) {
+                const catCol = this.uiRenderer.getCategoryColor(poi.category);
+                const iconHtml = `<div class="poi-category-highlight" style="background-color: ${catCol}; --pulse-color: ${catCol}">${this.uiRenderer.getCategoryEmoji(poi.category)}</div>`;
+                const icon = L.divIcon({
+                    className: '',
+                    html: iconHtml,
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+                marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 500 });
+            } else {
+                let opacity = this.selectedPoiType ? 0.7 : 1;
+                let fillOpacity = this.selectedPoiType ? 0.7 : 1;
+                marker = L.circleMarker([poi.lat, poi.lng], {
+                    radius: 6,
+                    fillColor: this.uiRenderer.getCategoryColor(poi.category),
+                    color: '#fff',
+                    weight: 1,
+                    opacity: opacity,
+                    fillOpacity: fillOpacity
+                });
+            }
 
             marker.on('click', () => {
                 this.uiRenderer.renderPoiDetails(poi);
                 this.uiRenderer.toggleMicroSidebar(true);
+
+                // Trigger the highlight update
+                this.selectedPoiType = poi.type;
+                this.addMarkersToMap(this.getFilteredPOIs());
+
                 this.mapManager.zoomToLocation(poi.lat, poi.lng);
                 setTimeout(() => {
                     this.mapManager.showSelectionMarker(poi.lat, poi.lng, poi.name);
