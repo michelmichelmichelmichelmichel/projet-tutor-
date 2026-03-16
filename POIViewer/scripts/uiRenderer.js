@@ -2133,11 +2133,19 @@ export class UiRenderer {
     createPoiCard(poi) {
         const color = this.getCategoryColor(poi.category);
         const bgStyle = `background: ${color}33; color: ${color};`;
+        let distanceHtml = '';
+        if (poi.nearestBusStopDist !== undefined) {
+             const distStr = poi.nearestBusStopDist >= 1000 
+                ? (poi.nearestBusStopDist / 1000).toFixed(1) + ' km' 
+                : Math.round(poi.nearestBusStopDist) + ' m';
+             distanceHtml = `<div class="poi-desc" style="margin-top:4px;"><span style="color:var(--color-primary);font-weight:600;">🚌 Arrêt à ${distStr}</span></div>`;
+        }
         return `
             <div class="poi-card" data-id="${poi.id}" style="border-left: 3px solid ${color}">
                 <span class="poi-category-tag" style="${bgStyle}">${this.translateType(poi.type)}</span>
                 <div class="poi-name">${poi.name}</div>
                 <div class="poi-desc">Catégorie: ${this.getCategoryEmoji(poi.category)} ${poi.category}</div>
+                ${distanceHtml}
             </div>
         `;
     }
@@ -2384,6 +2392,13 @@ export class UiRenderer {
 
         rows.push(this._infoRow('Coordonnées',
             `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
+
+        if (poi.nearestBusStopDist !== undefined) {
+            const distStr = poi.nearestBusStopDist >= 1000 
+                ? (poi.nearestBusStopDist / 1000).toFixed(1) + ' km' 
+                : Math.round(poi.nearestBusStopDist) + ' m';
+            rows.push(this._infoRow('Transport', `Arrêt à ${distStr}`));
+        }
 
         return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée OSM disponible.</p>';
     }

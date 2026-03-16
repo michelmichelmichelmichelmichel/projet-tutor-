@@ -308,6 +308,25 @@ class App {
                 // This ensures sub-categories are always populated regardless of active filters
                 const { pois, networks } = await this.apiService.fetchPOIs(latLngs, []);
                 this.currentPOIs = pois;
+                
+                // Pré-calcul de la distance à l'arrêt le plus proche pour chaque POI
+                const isBusStop = (p) => p.type === 'bus_stop' || p.type === 'bus_station' || p.type === 'platform' || (p.tags && (p.tags.highway === 'bus_stop' || p.tags.bus === 'yes')) || p.category === 'public_transport';
+                const busStops = pois.filter(isBusStop);
+                
+                if (busStops.length > 0) {
+                    pois.forEach(poi => {
+                        if (!isBusStop(poi)) {
+                            const poiLatLng = L.latLng(poi.lat, poi.lng);
+                            let minD = Infinity;
+                            busStops.forEach(bs => {
+                                const d = poiLatLng.distanceTo(L.latLng(bs.lat, bs.lng));
+                                if (d < minD) minD = d;
+                            });
+                            poi.nearestBusStopDist = minD;
+                        }
+                    });
+                }
+
                 this.currentNetworks = networks;
 
                 // Render Networks (Affiche les tracés immédiatement)
