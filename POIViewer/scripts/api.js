@@ -1386,4 +1386,58 @@ export class ApiService {
             return null;
         }
     }
+
+    /**
+     * Recherche les articles Wikivoyage proches d'un point géographique.
+     * Interroge les API FR et EN de Wikivoyage via geosearch.
+     * @param {number} lat - Latitude du centre de la zone
+     * @param {number} lng - Longitude du centre de la zone
+     * @param {number} radiusMeters - Rayon de recherche en mètres (max 10000)
+     * @returns {Promise<{fr: Array, en: Array, totalUnique: number}>}
+     */
+    async fetchWikivoyageArticles(lat, lng, radiusMeters = 10000) {
+        const radius = Math.min(Math.max(radiusMeters, 10), 10000); // API limit: 10-10000m
+
+        const fetchLang = async (lang) => {
+            const url = `https://${lang}.wikivoyage.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lng}&gsradius=${radius}&gslimit=500&format=json&origin=*`;
+            try {
+                const response = await fetch(url);
+                if (!response.ok) {
+                    console.warn(`Wikivoyage ${lang} API error:`, response.status);
+                    return [];
+                }
+                const data = await response.json();
+                if (data.query && data.query.geosearch) {
+                    return data.query.geosearch.map(a => ({
+                        title: a.title,
+                        lat: a.lat,
+                        lng: a.lon,
+                        dist: a.dist,
+                        pageid: a.pageid
+                    }));
+                }
+                return [];
+            } catch (error) {
+                console.warn(`Wikivoyage ${lang} fetch error:`, error);
+                return [];
+            }
+        };
+
+        const [fr, en] = await Promise.all([
+            fetchLang('fr'),
+            fetchLang('en')
+        ]);
+
+        // Compter les articles uniques par titre (un même lieu peut avoir un article dans les deux langues)
+        const allTitles = new Set([
+            ...fr.map(a => a.title.toLowerCase()),
+            ...en.map(a => a.title.toLowerCase())
+        ]);
+
+        return {
+            fr,
+            en,
+            totalUnique: allTitles.size
+        };
+    }
 }

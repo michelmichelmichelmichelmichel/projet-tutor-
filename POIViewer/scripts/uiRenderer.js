@@ -1478,7 +1478,6 @@ export class UiRenderer {
         // ── SECTION 4 : Marketing digital ─────────────────────────────────
         const webPct = total > 0 ? (websiteCount / total * 100) : 0;
         const socPct = total > 0 ? (socialMediaCount / total * 100) : 0;
-        const wikiPct = total > 0 ? (wikivoyageCount / total * 100) : 0;
         const section4Html = `
             <div class="ind-block">
                 <div class="ind-block__header">
@@ -1487,9 +1486,19 @@ export class UiRenderer {
                 </div>
                 ${pBar('Site web', webPct, 100, '#34d399', '%')}
                 ${pBar('Reseaux sociaux', socPct, 100, '#ec4899', '%')}
-                ${pBar('Wikivoyage', wikiPct, 100, '#fbbf24', '%')}
                 <div class="ind-row__head" style="margin-top:4px;opacity:0.6;">
-                    <span class="ind-row__label">${websiteCount + socialMediaCount + wikivoyageCount} POIs avec au moins 1 presence</span>
+                    <span class="ind-row__label">${websiteCount + socialMediaCount} POIs avec au moins 1 presence</span>
+                </div>
+            </div>
+            <div id="wikivoyage-panel">
+                <div class="ind-block" style="margin-top:6px;">
+                    <div class="ind-block__header">
+                        <span class="ind-block__title">🌍 Wikivoyage</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
+                        <span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>
+                        <span style="font-size:0.82rem;color:var(--color-text-muted);font-style:italic;">Recherche d'articles Wikivoyage...</span>
+                    </div>
                 </div>
             </div>`;
 
@@ -2430,6 +2439,90 @@ export class UiRenderer {
         rows.push(this._infoRow('Langues', langLabel));
 
         return rows.join('');
+    }
+
+    /**
+     * Met à jour le panneau Wikivoyage dans la section Marketing Digital
+     * avec les données retournées par l'API Wikivoyage.
+     * @param {{fr: Array, en: Array, totalUnique: number}|null} data
+     */
+    updateWikivoyagePanel(data) {
+        const panel = document.getElementById('wikivoyage-panel');
+        if (!panel) return;
+
+        if (!data || (data.fr.length === 0 && data.en.length === 0)) {
+            panel.innerHTML = `
+                <div class="ind-block" style="margin-top:6px;opacity:0.6;">
+                    <div class="ind-block__header">
+                        <span class="ind-block__title">🌍 Wikivoyage</span>
+                    </div>
+                    <div style="padding:6px 0;font-size:0.82rem;color:var(--color-text-muted);font-style:italic;">
+                        Aucun article Wikivoyage trouvé dans cette zone
+                    </div>
+                </div>`;
+            return;
+        }
+
+        const frCount = data.fr.length;
+        const enCount = data.en.length;
+        const maxCount = Math.max(frCount, enCount, 1);
+
+        // Barres de progression FR / EN
+        const langBar = (label, count, max, color, flag) => {
+            const pct = max > 0 ? Math.min((count / max) * 100, 100) : 0;
+            return `<div class="ind-row">
+                <div class="ind-row__head">
+                    <span class="ind-row__label">${flag} ${label}</span>
+                    <span class="ind-row__val" style="color:${color};">${count} article${count > 1 ? 's' : ''}</span>
+                </div>
+                <div class="ind-row__track"><div class="ind-row__fill" style="width:${pct}%;background:${color};"></div></div>
+            </div>`;
+        };
+
+        // Liste des articles les plus proches (top 5)
+        const allArticles = [...data.fr.map(a => ({...a, lang: 'fr'})), ...data.en.map(a => ({...a, lang: 'en'}))]
+            .sort((a, b) => a.dist - b.dist);
+
+        // Dédupliquer par titre (garder la version la plus proche)
+        const seen = new Set();
+        const uniqueArticles = [];
+        for (const a of allArticles) {
+            const key = a.title.toLowerCase();
+            if (!seen.has(key)) {
+                seen.add(key);
+                uniqueArticles.push(a);
+            }
+        }
+        const top5 = uniqueArticles.slice(0, 5);
+
+        let articleListHtml = '';
+        if (top5.length > 0) {
+            articleListHtml = `
+                <div style="margin-top:8px;">
+                    <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">Articles les plus proches :</div>
+                    ${top5.map(a => {
+                        const distKm = (a.dist / 1000).toFixed(1);
+                        const flag = a.lang === 'fr' ? '🇫🇷' : '🇬🇧';
+                        const url = `https://${a.lang}.wikivoyage.org/wiki/${encodeURIComponent(a.title)}`;
+                        return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:0.8rem;">
+                            <span>${flag}</span>
+                            <a href="${url}" target="_blank" rel="noopener" style="color:var(--color-primary);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.title}">${a.title}</a>
+                            <span style="color:var(--color-text-muted);font-size:0.72rem;white-space:nowrap;">${distKm} km</span>
+                        </div>`;
+                    }).join('')}
+                </div>`;
+        }
+
+        panel.innerHTML = `
+            <div class="ind-block" style="margin-top:6px;">
+                <div class="ind-block__header">
+                    <span class="ind-block__title">🌍 Wikivoyage</span>
+                    <span class="ind-block__big">${data.totalUnique} <span class="ind-block__unit">article${data.totalUnique > 1 ? 's' : ''} unique${data.totalUnique > 1 ? 's' : ''}</span></span>
+                </div>
+                ${langBar('Français', frCount, maxCount, '#3b82f6', '🇫🇷')}
+                ${langBar('English', enCount, maxCount, '#f59e0b', '🇬🇧')}
+                ${articleListHtml}
+            </div>`;
     }
 
     /** Build all OSM info rows from poi.tags */

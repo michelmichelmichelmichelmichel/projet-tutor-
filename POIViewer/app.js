@@ -23,7 +23,7 @@ class App {
         this.pathWeight = 1;
         this.activeZone = null; // Contexte de la zone administrative active
         this.currentAreaKm2 = 0;
-        this.currentAreaKm2 = 0;
+        this.currentWikivoyageData = null; // Cache des données Wikivoyage
         this.heatmapVisibility = { 
             accommodation: false, pedestrian: false, cycling: false,
             overtourism_cities: false, overtourism_pois: false
@@ -128,6 +128,7 @@ class App {
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
                 this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
+                if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
             }
@@ -171,6 +172,7 @@ class App {
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
                 this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
+                if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
             }
@@ -267,6 +269,7 @@ class App {
         this.currentLayer = null;
         this.activeZone = null;
         this.currentAreaKm2 = 0;
+        this.currentWikivoyageData = null;
         this.selectedPoiType = null;
 
         this.uiRenderer.clear();
@@ -399,6 +402,26 @@ class App {
                 // Construire et afficher les heatmaps
                 this.updateHeatmaps();
 
+                // --- CHARGEMENT ASYNCHRONE DES ARTICLES WIKIVOYAGE ---
+                {
+                    // Calculer le centre et le rayon de la zone
+                    const bounds = this.mapManager.map.getBounds();
+                    const center = bounds.getCenter();
+                    const ne = bounds.getNorthEast();
+                    // Rayon approximatif = distance du centre au coin NE (capé à 10km par l'API)
+                    const radiusM = center.distanceTo(ne);
+
+                    this.apiService.fetchWikivoyageArticles(center.lat, center.lng, radiusM)
+                        .then(wikivoyageData => {
+                            this.currentWikivoyageData = wikivoyageData;
+                            this.uiRenderer.updateWikivoyagePanel(wikivoyageData);
+                        })
+                        .catch(err => {
+                            console.warn('Erreur chargement Wikivoyage:', err);
+                            this.uiRenderer.updateWikivoyagePanel(null);
+                        });
+                }
+
                 // On met à jour la liste du panneau de droite !
                 this.uiRenderer.renderMicroList(filteredPOIs);
                 // --- CHARGEMENT ASYNCHRONE DE LA DÉMOGRAPHIE ---
@@ -440,6 +463,7 @@ class App {
                                     `;
 
                                     this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
+                                    if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                                     this.uiRenderer.renderSparkline();
                                 } catch (err) {
                                     console.error("Erreur lors de l'affichage final de la macro:", err);
