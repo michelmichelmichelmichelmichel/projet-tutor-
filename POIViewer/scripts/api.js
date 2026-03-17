@@ -27,6 +27,7 @@ export class ApiService {
         // Optionnel : un autre proxy si besoin, par ex: "https://corsproxy.io/?" 
         this.corsProxy = "https://api.allorigins.win/raw?url=";
         this.inseeData = null;
+        this.overtourismData = null;
         // Version du cache — incrémenter pour invalider les anciennes entrées
         this._cacheVersion = 'v3';
     }
@@ -148,6 +149,65 @@ export class ApiService {
      * Récupère les stats INSEE pour une ou plusieurs zones (si on passe un tableau de codes INSEE)
      * Actuellement, on suppose un seul code INSEE (ex: "06088" pour Nice)
      */
+    /**
+     * Charge les données de sur-fréquentation une seule fois
+     */
+    async loadOvertourismData() {
+        if (this.overtourismData) return this.overtourismData;
+        try {
+            console.log("Loading overtourism data...");
+            const response = await fetch('./data/overtourism_data.json');
+            if (response.ok) {
+                this.overtourismData = await response.json();
+                console.log("Overtourism data loaded successfully.");
+            } else {
+                console.warn("Could not load overtourism data. Status:", response.status);
+            }
+        } catch (error) {
+            console.error("Error loading overtourism data:", error);
+        }
+        return this.overtourismData;
+    }
+
+    /**
+     * Retourne les données de sur-fréquentation filtrées par zone / emprise.
+     */
+    getOvertourismData(bounds) {
+        if (!this.overtourismData) return { municipalities: [], pois: [] };
+
+        const allMuni = [
+            ...(this.overtourismData.municipalities_64 || []),
+            ...(this.overtourismData.municipalities_65 || [])
+        ];
+        const allPois = [
+            ...(this.overtourismData.pois_64 || []),
+            ...(this.overtourismData.pois_65 || [])
+        ];
+
+        // Si on a des bounds, on peut filtrer géographiquement
+        if (bounds) {
+            const isInBounds = (lat, lng) => {
+                // simple box check
+                // bounds format typically: [[minLat, minLng], [maxLat, maxLng]]
+                // but let's be flexible or assume Leaflet-like LatLngBounds
+                if (bounds.contains) return bounds.contains(L.latLng(lat, lng));
+                
+                const [[minLat, minLng], [maxLat, maxLng]] = bounds;
+                return lat >= minLat && lat <= maxLat && lng >= minLng && lng <= maxLng;
+            };
+
+            return {
+                municipalities: allMuni.filter(m => isInBounds(m.lat, m.lng)),
+                pois: allPois.filter(p => isInBounds(p.lat, p.lng))
+            };
+        }
+
+        return {
+            municipalities: allMuni,
+            pois: allPois
+        };
+    }
+
     getInseeStats(inseeCode) {
         if (!this.inseeData || !inseeCode) return null;
         return this.inseeData[inseeCode] || null;

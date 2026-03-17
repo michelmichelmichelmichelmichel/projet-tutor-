@@ -23,7 +23,11 @@ class App {
         this.pathWeight = 1;
         this.activeZone = null; // Contexte de la zone administrative active
         this.currentAreaKm2 = 0;
-        this.heatmapVisibility = { accommodation: false, pedestrian: false, cycling: false };
+        this.currentAreaKm2 = 0;
+        this.heatmapVisibility = { 
+            accommodation: false, pedestrian: false, cycling: false,
+            overtourism_cities: false, overtourism_pois: false
+        };
     }
 
     init() {
@@ -47,6 +51,7 @@ class App {
 
         // Load INSEE Data on app start
         this.apiService.loadInseeData();
+        this.apiService.loadOvertourismData();
 
         // Bind Force Refresh Button (zone-specific)
         const forceRefreshBtn = document.getElementById('force-refresh-btn');
@@ -135,6 +140,30 @@ class App {
                 this.renderNetworks(this.currentNetworks);
             }
         };
+
+        // Connecter le toggle heatmap (appelé quand l'utilisateur coche/décoche)
+        this.uiRenderer.onHeatmapToggle = (key, checked) => {
+            this.heatmapVisibility[key] = checked;
+            if (key.startsWith('overtourism_')) {
+                this.updateOvertourismHeatmaps();
+                // Si on a des POIs chargés, on met à jour les marqueurs pour le highlight
+                if (key === 'overtourism_pois' && this.currentPOIs.length > 0) {
+                    this.addMarkersToMap(this.getFilteredPOIs());
+                }
+            } else {
+                // Pour les heatmaps classiques, on ne met à jour que si on a des données de zone
+                if (this.currentPOIs.length > 0 || this.currentNetworks.length > 0) {
+                    this.updateHeatmaps();
+                }
+            }
+        };
+
+        // Mettre à jour la heatmap d'overtourism quand la carte bouge (si activée)
+        this.mapManager.map.on('moveend', () => {
+            if (this.heatmapVisibility.overtourism_cities || this.heatmapVisibility.overtourism_pois) {
+                this.updateOvertourismHeatmaps();
+            }
+        });
 
         // Bind Sub-Category Filter Change (Client-side only, no API refetch)
         this.uiRenderer.onSubCategoryFilterChange = () => {
@@ -251,6 +280,11 @@ class App {
         this.mapManager.clearNeighborZones();
         this.mapManager.clearSelectionMarker();
         this.mapManager.clearHeatmapLayers();
+        
+        // Redraw overtourism heatmaps if active (they are global)
+        if (this.heatmapVisibility.overtourism_cities || this.heatmapVisibility.overtourism_pois) {
+            this.updateOvertourismHeatmaps();
+        }
     }
 
     canLoadNeighborsForActiveZone() {
@@ -364,12 +398,6 @@ class App {
 
                 // Construire et afficher les heatmaps
                 this.updateHeatmaps();
-
-                // Connecter le toggle heatmap (appelé quand l'utilisateur coche/décoche)
-                this.uiRenderer.onHeatmapToggle = (key, checked) => {
-                    this.heatmapVisibility[key] = checked;
-                    this.updateHeatmaps();
-                };
 
                 // On met à jour la liste du panneau de droite !
                 this.uiRenderer.renderMicroList(filteredPOIs);
@@ -500,6 +528,13 @@ class App {
     updateHeatmaps() {
         const heatData = this.buildHeatmapData();
         this.mapManager.updateHeatmapLayers(heatData, this.heatmapVisibility);
+    }
+
+    /** Met à jour les heatmaps de sur-fréquentation */
+    updateOvertourismHeatmaps() {
+        const bounds = this.mapManager.map.getBounds();
+        const overData = this.apiService.getOvertourismData(bounds);
+        this.mapManager.updateOvertourismHeatmaps(overData, this.heatmapVisibility);
     }
 
     renderNetworks(networks) {
@@ -802,11 +837,34 @@ class App {
             } else {
                 let opacity = this.selectedPoiType ? 0.7 : 1;
                 let fillOpacity = this.selectedPoiType ? 0.7 : 1;
+                
+                // --- SUR-FRÉQUENTATION : Highlight special palette ---
+                let overOpaque = false;
+                let overColor = null;
+                if (this.heatmapVisibility.overtourism_pois) {
+                    const overData = this.apiService.getOvertourismData();
+                    const overPoi = overData.pois.find(ovp => ovp.name === poi.name);
+                    if (overPoi) {
+                        overOpaque = true;
+                        // Palette Intensity (POI) - Extended Yellow/Amber range
+                        if (overPoi.intensity >= 0.95) overColor = '#450a0a';      // dark maroon 950
+                        else if (overPoi.intensity >= 0.88) overColor = '#7f1d1d'; // Red 900
+                        else if (overPoi.intensity >= 0.82) overColor = '#dc2626'; // Red 600
+                        else if (overPoi.intensity >= 0.75) overColor = '#ea580c'; // Orange 600
+                        else if (overPoi.intensity >= 0.68) overColor = '#f97316'; // Orange 500
+                        else if (overPoi.intensity >= 0.60) overColor = '#fbbf24'; // Amber 400 (Warm yellow)
+                        else if (overPoi.intensity >= 0.52) overColor = '#facc15'; // Yellow 400
+                        else if (overPoi.intensity >= 0.44) overColor = '#fde047'; // Yellow 300
+                        else if (overPoi.intensity >= 0.35) overColor = '#fef08a'; // Yellow 200
+                        else overColor = '#fef9c3';                               // Yellow 100
+                    }
+                }
+
                 marker = L.circleMarker([poi.lat, poi.lng], {
-                    radius: 6,
-                    fillColor: this.uiRenderer.getCategoryColor(poi.category),
-                    color: '#fff',
-                    weight: 1,
+                    radius: overOpaque ? 8 : 6,
+                    fillColor: overColor || this.uiRenderer.getCategoryColor(poi.category),
+                    color: overOpaque ? '#ffeb3b' : '#fff',
+                    weight: overOpaque ? 2 : 1,
                     opacity: opacity,
                     fillOpacity: fillOpacity
                 });

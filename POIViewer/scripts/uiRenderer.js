@@ -919,6 +919,10 @@ export class UiRenderer {
             });
             this.updatePathFilterButtonText();
         }
+
+        // --- OVERTOURISM FILTERS INITIALIZATION ---
+        this._initOvertourismFilters();
+
         this.updateFilterButtonText();
     }
 
@@ -950,6 +954,28 @@ export class UiRenderer {
             );
         }
         // Update button border state
+        btn.classList.remove('state--all', 'state--partial');
+        if (checkedCount === total) btn.classList.add('state--all');
+        else if (checkedCount > 0) btn.classList.add('state--partial');
+    }
+
+    updateOvertourismFilterButtonText() {
+        const btn = document.getElementById('toggle-overtourism-filters-btn');
+        const badge = document.getElementById('filter-badge-overtourism');
+        const content = document.getElementById('overtourism-filters-content');
+        if (!btn || !content) return;
+
+        const checkedCount = content.querySelectorAll('input:checked').length;
+        const total = 2; // Villes + POIs
+
+        if (badge) {
+            badge.textContent = `${checkedCount}/${total}`;
+            badge.className = 'filter-badge ' + (
+                checkedCount === total ? 'badge--all' :
+                    checkedCount === 0 ? 'badge--none' : 'badge--partial'
+            );
+        }
+
         btn.classList.remove('state--all', 'state--partial');
         if (checkedCount === total) btn.classList.add('state--all');
         else if (checkedCount > 0) btn.classList.add('state--partial');
@@ -1529,6 +1555,7 @@ export class UiRenderer {
                                 <span class="heatmap-dot" style="background:#60a5fa;"></span> Vélo
                             </label>
                         </div>
+                        </div>
                     </div>
                 </div>`;
         }
@@ -2077,6 +2104,62 @@ export class UiRenderer {
 
             Plotly.newPlot(offerDiv, offerData, offerLayout, miniConfig);
         }
+    }
+
+    /** Initialize overtourism filters */
+    _initOvertourismFilters() {
+        const content = document.getElementById('overtourism-filters-content');
+        const btn = document.getElementById('toggle-overtourism-filters-btn');
+        if (!content || !btn) return;
+
+        const options = [
+            { id: 'overtourism_cities', label: 'Villes', color: '#06b6d4' },
+            { id: 'overtourism_pois', label: 'POIs', color: '#facc15' }
+        ];
+
+        options.forEach(opt => {
+            const div = document.createElement('div');
+            div.style.marginBottom = '6px';
+            const label = document.createElement('label');
+            label.style.display = 'flex';
+            label.style.alignItems = 'center';
+            label.style.gap = '8px';
+            label.style.fontSize = '0.9rem';
+            label.style.cursor = 'pointer';
+            label.style.color = 'var(--color-text)';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = opt.id;
+            checkbox.checked = false;
+            checkbox.style.accentColor = 'var(--color-primary)';
+            checkbox.addEventListener('change', (e) => {
+                this.updateOvertourismFilterButtonText();
+                if (this.onHeatmapToggle) {
+                    this.onHeatmapToggle(opt.id, e.target.checked);
+                }
+            });
+
+            const dot = document.createElement('span');
+            dot.style.width = '12px';
+            dot.style.height = '12px';
+            dot.style.borderRadius = '50%';
+            dot.style.background = opt.color;
+
+            label.appendChild(checkbox);
+            label.appendChild(dot);
+            label.appendChild(document.createTextNode(` ${opt.label}`));
+            div.appendChild(label);
+            content.appendChild(div);
+        });
+
+        btn.addEventListener('click', () => {
+            const isHidden = content.style.display === 'none';
+            content.style.display = isHidden ? 'block' : 'none';
+            btn.classList.toggle('is-open', isHidden);
+        });
+
+        this.updateOvertourismFilterButtonText();
     }
 
     /** Bind collapsible section toggles */

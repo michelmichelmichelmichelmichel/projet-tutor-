@@ -376,6 +376,67 @@ export class MapManager {
         }
     }
 
+    /**
+     * Met à jour les heatmaps spécifiques à la sur-fréquentation.
+     * Distingue les villes et les POIs avec des palettes distinctes.
+     */
+    updateOvertourismHeatmaps(overtourismData, visibility) {
+        if (!this._overLayers) this._overLayers = {};
+
+        // Supprimer les anciennes couches de sur-fréquentation
+        for (const layer of Object.values(this._overLayers)) {
+            this.map.removeLayer(layer);
+        }
+        this._overLayers = {};
+
+        if (!overtourismData) return;
+
+        // Config pour les Villes (Gamme de Bleus / Cyan)
+        if (visibility.overtourism_cities && overtourismData.municipalities) {
+            const points = overtourismData.municipalities.map(m => [m.lat, m.lng, m.intensity]);
+            this._overLayers.cities = L.heatLayer(points, {
+                radius: 35,
+                maxZoom: 15,
+                gradient: {
+                    0.1: '#bae6fd', // light blue
+                    0.2: '#7dd3fc',
+                    0.3: '#38bdf8',
+                    0.4: '#0ea5e9',
+                    0.5: '#2563eb',
+                    0.6: '#1d4ed8',
+                    0.7: '#1e40af',
+                    0.8: '#1e3a8a',
+                    0.9: '#172554',
+                    1.0: '#020617'  // Slate 950 (Extremely dense)
+                },
+                minOpacity: 0.4
+            }).addTo(this.map);
+        }
+
+        // Config pour les POIs individels (Gamme de Jaunes -> Oranges -> Rouges -> Marron foncé)
+        if (visibility.overtourism_pois && overtourismData.pois) {
+            const points = overtourismData.pois.map(p => [p.lat, p.lng, p.intensity]);
+            this._overLayers.pois = L.heatLayer(points, {
+                radius: 25,
+                blur: 15,
+                maxZoom: 18,
+                gradient: {
+                    0.1: '#fef9c3', // v. lgt yellow
+                    0.2: '#fef08a',
+                    0.3: '#fde047',
+                    0.4: '#facc15', // Yellow 400
+                    0.5: '#fbbf24', // Amber 400 (Warm yellow/orange)
+                    0.6: '#f97316', // Orange 500
+                    0.7: '#ea580c', // Orange 600
+                    0.8: '#dc2626', // Red 600
+                    0.9: '#7f1d1d', // Red 900
+                    1.0: '#450a0a'  // Dark maroon 950
+                },
+                minOpacity: 0.5
+            }).addTo(this.map);
+        }
+    }
+
     /** Supprime toutes les couches heatmap existantes */
     clearHeatmapLayers() {
         if (this._heatLayers) {
@@ -383,6 +444,12 @@ export class MapManager {
                 this.map.removeLayer(layer);
             }
             this._heatLayers = {};
+        }
+        if (this._overLayers) {
+            for (const layer of Object.values(this._overLayers)) {
+                this.map.removeLayer(layer);
+            }
+            this._overLayers = {};
         }
     }
 }
