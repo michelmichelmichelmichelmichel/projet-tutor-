@@ -2336,6 +2336,18 @@ export class UiRenderer {
                         linksContainer.insertAdjacentHTML('beforeend',
                             `<a href="${website}" target="_blank" class="icon-btn" title="Site Web">Site web</a>`);
                     }
+
+                    const socialPlatforms = ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok'];
+                    socialPlatforms.forEach(sm => {
+                        const url = poi.tags[sm] || poi.tags[`contact:${sm}`];
+                        if (url) {
+                            const validUrl = url.startsWith('http') ? url : `https://${url}`;
+                            const name = sm.charAt(0).toUpperCase() + sm.slice(1);
+                            linksContainer.insertAdjacentHTML('beforeend',
+                                `<a href="${validUrl}" target="_blank" class="icon-btn" title="${name}">${name}</a>`);
+                        }
+                    });
+
                     if (wikidataInfo?.wikipedia) {
                         linksContainer.insertAdjacentHTML('beforeend',
                             `<a href="${wikidataInfo.wikipedia}" target="_blank" class="icon-btn" title="Article Wikipédia">Wikipédia</a>`);
@@ -2546,6 +2558,18 @@ export class UiRenderer {
         const website = t.website || t['contact:website'] || t.url;
         if (website) rows.push(this._infoRow('Site Web',
             `<a href="${website}" target="_blank" style="color:${color}">Ouvrir ↗</a>`));
+
+        const socialLinks = [];
+        ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok'].forEach(sm => {
+            const url = t[sm] || t[`contact:${sm}`];
+            if (url) {
+                const validUrl = url.startsWith('http') ? url : `https://${url}`;
+                socialLinks.push(`<a href="${validUrl}" target="_blank" style="color:${color};margin-right:8px;">${sm.charAt(0).toUpperCase() + sm.slice(1)} ↗</a>`);
+            }
+        });
+        if (socialLinks.length > 0) {
+            rows.push(this._infoRow('Réseaux', socialLinks.join('')));
+        }
 
         if (t.cuisine) rows.push(this._infoRow('Cuisine', t.cuisine.replace(/_/g, ' ')));
         if (t.stars) rows.push(this._infoRow('Étoiles', t.stars));
