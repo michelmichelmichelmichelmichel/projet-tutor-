@@ -222,7 +222,7 @@ export class UiRenderer {
             <div class="load-error-block load-error-block--small">
                 <span class="load-error-block__icon">⚠️</span>
                 <p class="load-error-block__msg">${this.escapeHtml(message)}</p>
-                ${onRetry ? '<button class="load-error-block__retry-btn">Reessayer</button>' : ''}
+                ${onRetry ? '<button class="load-error-block__retry-btn">Réessayer</button>' : ''}
             </div>
         `;
 
@@ -415,7 +415,7 @@ export class UiRenderer {
                     resultsContainer.innerHTML = '';
 
                     if (results.length === 0) {
-                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucun pays trouve.</p>';
+                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucun pays trouvé.</p>';
                         return;
                     }
 
@@ -480,7 +480,7 @@ export class UiRenderer {
                     resultsContainer.innerHTML = '';
 
                     if (results.length === 0) {
-                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucune ville trouvee.</p>';
+                        resultsContainer.innerHTML = '<p class="empty-state" style="font-size: 0.85rem; color: var(--color-text-muted);">Aucune ville trouvée.</p>';
                         return;
                     }
 
@@ -514,7 +514,7 @@ export class UiRenderer {
         if (!container) return;
 
         const loadingMessage = options.loadingMessage || 'Chargement...';
-        const emptyMessage = options.emptyMessage || 'Aucun element trouve.';
+        const emptyMessage = options.emptyMessage || 'Aucun élément trouvé.';
         const requestCountryAreaId = options.countryAreaId || this.apiService?.currentCountryAreaId;
 
         this._renderPresetLoading(containerId, loadingMessage);
@@ -1449,7 +1449,7 @@ export class UiRenderer {
                         <span class="ind-block__title">INSEE 2026</span>
                         <span class="ind-block__big" style="opacity:0.4;">Indisponible</span>
                     </div>
-                    <div class="kpi-sub" style="padding:6px 0;">Donnees INSEE non disponibles pour cette zone</div>
+                    <div class="kpi-sub" style="padding:6px 0;">Données INSEE non disponibles pour cette zone</div>
                 </div>`;
         }
 
@@ -1468,8 +1468,8 @@ export class UiRenderer {
                         <div class="ind-stacked__seg" style="width:${100 - pedPct}%;background:#60a5fa;" title="Velo ${cyclingTrailCount}"></div>
                     </div>
                     <div class="ind-stacked__legend">
-                        <span><span class="heatmap-dot" style="background:#34d399;"></span> Pietons <b>${pedestrianTrailCount.toLocaleString('fr-FR')}</b></span>
-                        <span><span class="heatmap-dot" style="background:#60a5fa;"></span> Velo <b>${cyclingTrailCount.toLocaleString('fr-FR')}</b></span>
+                        <span><span class="heatmap-dot" style="background:#34d399;"></span> Piétons <b>${pedestrianTrailCount.toLocaleString('fr-FR')}</b></span>
+                        <span><span class="heatmap-dot" style="background:#60a5fa;"></span> Vélo <b>${cyclingTrailCount.toLocaleString('fr-FR')}</b></span>
                     </div>
                 </div>
             </div>`;
@@ -1481,13 +1481,13 @@ export class UiRenderer {
         const section4Html = `
             <div class="ind-block">
                 <div class="ind-block__header">
-                    <span class="ind-block__title">Presence numerique</span>
-                    <span class="ind-block__big">${total.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs analyses</span></span>
+                    <span class="ind-block__title">Présence numérique</span>
+                    <span class="ind-block__big">${total.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs analysés</span></span>
                 </div>
                 ${pBar('Site web', webPct, 100, '#34d399', '%')}
-                ${pBar('Reseaux sociaux', socPct, 100, '#ec4899', '%')}
+                ${pBar('Réseaux sociaux', socPct, 100, '#ec4899', '%')}
                 <div class="ind-row__head" style="margin-top:4px;opacity:0.6;">
-                    <span class="ind-row__label">${websiteCount + socialMediaCount} POIs avec au moins 1 presence</span>
+                    <span class="ind-row__label">${websiteCount + socialMediaCount} POIs avec au moins 1 présence</span>
                 </div>
             </div>
             <div id="wikivoyage-panel">
@@ -1581,15 +1581,15 @@ export class UiRenderer {
                 <div class="ind-block" style="margin-bottom:6px;">
                     <div class="ind-block__header">
                         <span class="ind-block__title">Transports</span>
-                        <span class="ind-block__big">${transportTotal.toLocaleString('fr-FR')} <span class="ind-block__unit">points d'acces</span></span>
+                        <span class="ind-block__big">${transportTotal.toLocaleString('fr-FR')} <span class="ind-block__unit">points d'accès</span></span>
                     </div>
-                    ${pBar('Arrets de bus', busStopCount, maxTransport, '#fbbf24')}
+                    ${pBar('Arrêts de bus', busStopCount, maxTransport, '#fbbf24')}
                     ${pBar('Gares', trainStationCount, maxTransport, '#8b5cf6')}
-                    ${pBar('Aeroports', airportCount, maxTransport, '#0ea5e9')}
+                    ${pBar('Aéroports', airportCount, maxTransport, '#0ea5e9')}
                 </div>
                 <div class="ind-block" style="margin-bottom:6px;">
                     <div class="ind-block__header">
-                        <span class="ind-block__title">Services & equipements</span>
+                        <span class="ind-block__title">Services & équipements</span>
                         <span class="ind-block__big">${servicesTotal.toLocaleString('fr-FR')} <span class="ind-block__unit">installations</span></span>
                     </div>
                     ${pBar('Stationnements', parkingCount, maxServices, '#64748b')}
@@ -1608,8 +1608,8 @@ export class UiRenderer {
                 ? `${totalRaw.toLocaleString('fr-FR')} POI${totalRaw > 1 ? 's' : ''} trouvé${totalRaw > 1 ? 's' : ''}`
                 : 'POIs disponibles';
             this.macroStats.innerHTML =
-                buildCollapsibleSection('Informations generales', section1Html, 'section-info', true) +
-                buildCollapsibleSection('Infrastructures & activites', infraKpisHtml, 'section-infra', true) +
+                buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
+                buildCollapsibleSection('Infrastructures & activités', infraKpisHtml, 'section-infra', true) +
                 buildCollapsibleSection('Tourisme', section3Html, 'section-tourisme', true) +
                 buildCollapsibleSection('Marketing digital', section4Html, 'section-marketing', true) +
                 `<div class="stat-item empty">
@@ -1711,8 +1711,8 @@ export class UiRenderer {
         const section1Html = areaHtml + demoHtml + densityHtml;
         const infraKpisHtml = buildInfraKpis() + `<div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
-            buildCollapsibleSection('Informations generales', section1Html, 'section-info', true) +
-            buildCollapsibleSection('Infrastructures & activites', infraKpisHtml, 'section-infra', true) +
+            buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
+            buildCollapsibleSection('Infrastructures & activités', infraKpisHtml, 'section-infra', true) +
             buildCollapsibleSection('Tourisme', section3Html, 'section-tourisme', true) +
             buildCollapsibleSection('Marketing digital', section4Html, 'section-marketing', true);
 
@@ -1734,11 +1734,11 @@ export class UiRenderer {
 
         const chartTitleGroup = document.createElement('div');
         chartTitleGroup.className = 'mini-treemap-title-group';
-        chartTitle.textContent = 'Repartition des POI';
+        chartTitle.textContent = 'Répartition des POI';
 
         const chartMeta = document.createElement('span');
         chartMeta.className = 'mini-treemap-meta';
-        chartMeta.textContent = `${Object.keys(categoryCounts).length} categories`;
+        chartMeta.textContent = `${Object.keys(categoryCounts).length} catégories`;
 
         const maxBtn = document.createElement('button');
         maxBtn.className = 'maximize-btn';
@@ -1842,7 +1842,7 @@ export class UiRenderer {
         if (Object.keys(accomCounts).length > 0) {
             const totalAccom = Object.values(accomCounts).reduce((a, b) => a + b, 0);
             const accomTreemap = {
-                ids: ['AccomRoot'], labels: ['Hebergements'], parents: [''], values: [totalAccom],
+                ids: ['AccomRoot'], labels: ['Hébergements'], parents: [''], values: [totalAccom],
                 colors: ['rgba(167,139,250,0.25)']
             };
             const baseColors = ['#c4b5fd', '#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95', '#ddd6fe', '#ede9fe', '#e9d5ff', '#d8b4fe', '#b794f4', '#9f7aea', '#805ad5'];
@@ -1855,7 +1855,7 @@ export class UiRenderer {
                 accomTreemap.colors.push(baseColors[ci % baseColors.length]);
                 ci++;
             });
-            addMiniTreemap('Hebergements par type', accomTreemap, `${Object.keys(accomCounts).length} types`);
+            addMiniTreemap('Hébergements par type', accomTreemap, `${Object.keys(accomCounts).length} types`);
         }
 
         // ─── 2. Treemap Sentiers piétons par sac_scale ────────────────────
@@ -1876,7 +1876,7 @@ export class UiRenderer {
         if (Object.keys(sacCounts).length > 0) {
             const totalSac = Object.values(sacCounts).reduce((a, b) => a + b, 0);
             const sacTreemap = {
-                ids: ['SacRoot'], labels: ['Sentiers pietons'], parents: [''], values: [totalSac],
+                ids: ['SacRoot'], labels: ['Sentiers piétons'], parents: [''], values: [totalSac],
                 colors: ['rgba(52,211,153,0.25)']
             };
             const sacColors = { 'hiking': '#facc15', 'mountain_hiking': '#ef4444', 'demanding_mountain_hiking': '#dc2626', 'alpine_hiking': '#1e1e1e', 'demanding_alpine_hiking': '#000000' };
@@ -1887,7 +1887,7 @@ export class UiRenderer {
                 sacTreemap.values.push(count);
                 sacTreemap.colors.push(sacColors[key] || '#6ee7b7');
             });
-            addMiniTreemap('Sentiers pietons par difficulte', sacTreemap, `${Object.keys(sacCounts).length} niveaux`);
+            addMiniTreemap('Sentiers piétons par difficulté', sacTreemap, `${Object.keys(sacCounts).length} niveaux`);
         }
 
         // ─── 3. Treemap Chemins vélo par catégorie ────────────────────────
@@ -1922,7 +1922,7 @@ export class UiRenderer {
                 cycleTreemap.values.push(count);
                 cycleTreemap.colors.push(cycleColors[key] || '#93c5fd');
             });
-            addMiniTreemap('Chemins velo par type', cycleTreemap, `${Object.keys(cycleCounts).length} segments`);
+            addMiniTreemap('Chemins vélo par type', cycleTreemap, `${Object.keys(cycleCounts).length} segments`);
         }
 
         // ── SLOPE CHART : Ratio Sentiers Piétons vs Vélo ──────────────────
@@ -1936,7 +1936,7 @@ export class UiRenderer {
 
             const slopeHeader = document.createElement('span');
             slopeHeader.className = 'mini-treemap-title';
-            slopeHeader.textContent = 'Randonnee vs Cyclisme';
+            slopeHeader.textContent = 'Randonnée vs Cyclisme';
             slopeHeaderRow.appendChild(slopeHeader);
 
             const slopeDiv = document.createElement('div');
@@ -1951,7 +1951,7 @@ export class UiRenderer {
             const slopeData = [
                 // The connecting line
                 {
-                    x: ['Randonnee', 'Cyclisme'],
+                    x: ['Randonnée', 'Cyclisme'],
                     y: [pedestrianTrailCount, cyclingTrailCount],
                     mode: 'lines+markers+text',
                     type: 'scatter',
@@ -2007,10 +2007,10 @@ export class UiRenderer {
         }
 
         const offerMetrics = [
-            { label: 'Sentiers pietons', raw: pedestrianTrailCount, color: '#34d399' },
+            { label: 'Sentiers piétons', raw: pedestrianTrailCount, color: '#34d399' },
             { label: 'Offre cyclable', raw: cyclingTrailCount, color: '#60a5fa' },
-            { label: 'Hebergements', raw: accommodationCount, color: '#a78bfa' },
-            { label: 'Acces transport', raw: transportTotal, color: '#fbbf24' },
+            { label: 'Hébergements', raw: accommodationCount, color: '#a78bfa' },
+            { label: 'Accès transport', raw: transportTotal, color: '#fbbf24' },
             { label: 'Services visiteurs', raw: servicesTotal, color: '#06b6d4' }
         ]
             .filter(item => item.raw > 0)
@@ -2032,7 +2032,7 @@ export class UiRenderer {
 
             const offerHeader = document.createElement('span');
             offerHeader.className = 'mini-treemap-title';
-            offerHeader.textContent = areaKm2 > 0 ? 'Intensite de l offre' : 'Volume de l offre';
+            offerHeader.textContent = areaKm2 > 0 ? 'Intensité de l\'offre' : 'Volume de l\'offre';
             offerHeaderGroup.appendChild(offerHeader);
 
             const offerMeta = document.createElement('span');
@@ -2103,8 +2103,8 @@ export class UiRenderer {
             const offerCaption = document.createElement('div');
             offerCaption.className = 'mini-chart-caption';
             offerCaption.textContent = areaKm2 > 0
-                ? 'Lecture normalisee pour comparer des zones de tailles differentes.'
-                : 'Comparaison directe des volumes recenses dans la zone active.';
+                ? 'Lecture normalisée pour comparer des zones de tailles différentes.'
+                : 'Comparaison directe des volumes recensés dans la zone active.';
 
             offerSection.appendChild(offerHeaderRow);
             offerSection.appendChild(offerDiv);
