@@ -29,7 +29,7 @@ export class ApiService {
         this.inseeData = null;
         this.overtourismData = null;
         // Version du cache — incrémenter pour invalider les anciennes entrées
-        this._cacheVersion = 'v3';
+        this._cacheVersion = 'v4';
     }
 
     /**
@@ -536,7 +536,18 @@ export class ApiService {
 
     detectCategoryAndType(tags) {
         // Order matters for priority
-        if (tags.tourism) return { category: 'tourism', type: tags.tourism };
+        if (tags.tourism) {
+            // Accommodation types are reclassified from tourism → hébergement
+            const ACCOM_TYPES = [
+                'hotel', 'motel', 'hostel', 'guest_house', 'bed_and_breakfast',
+                'apartment', 'holiday_flat', 'chalet', 'camp_site', 'caravan_site',
+                'camp_pitch', 'alpine_hut', 'wilderness_hut', 'shelter'
+            ];
+            if (ACCOM_TYPES.includes(tags.tourism)) {
+                return { category: 'accommodation', type: tags.tourism };
+            }
+            return { category: 'tourism', type: tags.tourism };
+        }
 
         if (tags.historic) return { category: 'historic', type: tags.historic };
         if (tags.natural) return { category: 'natural', type: tags.natural };
@@ -1152,7 +1163,7 @@ export class ApiService {
             hash = ((hash << 5) + hash) + coordStr.charCodeAt(i);
             hash = hash & hash; // Convert to 32-bit integer
         }
-        return `pois_cache_${Math.abs(hash).toString(36)}`;
+        return `pois_cache_${this._cacheVersion}_${Math.abs(hash).toString(36)}`;
     }
 
     // ========== IndexedDB helpers pour le cache POI ==========

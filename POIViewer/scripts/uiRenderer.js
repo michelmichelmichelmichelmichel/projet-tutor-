@@ -29,7 +29,7 @@ export class UiRenderer {
         this.categories = [
             { id: 'tourism', label: 'Tourisme' },
             { id: 'sustenance', label: 'Restauration' },
-            { id: 'accommodation', label: 'Refuges, abris' },
+            { id: 'accommodation', label: 'Hébergements' },
             { id: 'leisure', label: 'Loisirs' },
             { id: 'sport', label: 'Sport' },
             { id: 'historic', label: 'Histoire' },
@@ -1057,7 +1057,7 @@ export class UiRenderer {
 
             const types = typesByCategory[catId];
             if (!types || Object.keys(types).length === 0) {
-                container.innerHTML = '<span style="font-size: 0.75rem; color: var(--color-text-muted); opacity: 0.6;">Aucun POI</span>';
+                container.innerHTML = '<span style="font-size: 0.75rem; color: var(--color-text-muted); opacity: 0.6;">Aucun POIs</span>';
                 container.style.display = 'none';
                 if (arrow) arrow.textContent = '▸';
                 return;
@@ -1605,7 +1605,7 @@ export class UiRenderer {
             const section1Html = areaHtml + demoHtml + densityHtml;
             const infraKpisHtml = buildInfraKpis() + '<div id="section-infra-content"></div>';
             const countLabel = totalRaw > 0
-                ? `${totalRaw.toLocaleString('fr-FR')} POI${totalRaw > 1 ? 's' : ''} trouvé${totalRaw > 1 ? 's' : ''}`
+                ? `${totalRaw.toLocaleString('fr-FR')} POIs trouvés`
                 : 'POIs disponibles';
             this.macroStats.innerHTML =
                 buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
@@ -1704,7 +1704,7 @@ export class UiRenderer {
         };
 
         const config = { responsive: true, displayModeBar: false };
-        const mainTreemapData = buildTreemapTrace({ ids, labels, parents, values, colors }, 'POI');
+        const mainTreemapData = buildTreemapTrace({ ids, labels, parents, values, colors }, 'POIs');
 
         // ── Assemble the 4 sections ────────────────────────────────────────
         const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
@@ -2745,7 +2745,9 @@ export class UiRenderer {
             'wetland': 'Zone humide', 'glacier': 'Glacier', 'scree': 'Éboulis',
             'viewpoint': 'Point de vue', 'information': 'Information', 'hotel': 'Hôtel',
             'guest_house': 'Maison d\'hôtes', 'hostel': 'Auberge de jeunesse', 'chalet': 'Chalet',
-            'camp_site': 'Camping', 'alpine_hut': 'Refuge de montagne', 'apartment': 'Appartement',
+            'motel': 'Motel', 'bed_and_breakfast': 'Chambre d\'hôtes', 'holiday_flat': 'Meublé de tourisme',
+            'camp_site': 'Camping', 'caravan_site': 'Aire camping-car', 'camp_pitch': 'Emplacement',
+            'alpine_hut': 'Refuge de montagne', 'wilderness_hut': 'Refuge nature', 'apartment': 'Appartement',
             'museum': 'Musée', 'artwork': 'Œuvre d\'art', 'attraction': 'Attraction',
             'picnic_site': 'Aire de pique-nique', 'parking': 'Parking', 'bench': 'Banc',
             'shelter': 'Abri', 'restaurant': 'Restaurant', 'cafe': 'Café', 'bar': 'Bar',
