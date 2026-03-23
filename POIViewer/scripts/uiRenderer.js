@@ -1734,7 +1734,7 @@ export class UiRenderer {
 
         const chartTitleGroup = document.createElement('div');
         chartTitleGroup.className = 'mini-treemap-title-group';
-        chartTitle.textContent = 'Répartition des POI';
+        chartTitle.textContent = 'Répartition des POIs';
 
         const chartMeta = document.createElement('span');
         chartMeta.className = 'mini-treemap-meta';
@@ -2227,10 +2227,10 @@ export class UiRenderer {
         const bgStyle = `background: ${color}33; color: ${color};`;
         let distanceHtml = '';
         if (poi.nearestBusStopDist !== undefined) {
-             const distStr = poi.nearestBusStopDist >= 1000 
-                ? (poi.nearestBusStopDist / 1000).toFixed(1) + ' km' 
+            const distStr = poi.nearestBusStopDist >= 1000
+                ? (poi.nearestBusStopDist / 1000).toFixed(1) + ' km'
                 : Math.round(poi.nearestBusStopDist) + ' m';
-             distanceHtml = `<div class="poi-desc" style="margin-top:4px;"><span style="color:var(--color-primary);font-weight:600;">🚌 Arrêt à ${distStr}</span></div>`;
+            distanceHtml = `<div class="poi-desc" style="margin-top:4px;"><span style="color:var(--color-primary);font-weight:600;">🚌 Arrêt à ${distStr}</span></div>`;
         }
         return `
             <div class="poi-card" data-id="${poi.id}" style="border-left: 3px solid ${color}">
@@ -2492,7 +2492,7 @@ export class UiRenderer {
         };
 
         // Liste des articles les plus proches (top 5)
-        const allArticles = [...data.fr.map(a => ({...a, lang: 'fr'})), ...data.en.map(a => ({...a, lang: 'en'}))]
+        const allArticles = [...data.fr.map(a => ({ ...a, lang: 'fr' })), ...data.en.map(a => ({ ...a, lang: 'en' }))]
             .sort((a, b) => a.dist - b.dist);
 
         // Dédupliquer par titre (garder la version la plus proche)
@@ -2513,15 +2513,15 @@ export class UiRenderer {
                 <div style="margin-top:8px;">
                     <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">Articles les plus proches :</div>
                     ${top5.map(a => {
-                        const distKm = (a.dist / 1000).toFixed(1);
-                        const flag = a.lang === 'fr' ? '🇫🇷' : '🇬🇧';
-                        const url = `https://${a.lang}.wikivoyage.org/wiki/${encodeURIComponent(a.title)}`;
-                        return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:0.8rem;">
+                const distKm = (a.dist / 1000).toFixed(1);
+                const flag = a.lang === 'fr' ? '🇫🇷' : '🇬🇧';
+                const url = `https://${a.lang}.wikivoyage.org/wiki/${encodeURIComponent(a.title)}`;
+                return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:0.8rem;">
                             <span>${flag}</span>
                             <a href="${url}" target="_blank" rel="noopener" style="color:var(--color-primary);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.title}">${a.title}</a>
                             <span style="color:var(--color-text-muted);font-size:0.72rem;white-space:nowrap;">${distKm} km</span>
                         </div>`;
-                    }).join('')}
+            }).join('')}
                 </div>`;
         }
 
@@ -2594,8 +2594,8 @@ export class UiRenderer {
             `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
 
         if (poi.nearestBusStopDist !== undefined) {
-            const distStr = poi.nearestBusStopDist >= 1000 
-                ? (poi.nearestBusStopDist / 1000).toFixed(1) + ' km' 
+            const distStr = poi.nearestBusStopDist >= 1000
+                ? (poi.nearestBusStopDist / 1000).toFixed(1) + ' km'
                 : Math.round(poi.nearestBusStopDist) + ' m';
             rows.push(this._infoRow('Transport', `Arrêt à ${distStr}`));
         }
