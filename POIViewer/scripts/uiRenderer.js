@@ -1434,7 +1434,7 @@ export class UiRenderer {
                     </div>
                     ${pBar('Lits hotels', inseeStats.hotel_beds, maxBeds, '#c4b5fd', ' lits')}
                     ${pBar('Lits campings', inseeStats.camping_beds, maxBeds, '#a78bfa', ' lits')}
-                    ${pBar('Lits collectifs', inseeStats.collective_beds, maxBeds, '#8b5cf6', ' lits')}
+                    ${pBar('Lits dans héb. collectifs', inseeStats.collective_beds, maxBeds, '#8b5cf6', ' lits')}
                     <div class="ind-block__footer">
                         <span class="ind-block__total">${totalBeds.toLocaleString('fr-FR')} lits au total</span>
                         <div class="kpi-stars">${starsHtml}</div>
