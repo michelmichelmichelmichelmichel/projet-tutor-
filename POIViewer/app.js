@@ -612,10 +612,10 @@ class App {
         switch (type) {
             case 'cycleway': return 'cycleways';
             case 'track': return 'tracks';
-            case 'bridleway': return 'bridleways';
+            case 'bridleway':
             case 'steps':
             case 'corridor':
-            case 'platform': return 'others';
+            case 'platform': return 'paths';
             case 'path':
             case 'footway':
             case 'pedestrian':
@@ -659,7 +659,7 @@ class App {
                 if (tags.waterway) return 'waterways';
                 if (tags.waterway) return 'waterways';
                 if (tags.natural === 'water' || tags.landuse === 'reservoir' || tags.landuse === 'basin') return 'waterways';
-                return 'others';
+                return 'paths';
         }
     }
 

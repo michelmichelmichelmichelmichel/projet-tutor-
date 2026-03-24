@@ -865,9 +865,7 @@ export class UiRenderer {
             { id: 'aerialways', label: 'Remontées (Ski/Télé)', color: '#1e293b' },
             { id: 'pistes', label: 'Piste de Ski', color: '#0ea5e9' },
             { id: 'via_ferrata', label: 'Via Ferrata / Escalade', color: '#57534e' },
-            { id: 'bridleways', label: 'Cavaliers', color: '#d97706' },
-            { id: 'waterways', label: 'Voie d\'Eau', color: '#06b6d4' },
-            { id: 'others', label: 'Autres / Inconnu', color: '#94a3b8' }
+            { id: 'waterways', label: 'Voie d\'Eau', color: '#06b6d4' }
         ];
 
         if (pathFiltersContent && togglePathFiltersBtn) {
