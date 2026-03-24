@@ -231,6 +231,8 @@ class App {
                     type: 'commune',
                     code: park.code,
                     codeDepartement: park.codeDepartement || (park.code ? String(park.code).substring(0, 2) : null),
+                    codeRegion: park.codeRegion || null,
+                    hierarchy: park.hierarchy || null,
                     name: park.name,
                     wikidata: park.wikidata || null,
                     population: park.population || null
@@ -397,7 +399,7 @@ class App {
                 }
 
                 // Update UI (Macro Stats) - Affiche les POIs, chemins, et soit la démo en cache, soit le spinner
-                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
+                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null);
 
                 // Construire et afficher les heatmaps
                 this.updateHeatmaps();
@@ -462,7 +464,7 @@ class App {
                                         </div>
                                     `;
 
-                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
+                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null);
                                     if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                                     this.uiRenderer.renderSparkline();
                                 } catch (err) {

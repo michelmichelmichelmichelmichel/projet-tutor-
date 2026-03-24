@@ -1271,7 +1271,7 @@ export class UiRenderer {
 
         Plotly.newPlot(container, data, layout, config);
     }
-    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null) {
+    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null) {
         const total = pois.length;
 
         // ── Calcul des KPI hébergement & sentiers (toujours, même si pois filtrés = 0) ──
@@ -1708,7 +1708,26 @@ export class UiRenderer {
         // ── Assemble the 4 sections ────────────────────────────────────────
         const totalPoisHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">NB POIs</span><span class="ind-block__big">${totalRaw.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs trouvés</span></span></div></div>`;
         const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
-        const section1Html = totalPoisHtml + areaHtml + demoHtml + densityHtml;
+        
+        let localisationHtml = '';
+        if (hierarchy && typeof hierarchy === 'object') {
+            const parts = [];
+            if (hierarchy.country) parts.push(`<span class="loc-item">${hierarchy.country}</span>`);
+            if (hierarchy.region)  parts.push(`<span class="loc-item">${hierarchy.region}</span>`);
+            if (hierarchy.dept)    parts.push(`<span class="loc-item">${hierarchy.dept}</span>`);
+            if (hierarchy.city)    parts.push(`<span class="loc-item loc-item--city">${hierarchy.city}</span>`);
+            if (parts.length > 0) {
+                localisationHtml = `
+                    <div class="ind-block loc-block" style="margin-bottom:6px;">
+                        <div class="ind-block__header" style="flex-direction:column;align-items:flex-start;">
+                            <span class="ind-block__title">Localisation</span>
+                            <div class="loc-breadcrumb">${parts.join('<span class="loc-sep">›</span>')}</div>
+                        </div>
+                    </div>`;
+            }
+        }
+
+        const section1Html = totalPoisHtml + areaHtml + localisationHtml + demoHtml + densityHtml;
         const infraKpisHtml = buildInfraKpis() + `<div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
             buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
