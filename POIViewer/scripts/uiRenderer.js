@@ -1599,8 +1599,9 @@ export class UiRenderer {
 
         // Si aucun POI après filtrage
         if (total === 0) {
+            const totalPoisHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">NB POIs</span><span class="ind-block__big">${totalRaw.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs trouvés</span></span></div></div>`;
             const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
-            const section1Html = areaHtml + demoHtml + densityHtml;
+            const section1Html = totalPoisHtml + areaHtml + demoHtml + densityHtml;
             const infraKpisHtml = buildInfraKpis() + '<div id="section-infra-content"></div>';
             const countLabel = totalRaw > 0
                 ? `${totalRaw.toLocaleString('fr-FR')} POIs trouvés`
@@ -1705,8 +1706,9 @@ export class UiRenderer {
         const mainTreemapData = buildTreemapTrace({ ids, labels, parents, values, colors }, 'POIs');
 
         // ── Assemble the 4 sections ────────────────────────────────────────
+        const totalPoisHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">NB POIs</span><span class="ind-block__big">${totalRaw.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs trouvés</span></span></div></div>`;
         const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
-        const section1Html = areaHtml + demoHtml + densityHtml;
+        const section1Html = totalPoisHtml + areaHtml + demoHtml + densityHtml;
         const infraKpisHtml = buildInfraKpis() + `<div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
             buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
