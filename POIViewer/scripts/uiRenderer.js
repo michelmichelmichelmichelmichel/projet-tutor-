@@ -2030,7 +2030,7 @@ export class UiRenderer {
 
             const offerHeader = document.createElement('span');
             offerHeader.className = 'mini-treemap-title';
-            offerHeader.textContent = areaKm2 > 0 ? 'Intensité de l\'offre' : 'Volume de l\'offre';
+            offerHeader.textContent = areaKm2 > 0 ? 'Densité' : 'Volume de l\'offre';
             offerHeaderGroup.appendChild(offerHeader);
 
             const offerMeta = document.createElement('span');
