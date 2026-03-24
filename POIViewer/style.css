@@ -446,6 +446,43 @@ body {
     font-weight: 700;
 }
 
+/* Accommodation detail grid */
+.accom-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 4px 8px;
+    margin: 8px 0 4px;
+}
+.accom-detail-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 6px;
+    padding: 3px 6px;
+}
+.accom-detail-icon {
+    font-size: 0.85rem;
+    flex-shrink: 0;
+}
+.accom-detail-item:nth-child(5) {
+    grid-column: span 2;
+}
+.accom-detail-label {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.6);
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.accom-detail-val {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #c4b5fd;
+    flex-shrink: 0;
+}
+
 /* Localisation breadcrumb (hierarchy block) */
 .loc-breadcrumb {
     display: flex;

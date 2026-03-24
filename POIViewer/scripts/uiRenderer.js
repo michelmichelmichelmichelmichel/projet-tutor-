@@ -1426,6 +1426,12 @@ export class UiRenderer {
                         </div>`;
                 }).join('')}`
                 : '<span class="kpi-sub">Aucun classement</span>';
+
+            // Comptage OSM pour compléter les données INSEE
+            const osmHotelPOIs = pois.filter(p => ['hotel', 'hostel', 'motel', 'guest_house', 'bed_and_breakfast'].includes(p.type));
+            const osmCampingPOIs = pois.filter(p => ['camp_site', 'caravan_site', 'camp_pitch'].includes(p.type));
+            const osmCollectifPOIs = pois.filter(p => ['chalet', 'alpine_hut', 'wilderness_hut', 'shelter', 'apartment', 'holiday_flat'].includes(p.type));
+
             accommodationHtml = `
                 <div class="ind-block ind-block--purple">
                     <div class="ind-block__header">
@@ -1435,19 +1441,59 @@ export class UiRenderer {
                     ${pBar('Lits hotels', inseeStats.hotel_beds, maxBeds, '#c4b5fd', ' lits')}
                     ${pBar('Lits campings', inseeStats.camping_beds, maxBeds, '#a78bfa', ' lits')}
                     ${pBar('Lits dans héb. collectifs', inseeStats.collective_beds, maxBeds, '#8b5cf6', ' lits')}
+                    
+                    <div class="accom-detail-grid">
+                        <div class="accom-detail-item"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span><span class="accom-detail-val">${osmHotelPOIs.filter(p => p.type === 'hotel').length}</span></div>
+                        <div class="accom-detail-item"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span><span class="accom-detail-val">${osmHotelPOIs.filter(p => ['hostel', 'guest_house', 'bed_and_breakfast'].includes(p.type)).length}</span></div>
+                        <div class="accom-detail-item"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span><span class="accom-detail-val">${osmCampingPOIs.length}</span></div>
+                        <div class="accom-detail-item"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span><span class="accom-detail-val">${osmCollectifPOIs.length}</span></div>
+                    </div>
+
                     <div class="ind-block__footer">
                         <span class="ind-block__total">${totalBeds.toLocaleString('fr-FR')} lits au total</span>
                         <div class="kpi-stars">${starsHtml}</div>
                     </div>
                 </div>`;
         } else {
+            // Pas de données INSEE — on compte directement depuis les POIs OSM
+            const osmHotelTypes = new Set(['hotel', 'hostel', 'motel', 'guest_house', 'bed_and_breakfast', 'chalet', 'apartment', 'holiday_flat', 'alpine_hut', 'wilderness_hut']);
+            const osmCampingTypes = new Set(['camp_site', 'caravan_site', 'camp_pitch']);
+            let osmHotels = 0;
+            let osmCampings = 0;
+            pois.forEach(p => {
+                if (osmHotelTypes.has(p.type)) osmHotels++;
+                else if (osmCampingTypes.has(p.type)) osmCampings++;
+            });
+            const osmTotal = osmHotels + osmCampings;
+            const osmMax = Math.max(osmHotels, osmCampings, 1);
+
+            // Détail fin par type
+            const osmHotelCount = pois.filter(p => p.type === 'hotel').length;
+            const osmHostelCount = pois.filter(p => ['hostel', 'guest_house', 'bed_and_breakfast', 'motel'].includes(p.type)).length;
+            const osmCampCount = pois.filter(p => p.type === 'camp_site').length;
+            const osmCaravanCount = pois.filter(p => ['caravan_site', 'camp_pitch'].includes(p.type)).length;
+            const osmCollectCount = pois.filter(p => ['chalet', 'alpine_hut', 'wilderness_hut', 'shelter', 'apartment', 'holiday_flat'].includes(p.type)).length;
+
             accommodationHtml = `
-                <div class="ind-block ind-block--purple" style="opacity:0.5;">
+                <div class="ind-block ind-block--purple">
                     <div class="ind-block__header">
-                        <span class="ind-block__title">INSEE 2026</span>
-                        <span class="ind-block__big" style="opacity:0.4;">Indisponible</span>
+                        <span class="ind-block__title">Hébergements <span style="font-size:0.6rem;opacity:0.65;font-weight:500;letter-spacing:0.05em;">Source : OSM</span></span>
+                        <span class="ind-block__big">${osmTotal.toLocaleString('fr-FR')} <span class="ind-block__unit">établissements</span></span>
                     </div>
-                    <div class="kpi-sub" style="padding:6px 0;">Données INSEE non disponibles pour cette zone</div>
+                    ${pBar('Hôtels & auberges', osmHotels, osmMax, '#c4b5fd')}
+                    ${pBar('Campings & aires', osmCampings, osmMax, '#a78bfa')}
+                    
+                    <div class="accom-detail-grid">
+                        <div class="accom-detail-item"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span><span class="accom-detail-val">${osmHotelCount}</span></div>
+                        <div class="accom-detail-item"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span><span class="accom-detail-val">${osmHostelCount}</span></div>
+                        <div class="accom-detail-item"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span><span class="accom-detail-val">${osmCampCount}</span></div>
+                        <div class="accom-detail-item"><span class="accom-detail-icon">🚚</span><span class="accom-detail-label">Aires CC</span><span class="accom-detail-val">${osmCaravanCount}</span></div>
+                        <div class="accom-detail-item"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span><span class="accom-detail-val">${osmCollectCount}</span></div>
+                    </div>
+
+                    <div class="ind-block__footer" style="font-size:0.65rem;opacity:0.55;margin-top:4px;">
+                        Données OpenStreetMap — INSEE non disponible pour cette zone
+                    </div>
                 </div>`;
         }
 
