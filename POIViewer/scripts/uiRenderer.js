@@ -1414,14 +1414,10 @@ export class UiRenderer {
                 ? `<div class="kpi-stars__title">Classement des hotels</div>${starEntries.map(([rank, count]) => {
                     const isUnclassified = rank === 'NC';
                     const tierText = isUnclassified ? 'NC' : '★'.repeat(Number(rank));
-                    const labelText = isUnclassified
-                        ? 'Non classes'
-                        : `${rank} etoile${Number(rank) > 1 ? 's' : ''}`;
                     const countText = `${count} hotel${count > 1 ? 's' : ''}`;
                     return `
                         <div class="kpi-star-badge">
                             <span class="kpi-star-badge__tier">${tierText}</span>
-                            <span class="kpi-star-badge__label">${labelText}</span>
                             <span class="kpi-star-badge__count">${countText}</span>
                         </div>`;
                 }).join('')}`
@@ -2637,7 +2633,7 @@ export class UiRenderer {
         }
 
         if (t.cuisine) rows.push(this._infoRow('Cuisine', t.cuisine.replace(/_/g, ' ')));
-        if (t.stars) rows.push(this._infoRow('Étoiles', t.stars));
+        if (t.stars) rows.push(this._infoRow('Étoiles', isNaN(t.stars) ? t.stars : '★'.repeat(Number(t.stars))));
         if (t.operator) rows.push(this._infoRow('Opérateur', t.operator));
         if (t.brand) rows.push(this._infoRow('Enseigne', t.brand));
         if (t.ele) rows.push(this._infoRow('Altitude', t.ele + ' m'));
