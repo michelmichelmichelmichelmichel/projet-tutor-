@@ -446,6 +446,22 @@ body {
     font-weight: 700;
 }
 
+.kpi-star-badge--clickable {
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
+}
+
+.kpi-star-badge--clickable:hover {
+    background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(251, 191, 36, 0.08));
+    border-color: rgba(251, 191, 36, 0.3);
+}
+
+.kpi-star-badge--active {
+    background: rgba(251, 191, 36, 0.25);
+    border-color: var(--color-primary);
+    box-shadow: 0 0 12px rgba(251, 191, 36, 0.2);
+}
+
 /* Accommodation detail grid */
 .accom-detail-grid {
     display: grid;
@@ -460,6 +476,20 @@ body {
     background: rgba(255,255,255,0.04);
     border-radius: 6px;
     padding: 3px 6px;
+}
+.accom-detail-item--clickable {
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s, border-color 0.2s;
+    border: 1px solid transparent;
+}
+.accom-detail-item--clickable:hover {
+    background: rgba(255,255,255,0.1);
+    box-shadow: 0 0 6px rgba(167, 139, 250, 0.2);
+}
+.accom-detail-item--active {
+    background: rgba(167, 139, 250, 0.15);
+    border-color: rgba(167, 139, 250, 0.5);
+    box-shadow: 0 0 10px rgba(167, 139, 250, 0.2);
 }
 .accom-detail-icon {
     font-size: 0.85rem;
@@ -529,7 +559,20 @@ body {
 }
 
 .density-bar {
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+}
+
+.density-bar--clickable {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 2px 4px;
+    margin-left: -4px;
+    margin-right: -4px;
+    transition: background 0.2s;
+}
+
+.density-bar--clickable:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .density-bar__header {
@@ -2337,5 +2380,75 @@ body {
     100% {
         transform: scale(0.95);
         box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+    }
+}
+
+/* ============================================
+   DIGITAL FILTER CLICKABLE BARS
+   ============================================ */
+.ind-row--clickable {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 4px 6px;
+    margin: 2px -6px;
+    transition: background 0.2s, box-shadow 0.2s, border-left 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.ind-row--clickable:hover {
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 0 8px rgba(255, 255, 255, 0.05);
+}
+
+.ind-row--active {
+    background: rgba(255, 255, 255, 0.08);
+    border-left: 3px solid var(--color-primary);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.12);
+}
+
+/* Clickable section headers (Transports, Services, Présence numérique) */
+.ind-block__header--clickable {
+    cursor: pointer;
+    border-radius: 6px;
+    padding: 8px 10px;
+    transition: background 0.2s, box-shadow 0.2s;
+    border-left: 3px solid transparent;
+}
+
+.ind-block__header--clickable:hover {
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.ind-block__header--active {
+    background: rgba(16, 185, 129, 0.1);
+    border-left: 3px solid var(--color-primary);
+    box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+}
+
+/* ============================================
+   POI DIGITAL HIGHLIGHT (map markers)
+   ============================================ */
+.poi-digital-highlight {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid var(--glow-color, #34d399);
+    box-shadow: 0 0 8px var(--glow-color, #34d399), 0 0 16px var(--glow-color, #34d399);
+    animation: digital-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes digital-pulse {
+    0%, 100% {
+        box-shadow: 0 0 6px var(--glow-color), 0 0 12px var(--glow-color);
+        transform: scale(1);
+    }
+    50% {
+        box-shadow: 0 0 12px var(--glow-color), 0 0 24px var(--glow-color);
+        transform: scale(1.1);
     }
 }

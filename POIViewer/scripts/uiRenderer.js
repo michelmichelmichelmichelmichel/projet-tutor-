@@ -1416,7 +1416,7 @@ export class UiRenderer {
                     const tierText = isUnclassified ? 'NC' : '★'.repeat(Number(rank));
                     const countText = `${count} hotel${count > 1 ? 's' : ''}`;
                     return `
-                        <div class="kpi-star-badge">
+                        <div class="kpi-star-badge kpi-star-badge--clickable" data-accom-filter="star-${rank}" title="Mettre en surbrillance sur la carte">
                             <span class="kpi-star-badge__tier">${tierText}</span>
                             <span class="kpi-star-badge__count">${countText}</span>
                         </div>`;
@@ -1430,7 +1430,7 @@ export class UiRenderer {
 
             accommodationHtml = `
                 <div class="ind-block ind-block--purple">
-                    <div class="ind-block__header">
+                    <div class="ind-block__header ind-block__header--clickable" data-accom-filter="all" title="Mettre tous les hébergements en surbrillance">
                         <span class="ind-block__title">INSEE 2026</span>
                         <span class="ind-block__big">${inseeStats.total_loc.toLocaleString('fr-FR')} <span class="ind-block__unit">hebergements</span></span>
                     </div>
@@ -1439,10 +1439,10 @@ export class UiRenderer {
                     ${pBar('Lits dans héb. collectifs', inseeStats.collective_beds, maxBeds, '#8b5cf6', ' lits')}
                     
                     <div class="accom-detail-grid">
-                        <div class="accom-detail-item"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span><span class="accom-detail-val">${osmHotelPOIs.filter(p => p.type === 'hotel').length}</span></div>
-                        <div class="accom-detail-item"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span><span class="accom-detail-val">${osmHotelPOIs.filter(p => ['hostel', 'guest_house', 'bed_and_breakfast'].includes(p.type)).length}</span></div>
-                        <div class="accom-detail-item"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span><span class="accom-detail-val">${osmCampingPOIs.length}</span></div>
-                        <div class="accom-detail-item"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span><span class="accom-detail-val">${osmCollectifPOIs.length}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span><span class="accom-detail-val">${osmHotelPOIs.filter(p => p.type === 'hotel').length}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span><span class="accom-detail-val">${osmHotelPOIs.filter(p => ['hostel', 'guest_house', 'bed_and_breakfast'].includes(p.type)).length}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span><span class="accom-detail-val">${osmCampingPOIs.length}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span><span class="accom-detail-val">${osmCollectifPOIs.length}</span></div>
                     </div>
 
                     <div class="ind-block__footer">
@@ -1472,7 +1472,7 @@ export class UiRenderer {
 
             accommodationHtml = `
                 <div class="ind-block ind-block--purple">
-                    <div class="ind-block__header">
+                    <div class="ind-block__header ind-block__header--clickable" data-accom-filter="all">
                         <span class="ind-block__title">Hébergements <span style="font-size:0.6rem;opacity:0.65;font-weight:500;letter-spacing:0.05em;">Source : OSM</span></span>
                         <span class="ind-block__big">${osmTotal.toLocaleString('fr-FR')} <span class="ind-block__unit">établissements</span></span>
                     </div>
@@ -1480,11 +1480,11 @@ export class UiRenderer {
                     ${pBar('Campings & aires', osmCampings, osmMax, '#a78bfa')}
                     
                     <div class="accom-detail-grid">
-                        <div class="accom-detail-item"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span><span class="accom-detail-val">${osmHotelCount}</span></div>
-                        <div class="accom-detail-item"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span><span class="accom-detail-val">${osmHostelCount}</span></div>
-                        <div class="accom-detail-item"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span><span class="accom-detail-val">${osmCampCount}</span></div>
-                        <div class="accom-detail-item"><span class="accom-detail-icon">🚚</span><span class="accom-detail-label">Aires CC</span><span class="accom-detail-val">${osmCaravanCount}</span></div>
-                        <div class="accom-detail-item"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span><span class="accom-detail-val">${osmCollectCount}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span><span class="accom-detail-val">${osmHotelCount}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span><span class="accom-detail-val">${osmHostelCount}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span><span class="accom-detail-val">${osmCampCount}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="caravan" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🚚</span><span class="accom-detail-label">Aires CC</span><span class="accom-detail-val">${osmCaravanCount}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span><span class="accom-detail-val">${osmCollectCount}</span></div>
                     </div>
 
                     <div class="ind-block__footer" style="font-size:0.65rem;opacity:0.55;margin-top:4px;">
@@ -1520,12 +1520,24 @@ export class UiRenderer {
         const socPct = total > 0 ? (socialMediaCount / total * 100) : 0;
         const section4Html = `
             <div class="ind-block">
-                <div class="ind-block__header">
+                <div class="ind-block__header ind-block__header--clickable" data-digital-filter="all" title="Mettre tous les POIs avec présence numérique en surbrillance">
                     <span class="ind-block__title">Présence numérique</span>
                     <span class="ind-block__big">${total.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs analysés</span></span>
                 </div>
-                ${pBar('Site web', webPct, 100, '#34d399', '%')}
-                ${pBar('Réseaux sociaux', socPct, 100, '#ec4899', '%')}
+                <div class="ind-row ind-row--clickable" data-digital-filter="website" title="Cliquer pour mettre en surbrillance sur la carte">
+                    <div class="ind-row__head">
+                        <span class="ind-row__label">🌐 Site web</span>
+                        <span class="ind-row__val" style="color:#34d399;">${typeof webPct === 'number' ? (Number.isInteger(webPct) ? webPct.toLocaleString('fr-FR') : webPct.toFixed(2)) : webPct}%</span>
+                    </div>
+                    <div class="ind-row__track"><div class="ind-row__fill" style="width:${Math.min(webPct, 100)}%;background:#34d399;"></div></div>
+                </div>
+                <div class="ind-row ind-row--clickable" data-digital-filter="social" title="Cliquer pour mettre en surbrillance sur la carte">
+                    <div class="ind-row__head">
+                        <span class="ind-row__label">📱 Réseaux sociaux</span>
+                        <span class="ind-row__val" style="color:#ec4899;">${typeof socPct === 'number' ? (Number.isInteger(socPct) ? socPct.toLocaleString('fr-FR') : socPct.toFixed(2)) : socPct}%</span>
+                    </div>
+                    <div class="ind-row__track"><div class="ind-row__fill" style="width:${Math.min(socPct, 100)}%;background:#ec4899;"></div></div>
+                </div>
                 <div class="ind-row__head" style="margin-top:4px;opacity:0.6;">
                     <span class="ind-row__label">${websiteCount + socialMediaCount} POIs avec au moins 1 présence</span>
                 </div>
@@ -1564,11 +1576,11 @@ export class UiRenderer {
             const cycleDensity = cyclingTrailCount / areaKm2;
             const maxDensity = Math.max(accomDensity, pedDensity, cycleDensity, 0.1);
 
-            const densityBar = (label, value, color, colorRgb) => {
+            const densityBar = (label, value, color, colorRgb, heatType) => {
                 const pct = Math.min((value / maxDensity) * 100, 100);
                 const formatted = value < 0.01 ? value.toExponential(1) : value.toFixed(2);
                 return `
-                    <div class="density-bar">
+                    <div class="density-bar density-bar--clickable" data-heatmap-trigger="${heatType}" title="Afficher/masquer la heatmap">
                         <div class="density-bar__header">
                             <span class="density-bar__label">${label}</span>
                             <span class="density-bar__value" style="color:${color};">${formatted} <span class="density-bar__unit">/ km²</span></span>
@@ -1585,9 +1597,9 @@ export class UiRenderer {
                         <span>Densite par km²</span>
                         <span class="density-bar__unit">Surface : ${areaKm2.toFixed(1)} km²</span>
                     </div>
-                    ${densityBar('Hebergements', accomDensity, '#a78bfa', '167,139,250')}
-                    ${densityBar('Sentiers pietons', pedDensity, '#34d399', '5,150,105')}
-                    ${densityBar('Pistes cyclables', cycleDensity, '#60a5fa', '59,130,246')}
+                    ${densityBar('Hebergements', accomDensity, '#a78bfa', '167,139,250', 'accommodation')}
+                    ${densityBar('Sentiers pietons', pedDensity, '#34d399', '5,150,105', 'pedestrian')}
+                    ${densityBar('Pistes cyclables', cycleDensity, '#60a5fa', '59,130,246', 'cycling')}
                     <div class="heatmap-toggles">
                         <div class="heatmap-toggles__title">Heatmap sur la carte</div>
                         <div class="heatmap-toggles__row">
@@ -1619,22 +1631,58 @@ export class UiRenderer {
 
             let html = `
                 <div class="ind-block" style="margin-bottom:6px;">
-                    <div class="ind-block__header">
+                    <div class="ind-block__header ind-block__header--clickable" data-infra-filter="transport" title="Mettre tous les transports en surbrillance">
                         <span class="ind-block__title">Transports</span>
                         <span class="ind-block__big">${transportTotal.toLocaleString('fr-FR')} <span class="ind-block__unit">points d'accès</span></span>
                     </div>
-                    ${pBar('Arrêts de bus', busStopCount, maxTransport, '#fbbf24')}
-                    ${pBar('Gares', trainStationCount, maxTransport, '#8b5cf6')}
-                    ${pBar('Aéroports', airportCount, maxTransport, '#0ea5e9')}
+                    <div class="ind-row ind-row--clickable" data-infra-filter="bus" title="Mettre en surbrillance sur la carte">
+                        <div class="ind-row__head">
+                            <span class="ind-row__label">🚏 Arrêts de bus</span>
+                            <span class="ind-row__val" style="color:#fbbf24;">${busStopCount.toLocaleString('fr-FR')}</span>
+                        </div>
+                        <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxTransport > 0 ? Math.min(busStopCount / maxTransport * 100, 100) : 0}%;background:#fbbf24;"></div></div>
+                    </div>
+                    <div class="ind-row ind-row--clickable" data-infra-filter="gare" title="Mettre en surbrillance sur la carte">
+                        <div class="ind-row__head">
+                            <span class="ind-row__label">🚉 Gares</span>
+                            <span class="ind-row__val" style="color:#8b5cf6;">${trainStationCount.toLocaleString('fr-FR')}</span>
+                        </div>
+                        <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxTransport > 0 ? Math.min(trainStationCount / maxTransport * 100, 100) : 0}%;background:#8b5cf6;"></div></div>
+                    </div>
+                    <div class="ind-row ind-row--clickable" data-infra-filter="aeroport" title="Mettre en surbrillance sur la carte">
+                        <div class="ind-row__head">
+                            <span class="ind-row__label">✈️ Aéroports</span>
+                            <span class="ind-row__val" style="color:#0ea5e9;">${airportCount.toLocaleString('fr-FR')}</span>
+                        </div>
+                        <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxTransport > 0 ? Math.min(airportCount / maxTransport * 100, 100) : 0}%;background:#0ea5e9;"></div></div>
+                    </div>
                 </div>
                 <div class="ind-block" style="margin-bottom:6px;">
-                    <div class="ind-block__header">
+                    <div class="ind-block__header ind-block__header--clickable" data-infra-filter="services" title="Mettre tous les services en surbrillance">
                         <span class="ind-block__title">Services & équipements</span>
                         <span class="ind-block__big">${servicesTotal.toLocaleString('fr-FR')} <span class="ind-block__unit">installations</span></span>
                     </div>
-                    ${pBar('Stationnements', parkingCount, maxServices, '#64748b')}
-                    ${pBar('Sanitaires', sanitaryCount, maxServices, '#06b6d4')}
-                    ${pBar('Bornes recharge', chargingCount, maxServices, '#22c55e')}
+                    <div class="ind-row ind-row--clickable" data-infra-filter="parking" title="Mettre en surbrillance sur la carte">
+                        <div class="ind-row__head">
+                            <span class="ind-row__label">🅿️ Stationnements</span>
+                            <span class="ind-row__val" style="color:#64748b;">${parkingCount.toLocaleString('fr-FR')}</span>
+                        </div>
+                        <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxServices > 0 ? Math.min(parkingCount / maxServices * 100, 100) : 0}%;background:#64748b;"></div></div>
+                    </div>
+                    <div class="ind-row ind-row--clickable" data-infra-filter="sanitaire" title="Mettre en surbrillance sur la carte">
+                        <div class="ind-row__head">
+                            <span class="ind-row__label">🚿 Sanitaires</span>
+                            <span class="ind-row__val" style="color:#06b6d4;">${sanitaryCount.toLocaleString('fr-FR')}</span>
+                        </div>
+                        <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxServices > 0 ? Math.min(sanitaryCount / maxServices * 100, 100) : 0}%;background:#06b6d4;"></div></div>
+                    </div>
+                    <div class="ind-row ind-row--clickable" data-infra-filter="recharge" title="Mettre en surbrillance sur la carte">
+                        <div class="ind-row__head">
+                            <span class="ind-row__label">⚡ Bornes recharge</span>
+                            <span class="ind-row__val" style="color:#22c55e;">${chargingCount.toLocaleString('fr-FR')}</span>
+                        </div>
+                        <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxServices > 0 ? Math.min(chargingCount / maxServices * 100, 100) : 0}%;background:#22c55e;"></div></div>
+                    </div>
                 </div>`;
             return html;
         };
@@ -1660,6 +1708,9 @@ export class UiRenderer {
                 </div>`;
             this._bindCollapsibleSections();
             this._bindHeatmapToggles();
+            this._bindDigitalFilterClicks();
+            this._bindAccomFilterClicks();
+            this._bindInfraFilterClicks();
             this.lastPois = pois; // SYNC: Even if empty, update lastPois reference
             if (totalRaw > 0) {
                 this.showToast(`${countLabel} — activez les filtres pour les afficher`, 'info', 5000);
@@ -1779,6 +1830,9 @@ export class UiRenderer {
 
         this._bindCollapsibleSections();
         this._bindHeatmapToggles();
+        this._bindDigitalFilterClicks();
+        this._bindAccomFilterClicks();
+        this._bindInfraFilterClicks();
 
         this.macroStats.style.height = 'auto'; // Let it grow
 
@@ -2253,10 +2307,96 @@ export class UiRenderer {
     _bindHeatmapToggles() {
         const panel = document.getElementById('density-heatmap-panel');
         if (!panel) return;
+
+        // Checkboxes directes
         panel.querySelectorAll('.heatmap-toggle').forEach(cb => {
             cb.addEventListener('change', () => {
                 if (this.onHeatmapToggle) {
                     this.onHeatmapToggle(cb.dataset.heat, cb.checked);
+                }
+            });
+        });
+
+        // Clic sur les barres de densité pour basculer la checkbox correspondante
+        panel.querySelectorAll('.density-bar--clickable').forEach(bar => {
+            bar.addEventListener('click', () => {
+                const heatType = bar.dataset.heatmapTrigger;
+                const cb = panel.querySelector(`.heatmap-toggle[data-heat="${heatType}"]`);
+                if (cb) {
+                    cb.checked = !cb.checked;
+                    if (this.onHeatmapToggle) {
+                        this.onHeatmapToggle(heatType, cb.checked);
+                    }
+                }
+            });
+        });
+    }
+
+    /** Désactive visuellement tous les highlights de filtres */
+    _clearAllHighlightFilters() {
+        this.macroStats.querySelectorAll('[data-digital-filter]').forEach(r => { r.classList.remove('ind-row--active'); r.classList.remove('ind-block__header--active'); });
+        this.macroStats.querySelectorAll('[data-accom-filter]').forEach(r => { r.classList.remove('accom-detail-item--active'); r.classList.remove('ind-block__header--active'); r.classList.remove('kpi-star-badge--active'); });
+        this.macroStats.querySelectorAll('[data-infra-filter]').forEach(r => { r.classList.remove('ind-row--active'); r.classList.remove('ind-block__header--active'); });
+    }
+
+    /** Lie les barres "Site web" / "Réseaux sociaux" / header "Présence numérique" */
+    _bindDigitalFilterClicks() {
+        this.macroStats.querySelectorAll('[data-digital-filter]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const filterType = el.dataset.digitalFilter;
+                const isHeader = el.classList.contains('ind-block__header--clickable');
+                const activeClass = isHeader ? 'ind-block__header--active' : 'ind-row--active';
+                const wasActive = el.classList.contains(activeClass);
+                this._clearAllHighlightFilters();
+                if (!wasActive) {
+                    el.classList.add(activeClass);
+                    if (this.onDigitalFilterClick) this.onDigitalFilterClick(filterType);
+                } else {
+                    if (this.onDigitalFilterClick) this.onDigitalFilterClick(null);
+                }
+            });
+        });
+    }
+
+    /** Lie les items hébergement + header pour déclencher le highlight sur la carte */
+    _bindAccomFilterClicks() {
+        this.macroStats.querySelectorAll('[data-accom-filter]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const filterType = el.dataset.accomFilter;
+                const isHeader = el.classList.contains('ind-block__header--clickable');
+                const isStar = el.classList.contains('kpi-star-badge');
+                let activeClass = 'accom-detail-item--active';
+                if (isHeader) activeClass = 'ind-block__header--active';
+                else if (isStar) activeClass = 'kpi-star-badge--active';
+                const wasActive = el.classList.contains(activeClass);
+                this._clearAllHighlightFilters();
+                if (!wasActive) {
+                    el.classList.add(activeClass);
+                    if (this.onAccomFilterClick) this.onAccomFilterClick(filterType);
+                } else {
+                    if (this.onAccomFilterClick) this.onAccomFilterClick(null);
+                }
+            });
+        });
+    }
+
+    /** Lie les barres infra (transport + services) + headers "Transports" / "Services" */
+    _bindInfraFilterClicks() {
+        this.macroStats.querySelectorAll('[data-infra-filter]').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const filterType = el.dataset.infraFilter;
+                const isHeader = el.classList.contains('ind-block__header--clickable');
+                const activeClass = isHeader ? 'ind-block__header--active' : 'ind-row--active';
+                const wasActive = el.classList.contains(activeClass);
+                this._clearAllHighlightFilters();
+                if (!wasActive) {
+                    el.classList.add(activeClass);
+                    if (this.onInfraFilterClick) this.onInfraFilterClick(filterType);
+                } else {
+                    if (this.onInfraFilterClick) this.onInfraFilterClick(null);
                 }
             });
         });

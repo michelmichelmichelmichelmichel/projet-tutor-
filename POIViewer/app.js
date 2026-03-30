@@ -28,6 +28,9 @@ class App {
             accommodation: false, pedestrian: false, cycling: false,
             overtourism_cities: false, overtourism_pois: false
         };
+        this.digitalHighlight = null; // 'website' | 'social' | null
+        this.accomHighlight = null; // 'hotel' | 'auberge' | 'camping' | 'caravan' | 'collectif' | null
+        this.infraHighlight = null; // 'bus' | 'gare' | 'aeroport' | 'parking' | 'sanitaire' | 'recharge' | null
     }
 
     init() {
@@ -181,6 +184,9 @@ class App {
         // Bind POI Selection (List Click)
         this.uiRenderer.onPoiSelected = (poi) => {
             this.selectedPoiType = poi.type;
+            this.digitalHighlight = null;
+            this.accomHighlight = null;
+            this.infraHighlight = null;
             this.addMarkersToMap(this.getFilteredPOIs());
 
             this.mapManager.zoomToLocation(poi.lat, poi.lng);
@@ -188,6 +194,33 @@ class App {
             setTimeout(() => {
                 this.mapManager.showSelectionMarker(poi.lat, poi.lng, poi.name);
             }, 1600);
+        };
+
+        // Bind Digital Filter Click ("Site web" / "Réseaux sociaux")
+        this.uiRenderer.onDigitalFilterClick = (filterType) => {
+            this.digitalHighlight = filterType;
+            this.accomHighlight = null;
+            this.infraHighlight = null;
+            this.selectedPoiType = null;
+            this.addMarkersToMap(this.getFilteredPOIs());
+        };
+
+        // Bind Accommodation Filter Click ("Hôtels" / "Campings" / etc.)
+        this.uiRenderer.onAccomFilterClick = (filterType) => {
+            this.accomHighlight = filterType;
+            this.digitalHighlight = null;
+            this.infraHighlight = null;
+            this.selectedPoiType = null;
+            this.addMarkersToMap(this.getFilteredPOIs());
+        };
+
+        // Bind Infrastructure Filter Click ("Arrêts de bus" / "Gares" / etc.)
+        this.uiRenderer.onInfraFilterClick = (filterType) => {
+            this.infraHighlight = filterType;
+            this.digitalHighlight = null;
+            this.accomHighlight = null;
+            this.selectedPoiType = null;
+            this.addMarkersToMap(this.getFilteredPOIs());
         };
 
         this.mapManager.onPolygonCleared = () => {
@@ -273,6 +306,9 @@ class App {
         this.currentAreaKm2 = 0;
         this.currentWikivoyageData = null;
         this.selectedPoiType = null;
+        this.digitalHighlight = null;
+        this.accomHighlight = null;
+        this.infraHighlight = null;
 
         this.uiRenderer.clear();
         this.uiRenderer.toggleLoadNeighborsBtn(false);
@@ -848,6 +884,81 @@ class App {
 
         pois.forEach(poi => {
             let isHighlighted = this.selectedPoiType && poi.type === this.selectedPoiType;
+
+            // Digital highlight: is this POI matching the current digital filter?
+            let isDigitalMatch = false;
+            if (this.digitalHighlight && poi.digital) {
+                if (this.digitalHighlight === 'website' && poi.digital.hasWebsite) isDigitalMatch = true;
+                if (this.digitalHighlight === 'social' && poi.digital.hasSocialMedia) isDigitalMatch = true;
+                if (this.digitalHighlight === 'all' && (poi.digital.hasWebsite || poi.digital.hasSocialMedia)) isDigitalMatch = true;
+            }
+
+            // Accommodation highlight
+            let isAccomMatch = false;
+            if (this.accomHighlight) {
+                if (this.accomHighlight.startsWith('star-')) {
+                    const targetStar = this.accomHighlight.split('-')[1];
+                    if (poi.type === 'hotel') {
+                        const stars = poi.tags && poi.tags.stars ? poi.tags.stars : null;
+                        if (targetStar === 'NC') {
+                            if (!stars || isNaN(parseInt(stars, 10))) isAccomMatch = true;
+                        } else {
+                            if (stars && parseInt(stars, 10) === parseInt(targetStar, 10)) isAccomMatch = true;
+                        }
+                    }
+                } else {
+                    const accomTypeMap = {
+                        hotel: ['hotel'],
+                        auberge: ['hostel', 'guest_house', 'bed_and_breakfast', 'motel'],
+                        camping: ['camp_site'],
+                        caravan: ['caravan_site', 'camp_pitch'],
+                        collectif: ['chalet', 'alpine_hut', 'wilderness_hut', 'shelter', 'apartment', 'holiday_flat'],
+                        all: ['hotel', 'hostel', 'guest_house', 'bed_and_breakfast', 'motel', 'camp_site', 'caravan_site', 'camp_pitch', 'chalet', 'alpine_hut', 'wilderness_hut', 'shelter', 'apartment', 'holiday_flat']
+                    };
+                    const matchTypes = accomTypeMap[this.accomHighlight] || [];
+                    if (matchTypes.includes(poi.type)) isAccomMatch = true;
+                }
+            }
+
+            // Infrastructure highlight
+            let isInfraMatch = false;
+            if (this.infraHighlight) {
+                const pType = poi.type || '';
+                const t = poi.tags || {};
+                switch (this.infraHighlight) {
+                    case 'bus':
+                        isInfraMatch = ['bus_stop', 'bus_station', 'platform'].includes(pType) || t.bus === 'yes' || t.highway === 'bus_stop';
+                        break;
+                    case 'gare':
+                        isInfraMatch = ['station', 'halt', 'tram_stop', 'subway_entrance'].includes(pType) || t.railway === 'station' || t.railway === 'halt';
+                        break;
+                    case 'aeroport':
+                        isInfraMatch = ['aerodrome', 'aeroway', 'airport'].includes(pType) || t.aeroway === 'aerodrome';
+                        break;
+                    case 'transport':
+                        isInfraMatch = ['bus_stop', 'bus_station', 'platform'].includes(pType) || t.bus === 'yes' || t.highway === 'bus_stop'
+                            || ['station', 'halt', 'tram_stop', 'subway_entrance'].includes(pType) || t.railway === 'station' || t.railway === 'halt'
+                            || ['aerodrome', 'aeroway', 'airport'].includes(pType) || t.aeroway === 'aerodrome';
+                        break;
+                    case 'parking':
+                        isInfraMatch = ['parking', 'parking_space', 'bicycle_parking'].includes(pType) || t.amenity === 'parking';
+                        break;
+                    case 'sanitaire':
+                        isInfraMatch = ['toilets', 'shower', 'drinking_water'].includes(pType) || t.amenity === 'toilets' || t.amenity === 'shower' || t.amenity === 'drinking_water';
+                        break;
+                    case 'recharge':
+                        isInfraMatch = pType === 'charging_station' || t.amenity === 'charging_station';
+                        break;
+                    case 'services':
+                        isInfraMatch = ['parking', 'parking_space', 'bicycle_parking'].includes(pType) || t.amenity === 'parking'
+                            || ['toilets', 'shower', 'drinking_water'].includes(pType) || t.amenity === 'toilets' || t.amenity === 'shower' || t.amenity === 'drinking_water'
+                            || pType === 'charging_station' || t.amenity === 'charging_station';
+                        break;
+                }
+            }
+
+            const hasAnyHighlight = this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight;
+
             let marker;
 
             if (isHighlighted) {
@@ -860,9 +971,33 @@ class App {
                     iconAnchor: [10, 10]
                 });
                 marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 500 });
+            } else if (this.digitalHighlight && isDigitalMatch) {
+                // Highlighted via digital filter — glowing marker
+                const digitalColors = { website: '#34d399', social: '#ec4899', all: '#38bdf8' };
+                const glowColor = digitalColors[this.digitalHighlight] || '#38bdf8';
+                const iconHtml = `<div class="poi-digital-highlight" style="--glow-color: ${glowColor}">${this.uiRenderer.getCategoryEmoji(poi.category)}</div>`;
+                const icon = L.divIcon({
+                    className: '',
+                    html: iconHtml,
+                    iconSize: [22, 22],
+                    iconAnchor: [11, 11]
+                });
+                marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 400 });
+            } else if (this.accomHighlight && isAccomMatch) {
+                const isStarFilter = this.accomHighlight.startsWith('star-');
+                const glowColor = isStarFilter ? '#fcd34d' : '#a78bfa';
+                const iconHtml = `<div class="poi-digital-highlight" style="--glow-color: ${glowColor}">${this.uiRenderer.getCategoryEmoji(poi.category)}</div>`;
+                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
+                marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 400 });
+            } else if (this.infraHighlight && isInfraMatch) {
+                const infraColors = { bus: '#fbbf24', gare: '#8b5cf6', aeroport: '#0ea5e9', transport: '#f59e0b', parking: '#64748b', sanitaire: '#06b6d4', recharge: '#22c55e', services: '#14b8a6' };
+                const glowColor = infraColors[this.infraHighlight] || '#fbbf24';
+                const iconHtml = `<div class="poi-digital-highlight" style="--glow-color: ${glowColor}">${this.uiRenderer.getCategoryEmoji(poi.category)}</div>`;
+                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
+                marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 400 });
             } else {
-                let opacity = this.selectedPoiType ? 0.7 : 1;
-                let fillOpacity = this.selectedPoiType ? 0.7 : 1;
+                let opacity = hasAnyHighlight ? 0.3 : 1;
+                let fillOpacity = hasAnyHighlight ? 0.3 : 1;
                 
                 // --- SUR-FRÉQUENTATION : Highlight special palette ---
                 let overOpaque = false;
