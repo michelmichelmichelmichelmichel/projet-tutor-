@@ -1876,6 +1876,12 @@ export class UiRenderer {
         infraContainer.appendChild(chartDiv);
 
         Plotly.newPlot(chartDiv, mainTreemapData, layout, config);
+        chartDiv.on('plotly_click', (data) => {
+            if (data.points && data.points.length > 0) {
+                const point = data.points[0];
+                if (this.onTreemapItemClick) this.onTreemapItemClick(point.id, point.parent, 'main');
+            }
+        });
         this.lastPois = pois;
 
         // ── 3 MINI TREEMAPS ────────────────────────────────────────────────
@@ -1917,6 +1923,7 @@ export class UiRenderer {
             }
 
             const miniDiv = document.createElement('div');
+            miniDiv.id = 'mini-treemap-' + Math.random().toString(36).substring(2, 9);
             miniDiv.style.height = '200px';
             miniDiv.className = 'mini-chart-canvas';
 
@@ -1926,7 +1933,7 @@ export class UiRenderer {
             maxBtn.className = 'maximize-btn';
             maxBtn.innerHTML = '⤢ Agrandir';
             maxBtn.title = 'Voir en plein écran';
-            maxBtn.addEventListener('click', () => this._toggleFullScreenChart(plotData, miniLayout));
+            maxBtn.addEventListener('click', () => this._toggleFullScreenChart(plotData, miniLayout, 'mini'));
             headerRow.appendChild(headerGroup);
             headerRow.appendChild(maxBtn);
 
@@ -1935,6 +1942,12 @@ export class UiRenderer {
             infraContainer.appendChild(section);
 
             Plotly.newPlot(miniDiv, plotData, miniLayout, miniConfig);
+            miniDiv.on('plotly_click', (data) => {
+                if (data.points && data.points.length > 0) {
+                    const point = data.points[0];
+                    if (this.onTreemapItemClick) this.onTreemapItemClick(point.id, point.parent, 'mini');
+                }
+            });
         };
 
         // ─── 1. Treemap Hébergements par catégorie ────────────────────────
@@ -3016,7 +3029,7 @@ export class UiRenderer {
         });
     }
 
-    _toggleFullScreenChart(data, layout) {
+    _toggleFullScreenChart(data, layout, source = 'unknown') {
         if (!this.fsOverlay) this._initFullScreenOverlay();
 
         this.fsOverlay.style.display = 'flex';
@@ -3031,6 +3044,18 @@ export class UiRenderer {
         };
 
         Plotly.newPlot(this.fsChartContainer, data, fsLayout, { responsive: true, displayModeBar: false });
+
+        if (data[0] && data[0].type === 'treemap') {
+            this.fsChartContainer.on('plotly_click', (eventData) => {
+                if (eventData.points && eventData.points.length > 0) {
+                    const point = eventData.points[0];
+                    if (this.onTreemapItemClick) this.onTreemapItemClick(point.id, point.parent, source);
+                    
+                    // Optionnel: fermer la vue plein écran après un clic ?
+                    // this._closeFullScreenChart();
+                }
+            });
+        }
     }
 
     toggleLoadNeighborsBtn(show) {
@@ -3093,7 +3118,8 @@ export class UiRenderer {
             max-width: 440px;
             text-align: center;
             cursor: pointer;
-            white-space: nowrap;
+            white-space: normal;
+            word-break: break-word;
         `;
         toast.textContent = message;
         container.appendChild(toast);

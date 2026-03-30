@@ -31,6 +31,7 @@ class App {
         this.digitalHighlight = null; // 'website' | 'social' | null
         this.accomHighlight = null; // 'hotel' | 'auberge' | 'camping' | 'caravan' | 'collectif' | null
         this.infraHighlight = null; // 'bus' | 'gare' | 'aeroport' | 'parking' | 'sanitaire' | 'recharge' | null
+        this.treemapHighlight = null; // { id, parent, source }
     }
 
     init() {
@@ -187,6 +188,7 @@ class App {
             this.digitalHighlight = null;
             this.accomHighlight = null;
             this.infraHighlight = null;
+            this.treemapHighlight = null;
             this.addMarkersToMap(this.getFilteredPOIs());
 
             this.mapManager.zoomToLocation(poi.lat, poi.lng);
@@ -201,6 +203,7 @@ class App {
             this.digitalHighlight = filterType;
             this.accomHighlight = null;
             this.infraHighlight = null;
+            this.treemapHighlight = null;
             this.selectedPoiType = null;
             this.addMarkersToMap(this.getFilteredPOIs());
         };
@@ -210,6 +213,7 @@ class App {
             this.accomHighlight = filterType;
             this.digitalHighlight = null;
             this.infraHighlight = null;
+            this.treemapHighlight = null;
             this.selectedPoiType = null;
             this.addMarkersToMap(this.getFilteredPOIs());
         };
@@ -219,8 +223,58 @@ class App {
             this.infraHighlight = filterType;
             this.digitalHighlight = null;
             this.accomHighlight = null;
+            this.treemapHighlight = null;
             this.selectedPoiType = null;
             this.addMarkersToMap(this.getFilteredPOIs());
+        };
+
+        // Bind Treemap Item Click
+        this.uiRenderer.onTreemapItemClick = (id, parent, source) => {
+            if (this.treemapHighlight && this.treemapHighlight.id === id) {
+                this.treemapHighlight = null;
+            } else {
+                this.treemapHighlight = { id, parent, source };
+                this.selectedPoiType = null;
+                this.digitalHighlight = null;
+                this.accomHighlight = null;
+                this.infraHighlight = null;
+                this.uiRenderer._clearAllHighlightFilters();
+
+                // Alert user if paths are hidden by checkbox filters
+                if (source === 'mini') {
+                    const sacIds = ['SacRoot', 'Sentiers piétons', 'hiking', 'mountain_hiking', 'demanding_mountain_hiking', 'alpine_hiking', 'demanding_alpine_hiking'];
+                    const cycleIds = ['CycleRoot', 'Offre cyclable', 'bicycle_routes', 'cycleways', 'tracks'];
+                    
+                    if (sacIds.includes(id) || cycleIds.includes(id) || sacIds.includes(parent) || cycleIds.includes(parent)) {
+                        const selectedCats = this.uiRenderer.getSelectedPathCategories ? this.uiRenderer.getSelectedPathCategories() : [];
+                        const showAll = selectedCats.length === 0 || selectedCats.includes('all');
+                        
+                        if (!showAll) {
+                            let expectedCats = [];
+                            if (sacIds.includes(id) || sacIds.includes(parent)) {
+                                if (id === 'hiking') expectedCats = ['hiking_easy'];
+                                else if (id === 'mountain_hiking' || id === 'demanding_mountain_hiking') expectedCats = ['hiking_medium'];
+                                else if (id === 'alpine_hiking' || id === 'demanding_alpine_hiking') expectedCats = ['hiking_hard'];
+                                else expectedCats = ['hiking_easy', 'hiking_medium', 'hiking_hard', 'hiking_routes'];
+                            } else if (cycleIds.includes(id) || cycleIds.includes(parent)) {
+                                if (id === 'bicycle_routes') expectedCats = ['bicycle_routes'];
+                                else if (id === 'cycleways') expectedCats = ['cycleways'];
+                                else if (id === 'tracks') expectedCats = ['tracks'];
+                                else expectedCats = ['bicycle_routes', 'cycleways', 'tracks'];
+                            }
+                            
+                            const isVisible = expectedCats.some(cat => selectedCats.includes(cat));
+                            if (!isVisible && expectedCats.length > 0) {
+                                this.uiRenderer.showToast("Tracé masqué : Cochez ce type dans le menu 'Chemins' pour l'afficher sur la carte.", "warning", 5000);
+                            }
+                        }
+                    }
+                }
+            }
+            this.addMarkersToMap(this.getFilteredPOIs());
+            if (this.currentNetworks && this.currentNetworks.length > 0) {
+                this.renderNetworks(this.currentNetworks);
+            }
         };
 
         this.mapManager.onPolygonCleared = () => {
@@ -309,6 +363,7 @@ class App {
         this.digitalHighlight = null;
         this.accomHighlight = null;
         this.infraHighlight = null;
+        this.treemapHighlight = null;
 
         this.uiRenderer.clear();
         this.uiRenderer.toggleLoadNeighborsBtn(false);
@@ -608,6 +663,19 @@ class App {
         const selectedCategories = this.uiRenderer.getSelectedPathCategories ? this.uiRenderer.getSelectedPathCategories() : [];
         const showAll = selectedCategories.length === 0 || selectedCategories.includes('all');
 
+        const hasAnyHighlight = this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight;
+
+        const sacLabels = {
+            'hiking': 'Randonnée (T1)', 'mountain_hiking': 'Montagne (T2)',
+            'demanding_mountain_hiking': 'Montagne exigeante (T3)',
+            'alpine_hiking': 'Alpin (T4)', 'demanding_alpine_hiking': 'Alpin exigeant (T5)'
+        };
+        const cycleCats = {
+            'bicycle_routes': 'VTT / Vélo (itinéraires)',
+            'cycleways': 'Piste Cyclable',
+            'tracks': 'Piste (Track)'
+        };
+
         networks.forEach(net => {
             const netCat = this.getNetworkCategory(net.type, net.tags, net.relationRef, net.relationRoute);
 
@@ -617,7 +685,42 @@ class App {
             }
 
             const latLngs = net.geometry.map(pt => [pt.lat, pt.lon]);
-            const style = this.getNetworkStyle(net.type, net.tags, net.relationRef, net.relationRoute);
+            const baseStyle = this.getNetworkStyle(net.type, net.tags, net.relationRef, net.relationRoute);
+            let style = { ...baseStyle };
+
+            let isNetworkHighlighted = false;
+
+            if (this.treemapHighlight && this.treemapHighlight.source === 'mini') {
+                const { id } = this.treemapHighlight;
+                
+                // Sentiers piétons
+                if (id === 'SacRoot' || id === 'Sentiers piétons') {
+                    if (net.tags?.sac_scale && sacLabels[net.tags.sac_scale]) isNetworkHighlighted = true;
+                } else if (sacLabels[id] || Object.values(sacLabels).includes(id)) {
+                    if (net.tags?.sac_scale === id || sacLabels[net.tags?.sac_scale] === id) isNetworkHighlighted = true;
+                }
+
+                // Chemins vélo
+                if (id === 'CycleRoot' || id === 'Offre cyclable') {
+                    if (net.relationRoute === 'bicycle' || net.relationRoute === 'mtb' || net.type === 'cycleway' || net.type === 'track') isNetworkHighlighted = true;
+                } else if (cycleCats[id] || Object.values(cycleCats).includes(id)) {
+                    let matchKey = null;
+                    if (net.relationRoute === 'bicycle' || net.relationRoute === 'mtb') matchKey = 'bicycle_routes';
+                    else if (net.type === 'cycleway') matchKey = 'cycleways';
+                    else if (net.type === 'track') matchKey = 'tracks';
+
+                    if (matchKey === id || cycleCats[matchKey] === id) isNetworkHighlighted = true;
+                }
+            }
+
+            if (hasAnyHighlight) {
+                if (isNetworkHighlighted) {
+                    style.opacity = 1;
+                    style.weight = (style.weight || 3) + 3; // Make it significantly thicker to glow
+                } else {
+                    style.opacity = 0.15; // Dim others
+                }
+            }
 
             if (net.tags.natural === 'water' || net.tags.landuse === 'reservoir' || net.tags.landuse === 'basin') {
                 L.polygon(latLngs, style).addTo(this.mapManager.networkGroup);
@@ -957,7 +1060,56 @@ class App {
                 }
             }
 
-            const hasAnyHighlight = this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight;
+            // Treemap highlight
+            let isTreemapMatch = false;
+            let treemapGlowColor = '#ffffff';
+
+            if (this.treemapHighlight) {
+                const { id, parent, source } = this.treemapHighlight;
+                if (source === 'main') {
+                    if (id === 'All') {
+                        isTreemapMatch = true;
+                    } else if (parent === 'All') { // Category
+                        if (poi.category === id) {
+                            isTreemapMatch = true;
+                            treemapGlowColor = this.uiRenderer.getCategoryColor(poi.category);
+                        }
+                    } else if (parent !== '') { // Type
+                        const [cat, type] = id.split('__');
+                        if (poi.category === cat && poi.type === type) {
+                            isTreemapMatch = true;
+                            treemapGlowColor = this.uiRenderer.getCategoryColor(poi.category);
+                        }
+                    }
+                } else if (source === 'mini') {
+                    if (id === 'AccomRoot' || id === 'Hébergements') {
+                        if (poi.category === 'accommodation') {
+                            isTreemapMatch = true;
+                            treemapGlowColor = '#a78bfa';
+                        }
+                    } else {
+                        const t = poi.tags && poi.tags.tourism ? poi.tags.tourism : poi.type;
+                        // Sometimes Plotly might pass the label instead of the id, or the parent is missing
+                        // so we just confidently check if it's an accommodation and either type matches
+                        const accomTags = {
+                            'hotel': 'Hôtel', 'hostel': 'Auberge', 'motel': 'Motel',
+                            'guest_house': "Maison d'hôtes", 'bed_and_breakfast': 'B&B',
+                            'holiday_flat': 'Meublé de tourisme', 'chalet': 'Chalet',
+                            'apartment': 'Appartement', 'camp_site': 'Camping',
+                            'caravan_site': 'Aire camping-car', 'camp_pitch': 'Emplacement',
+                            'alpine_hut': 'Refuge alpin', 'wilderness_hut': 'Refuge nature',
+                            'shelter': 'Abri'
+                        };
+                        const translated = accomTags[t] || t;
+                        if (poi.category === 'accommodation' && (t === id || translated === id)) {
+                            isTreemapMatch = true;
+                            treemapGlowColor = '#a78bfa';
+                        }
+                    }
+                }
+            }
+
+            const hasAnyHighlight = this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight;
 
             let marker;
 
@@ -993,6 +1145,10 @@ class App {
                 const infraColors = { bus: '#fbbf24', gare: '#8b5cf6', aeroport: '#0ea5e9', transport: '#f59e0b', parking: '#64748b', sanitaire: '#06b6d4', recharge: '#22c55e', services: '#14b8a6' };
                 const glowColor = infraColors[this.infraHighlight] || '#fbbf24';
                 const iconHtml = `<div class="poi-digital-highlight" style="--glow-color: ${glowColor}">${this.uiRenderer.getCategoryEmoji(poi.category)}</div>`;
+                const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
+                marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 400 });
+            } else if (this.treemapHighlight && isTreemapMatch) {
+                const iconHtml = `<div class="poi-digital-highlight" style="--glow-color: ${treemapGlowColor}">${this.uiRenderer.getCategoryEmoji(poi.category)}</div>`;
                 const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
                 marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 400 });
             } else {
