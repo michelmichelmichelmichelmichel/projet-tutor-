@@ -2169,6 +2169,7 @@ export class UiRenderer {
             offerHeaderGroup.appendChild(offerMeta);
 
             const offerDiv = document.createElement('div');
+            offerDiv.id = 'offer-chart-' + Math.random().toString(36).substring(2, 9);
             offerDiv.style.height = '220px';
             offerDiv.className = 'mini-chart-canvas';
 
@@ -2240,6 +2241,24 @@ export class UiRenderer {
             infraContainer.appendChild(offerSection);
 
             Plotly.newPlot(offerDiv, offerData, offerLayout, miniConfig);
+
+            offerDiv.on('plotly_click', (data) => {
+                if (data.points && data.points.length > 0) {
+                    const label = data.points[0].label || data.points[0].y;
+                    
+                    if (label === 'Sentiers piétons' && this.onTreemapItemClick) {
+                        this.onTreemapItemClick('SacRoot', 'SacRoot', 'mini');
+                    } else if (label === 'Offre cyclable' && this.onTreemapItemClick) {
+                        this.onTreemapItemClick('CycleRoot', 'CycleRoot', 'mini');
+                    } else if (label === 'Hébergements' && this.onTreemapItemClick) {
+                        this.onTreemapItemClick('AccomRoot', 'AccomRoot', 'mini');
+                    } else if (label === 'Accès transport' && this.onInfraFilterClick) {
+                        this.onInfraFilterClick('transport');
+                    } else if (label === 'Services visiteurs' && this.onInfraFilterClick) {
+                        this.onInfraFilterClick('services');
+                    }
+                }
+            });
         }
     }
 

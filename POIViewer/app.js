@@ -663,7 +663,7 @@ class App {
         const selectedCategories = this.uiRenderer.getSelectedPathCategories ? this.uiRenderer.getSelectedPathCategories() : [];
         const showAll = selectedCategories.length === 0 || selectedCategories.includes('all');
 
-        const hasAnyHighlight = this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight;
+        const hasActiveFilter = !!(this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight);
 
         const sacLabels = {
             'hiking': 'Randonnée (T1)', 'mountain_hiking': 'Montagne (T2)',
@@ -675,6 +675,9 @@ class App {
             'cycleways': 'Piste Cyclable',
             'tracks': 'Piste (Track)'
         };
+
+        const networksData = [];
+        let hasNetworkMatch = false;
 
         networks.forEach(net => {
             const netCat = this.getNetworkCategory(net.type, net.tags, net.relationRef, net.relationRoute);
@@ -713,12 +716,24 @@ class App {
                 }
             }
 
-            if (hasAnyHighlight) {
+            if (isNetworkHighlighted) hasNetworkMatch = true;
+            networksData.push({ net, isNetworkHighlighted, style, latLngs });
+        });
+
+        const shouldDimNetworks = hasActiveFilter && (
+            (this.lastFilterTargetedNetworks ? hasNetworkMatch : true) &&
+            (!this.lastFilterTargetedNetworks ? (this.lastPoiMatchCount > 0) : true)
+        ) && (hasNetworkMatch || this.lastPoiMatchCount > 0);
+
+        networksData.forEach(data => {
+            let { net, isNetworkHighlighted, style, latLngs } = data;
+
+            if (hasActiveFilter) {
                 if (isNetworkHighlighted) {
                     style.opacity = 1;
                     style.weight = (style.weight || 3) + 3; // Make it significantly thicker to glow
                 } else {
-                    style.opacity = 0.15; // Dim others
+                    style.opacity = shouldDimNetworks ? 0.15 : style.opacity; // Dim others if dimming is needed
                 }
             }
 
@@ -985,6 +1000,9 @@ class App {
         }
         this.mapManager.markerGroup.clearLayers();
 
+        const markersData = [];
+        this.lastPoiMatchCount = 0;
+
         pois.forEach(poi => {
             let isHighlighted = this.selectedPoiType && poi.type === this.selectedPoiType;
 
@@ -1109,7 +1127,33 @@ class App {
                 }
             }
 
-            const hasAnyHighlight = this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight;
+            const isMatched = isHighlighted || isDigitalMatch || isAccomMatch || isInfraMatch || isTreemapMatch;
+            if (isMatched) this.lastPoiMatchCount++;
+
+            markersData.push({
+                poi, isMatched, isHighlighted, isDigitalMatch, isAccomMatch, isInfraMatch, isTreemapMatch, treemapGlowColor
+            });
+        });
+
+        let targetsNetworks = false;
+        let targetsPois = true;
+        if (this.treemapHighlight && this.treemapHighlight.source === 'mini') {
+             const id = this.treemapHighlight.id;
+             const parent = this.treemapHighlight.parent;
+             const sacIds = ['SacRoot', 'Sentiers piétons', 'hiking', 'mountain_hiking', 'demanding_mountain_hiking', 'alpine_hiking', 'demanding_alpine_hiking'];
+             const cycleIds = ['CycleRoot', 'Offre cyclable', 'bicycle_routes', 'cycleways', 'tracks'];
+             if (sacIds.includes(id) || cycleIds.includes(id) || sacIds.includes(parent) || cycleIds.includes(parent)) {
+                 targetsNetworks = true;
+                 targetsPois = false;
+             }
+        }
+        this.lastFilterTargetedNetworks = targetsNetworks;
+
+        const hasActiveFilter = !!(this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight);
+        const shouldDimPois = hasActiveFilter && (targetsNetworks || this.lastPoiMatchCount > 0);
+
+        markersData.forEach(data => {
+            const { poi, isMatched, isHighlighted, isDigitalMatch, isAccomMatch, isInfraMatch, isTreemapMatch, treemapGlowColor } = data;
 
             let marker;
 
@@ -1152,8 +1196,8 @@ class App {
                 const icon = L.divIcon({ className: '', html: iconHtml, iconSize: [22, 22], iconAnchor: [11, 11] });
                 marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 400 });
             } else {
-                let opacity = hasAnyHighlight ? 0.3 : 1;
-                let fillOpacity = hasAnyHighlight ? 0.3 : 1;
+                let opacity = shouldDimPois ? 0.3 : 1;
+                let fillOpacity = shouldDimPois ? 0.3 : 1;
                 
                 // --- SUR-FRÉQUENTATION : Highlight special palette ---
                 let overOpaque = false;
