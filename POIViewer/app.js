@@ -1085,16 +1085,26 @@ class App {
             if (this.treemapHighlight) {
                 const { id, parent, source } = this.treemapHighlight;
                 if (source === 'main') {
-                    if (id === 'All') {
+                    if (id === 'All' || id === 'Total') {
                         isTreemapMatch = true;
-                    } else if (parent === 'All') { // Category
-                        if (poi.category === id) {
+                    } else if (parent === 'All' || parent === 'Total') { // Category
+                        // Check if it matches raw ID ('tourism'), translated ID ('Tourisme'), or label with emoji ('📸 Tourisme')
+                        const catDef = this.uiRenderer.categories ? this.uiRenderer.categories.find(c => c.id === poi.category) : null;
+                        const labelNoEmoji = catDef ? catDef.label : poi.category;
+                        const labelWithEmoji = catDef ? `${catDef.emoji} ${labelNoEmoji}` : poi.category;
+                        
+                        if (poi.category === id || labelNoEmoji === id || labelWithEmoji === id || id.includes(labelNoEmoji)) {
                             isTreemapMatch = true;
                             treemapGlowColor = this.uiRenderer.getCategoryColor(poi.category);
                         }
                     } else if (parent !== '') { // Type
-                        const [cat, type] = id.split('__');
-                        if (poi.category === cat && poi.type === type) {
+                        const parts = id.split('__');
+                        if (parts.length === 2 && poi.category === parts[0] && poi.type === parts[1]) {
+                            isTreemapMatch = true;
+                            treemapGlowColor = this.uiRenderer.getCategoryColor(poi.category);
+                        } else if (poi.type === id || id.includes(poi.type) || (this.uiRenderer.getTypeTranslation && id.includes(this.uiRenderer.getTypeTranslation(poi.type)))) {
+                            // Fallback if ID is just the type or label
+                            // Just check if the clicked label matches the POI's type translation
                             isTreemapMatch = true;
                             treemapGlowColor = this.uiRenderer.getCategoryColor(poi.category);
                         }
