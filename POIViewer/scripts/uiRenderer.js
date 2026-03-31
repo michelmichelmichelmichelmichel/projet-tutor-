@@ -1605,6 +1605,17 @@ export class UiRenderer {
                         <span style="font-size:0.82rem;color:var(--color-text-muted);font-style:italic;">Recherche d'articles Wikivoyage...</span>
                     </div>
                 </div>
+            </div>
+            <div id="pageviews-panel">
+                <div class="ind-block" style="margin-top:6px;">
+                    <div class="ind-block__header">
+                        <span class="ind-block__title">📊 Wikipedia Pageviews</span>
+                    </div>
+                    <div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
+                        <span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>
+                        <span style="font-size:0.82rem;color:var(--color-text-muted);font-style:italic;">Analyse des pages Wikipedia...</span>
+                    </div>
+                </div>
             </div>`;
 
         // ── Collapsible Section Helper ────────────────────────────────────
@@ -2850,6 +2861,78 @@ export class UiRenderer {
                 ${langBar('English', enCount, maxCount, '#f59e0b', '🇬🇧')}
                 ${articleListHtml}
             </div>`;
+    }
+
+    updatePageviewsPanel(data) {
+        const panel = document.getElementById('pageviews-panel');
+        if (!panel) return;
+
+        const results = data?.results ?? [];
+        const totalWikiPois = data?.totalWikiPois ?? 0;
+
+        const countLabel = `<span
+            data-digital-filter="wikipedia"
+            style="font-size:0.75rem;color:var(--color-text-muted);margin-top:2px;display:block;cursor:pointer;"
+            title="Cliquer pour mettre en surbrillance les POIs avec une page Wikipedia">
+            📖 ${totalWikiPois} POI${totalWikiPois > 1 ? 's' : ''} avec page Wikipedia dans cette zone
+        </span>`;
+
+        if (results.length === 0) {
+            panel.innerHTML = `
+                <div class="ind-block" style="margin-top:6px;opacity:0.75;">
+                    <div class="ind-block__header">
+                        <span class="ind-block__title">📊 Wikipedia Pageviews</span>
+                    </div>
+                    ${countLabel}
+                    <div style="padding:6px 0;font-size:0.82rem;color:var(--color-text-muted);font-style:italic;">
+                        ${totalWikiPois > 0 ? 'Données de vues non disponibles pour cette zone' : 'Aucun POI avec page Wikipedia dans cette zone'}
+                    </div>
+                </div>`;
+            return;
+        }
+
+        const maxViews = results[0].views;
+        const totalViews = results.reduce((s, d) => s + d.views, 0);
+
+        const rows = results.slice(0, 5).map((item, idx) => {
+            const pct = maxViews > 0 ? Math.min((item.views / maxViews) * 100, 100) : 0;
+            const formattedViews = item.views.toLocaleString('fr-FR');
+            const flag = item.lang === 'fr' ? '🇫🇷' : '🇬🇧';
+            const url = `https://${item.lang}.wikipedia.org/wiki/${encodeURIComponent(item.articleTitle.replace(/ /g, '_'))}`;
+            const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+            return `
+                <div class="ind-row" style="margin-bottom:4px;">
+                    <div class="ind-row__head">
+                        <span class="ind-row__label" style="display:flex;align-items:center;gap:4px;">
+                            <span>${medal}</span>
+                            <a href="${url}" target="_blank" rel="noopener"
+                               style="color:var(--color-text-primary);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:140px;"
+                               title="${item.articleTitle}">${item.name}</a>
+                            <span style="font-size:0.7rem;opacity:0.6;">${flag}</span>
+                        </span>
+                        <span class="ind-row__val" style="color:#60a5fa;white-space:nowrap;">${formattedViews} vues</span>
+                    </div>
+                    <div class="ind-row__track">
+                        <div class="ind-row__fill" style="width:${pct}%;background:linear-gradient(90deg,rgba(96,165,250,0.4),rgba(96,165,250,1));"></div>
+                    </div>
+                </div>`;
+        }).join('');
+
+        panel.innerHTML = `
+            <div class="ind-block" style="margin-top:6px;">
+                <div class="ind-block__header">
+                    <span class="ind-block__title">📊 Wikipedia Pageviews</span>
+                    <span class="ind-block__big">${totalViews.toLocaleString('fr-FR')} <span class="ind-block__unit">vues / 3 mois</span></span>
+                </div>
+                ${countLabel}
+                <div style="font-size:0.72rem;color:var(--color-text-muted);margin:6px 0 8px;">
+                    Top ${results.slice(0, 5).length} les plus consultés
+                </div>
+                ${rows}
+            </div>`;
+
+        // Re-bind digital filter clicks to include the new wikipedia element
+        if (this.macroStats) this._bindDigitalFilterClicks();
     }
 
     /** Build all OSM info rows from poi.tags */

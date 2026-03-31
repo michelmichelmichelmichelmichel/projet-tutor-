@@ -24,7 +24,7 @@ class App {
         this.activeZone = null; // Contexte de la zone administrative active
         this.currentAreaKm2 = 0;
         this.currentWikivoyageData = null; // Cache des données Wikivoyage
-        this.heatmapVisibility = { 
+        this.heatmapVisibility = {
             accommodation: false, pedestrian: false, cycling: false,
             overtourism_cities: false, overtourism_pois: false
         };
@@ -244,11 +244,11 @@ class App {
                 if (source === 'mini') {
                     const sacIds = ['SacRoot', 'Sentiers piétons', 'hiking', 'mountain_hiking', 'demanding_mountain_hiking', 'alpine_hiking', 'demanding_alpine_hiking'];
                     const cycleIds = ['CycleRoot', 'Offre cyclable', 'bicycle_routes', 'cycleways', 'tracks'];
-                    
+
                     if (sacIds.includes(id) || cycleIds.includes(id) || sacIds.includes(parent) || cycleIds.includes(parent)) {
                         const selectedCats = this.uiRenderer.getSelectedPathCategories ? this.uiRenderer.getSelectedPathCategories() : [];
                         const showAll = selectedCats.length === 0 || selectedCats.includes('all');
-                        
+
                         if (!showAll) {
                             let expectedCats = [];
                             if (sacIds.includes(id) || sacIds.includes(parent)) {
@@ -262,7 +262,7 @@ class App {
                                 else if (id === 'tracks') expectedCats = ['tracks'];
                                 else expectedCats = ['bicycle_routes', 'cycleways', 'tracks'];
                             }
-                            
+
                             const isVisible = expectedCats.some(cat => selectedCats.includes(cat));
                             if (!isVisible && expectedCats.length > 0) {
                                 this.uiRenderer.showToast("Tracé masqué : Cochez ce type dans le menu 'Chemins' pour l'afficher sur la carte.", "warning", 5000);
@@ -376,7 +376,7 @@ class App {
         this.mapManager.clearNeighborZones();
         this.mapManager.clearSelectionMarker();
         this.mapManager.clearHeatmapLayers();
-        
+
         // Redraw overtourism heatmaps if active (they are global)
         if (this.heatmapVisibility.overtourism_cities || this.heatmapVisibility.overtourism_pois) {
             this.updateOvertourismHeatmaps();
@@ -438,11 +438,11 @@ class App {
                 // This ensures sub-categories are always populated regardless of active filters
                 const { pois, networks } = await this.apiService.fetchPOIs(latLngs, []);
                 this.currentPOIs = pois;
-                
+
                 // Pré-calcul de la distance à l'arrêt le plus proche pour chaque POI
                 const isBusStop = (p) => p.type === 'bus_stop' || p.type === 'bus_station' || p.type === 'platform' || (p.tags && (p.tags.highway === 'bus_stop' || p.tags.bus === 'yes')) || p.category === 'public_transport';
                 const busStops = pois.filter(isBusStop);
-                
+
                 if (busStops.length > 0) {
                     pois.forEach(poi => {
                         if (!isBusStop(poi)) {
@@ -515,6 +515,21 @@ class App {
                         });
                 }
 
+                // --- CHARGEMENT ASYNCHRONE DES PAGEVIEWS WIKIPEDIA ---
+                {
+                    const poisSnapshot = this.currentPOIs;
+                    this.currentPageviewsData = null; // Reset cache
+                    this.apiService.fetchPageviewsForPOIs(poisSnapshot)
+                        .then(pageviewsData => {
+                            this.currentPageviewsData = pageviewsData;
+                            this.uiRenderer.updatePageviewsPanel(pageviewsData);
+                        })
+                        .catch(err => {
+                            console.warn('Erreur chargement Pageviews Wikipedia:', err);
+                            this.uiRenderer.updatePageviewsPanel(null);
+                        });
+                }
+
                 // On met à jour la liste du panneau de droite !
                 this.uiRenderer.renderMicroList(filteredPOIs);
                 // --- CHARGEMENT ASYNCHRONE DE LA DÉMOGRAPHIE ---
@@ -557,6 +572,7 @@ class App {
 
                                     this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null, currentZone.population || null);
                                     if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
+                                    if (this.currentPageviewsData !== undefined) this.uiRenderer.updatePageviewsPanel(this.currentPageviewsData);
                                     this.uiRenderer.renderSparkline();
                                 } catch (err) {
                                     console.error("Erreur lors de l'affichage final de la macro:", err);
@@ -695,7 +711,7 @@ class App {
 
             if (this.treemapHighlight && this.treemapHighlight.source === 'mini') {
                 const { id } = this.treemapHighlight;
-                
+
                 // Sentiers piétons
                 if (id === 'SacRoot' || id === 'Sentiers piétons') {
                     if (net.tags?.sac_scale && sacLabels[net.tags.sac_scale]) isNetworkHighlighted = true;
@@ -1012,6 +1028,7 @@ class App {
                 if (this.digitalHighlight === 'website' && poi.digital.hasWebsite) isDigitalMatch = true;
                 if (this.digitalHighlight === 'social' && poi.digital.hasSocialMedia) isDigitalMatch = true;
                 if (this.digitalHighlight === 'all' && (poi.digital.hasWebsite || poi.digital.hasSocialMedia)) isDigitalMatch = true;
+                if (this.digitalHighlight === 'wikipedia' && poi.tags && poi.tags.wikipedia) isDigitalMatch = true;
             }
 
             // Accommodation highlight
@@ -1092,7 +1109,7 @@ class App {
                         const catDef = this.uiRenderer.categories ? this.uiRenderer.categories.find(c => c.id === poi.category) : null;
                         const labelNoEmoji = catDef ? catDef.label : poi.category;
                         const labelWithEmoji = catDef ? `${catDef.emoji} ${labelNoEmoji}` : poi.category;
-                        
+
                         if (poi.category === id || labelNoEmoji === id || labelWithEmoji === id || id.includes(labelNoEmoji)) {
                             isTreemapMatch = true;
                             treemapGlowColor = this.uiRenderer.getCategoryColor(poi.category);
@@ -1148,14 +1165,14 @@ class App {
         let targetsNetworks = false;
         let targetsPois = true;
         if (this.treemapHighlight && this.treemapHighlight.source === 'mini') {
-             const id = this.treemapHighlight.id;
-             const parent = this.treemapHighlight.parent;
-             const sacIds = ['SacRoot', 'Sentiers piétons', 'hiking', 'mountain_hiking', 'demanding_mountain_hiking', 'alpine_hiking', 'demanding_alpine_hiking'];
-             const cycleIds = ['CycleRoot', 'Offre cyclable', 'bicycle_routes', 'cycleways', 'tracks'];
-             if (sacIds.includes(id) || cycleIds.includes(id) || sacIds.includes(parent) || cycleIds.includes(parent)) {
-                 targetsNetworks = true;
-                 targetsPois = false;
-             }
+            const id = this.treemapHighlight.id;
+            const parent = this.treemapHighlight.parent;
+            const sacIds = ['SacRoot', 'Sentiers piétons', 'hiking', 'mountain_hiking', 'demanding_mountain_hiking', 'alpine_hiking', 'demanding_alpine_hiking'];
+            const cycleIds = ['CycleRoot', 'Offre cyclable', 'bicycle_routes', 'cycleways', 'tracks'];
+            if (sacIds.includes(id) || cycleIds.includes(id) || sacIds.includes(parent) || cycleIds.includes(parent)) {
+                targetsNetworks = true;
+                targetsPois = false;
+            }
         }
         this.lastFilterTargetedNetworks = targetsNetworks;
 
@@ -1179,7 +1196,7 @@ class App {
                 marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 500 });
             } else if (this.digitalHighlight && isDigitalMatch) {
                 // Highlighted via digital filter — glowing marker
-                const digitalColors = { website: '#34d399', social: '#ec4899', all: '#38bdf8' };
+                const digitalColors = { website: '#34d399', social: '#ec4899', all: '#38bdf8', wikipedia: '#a78bfa' };
                 const glowColor = digitalColors[this.digitalHighlight] || '#38bdf8';
                 const iconHtml = `<div class="poi-digital-highlight" style="--glow-color: ${glowColor}">${this.uiRenderer.getCategoryEmoji(poi.category)}</div>`;
                 const icon = L.divIcon({
@@ -1208,7 +1225,7 @@ class App {
             } else {
                 let opacity = shouldDimPois ? 0.3 : 1;
                 let fillOpacity = shouldDimPois ? 0.3 : 1;
-                
+
                 // --- SUR-FRÉQUENTATION : Highlight special palette ---
                 let overOpaque = false;
                 let overColor = null;
@@ -1255,7 +1272,7 @@ class App {
                 }, 1600);
             });
 
-            // Marker tooltip is fine, but click should do more now
+            // Bind original tooltip
             marker.bindTooltip(`<b>${this.uiRenderer.getCategoryEmoji(poi.category)} ${poi.name}</b><br>${poi.type}`, { direction: 'top' });
             this.mapManager.markerGroup.addLayer(marker);
         });

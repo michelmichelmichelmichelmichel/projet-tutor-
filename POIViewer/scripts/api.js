@@ -1486,4 +1486,96 @@ export class ApiService {
             totalUnique: allTitles.size
         };
     }
+
+    /**
+     * Récupère le nombre de vues d'un article Wikipedia sur les 3 derniers mois.
+     * Timeout de 2 secondes par requête. Cache en mémoire pour éviter les doublons.
+     */
+    async fetchWikipediaPageviews(articleTitle, lang = 'fr') {
+        // Cache en mémoire
+        if (!this._pageviewsCache) this._pageviewsCache = new Map();
+        const cacheKey = `${lang}:${articleTitle}`;
+        if (this._pageviewsCache.has(cacheKey)) return this._pageviewsCache.get(cacheKey);
+
+        const now = new Date();
+        const end = now.toISOString().slice(0, 7).replace('-', '') + '01';
+        const start3m = new Date(now);
+        start3m.setMonth(start3m.getMonth() - 3);
+        const start = start3m.toISOString().slice(0, 7).replace('-', '') + '01';
+
+        const encodedTitle = encodeURIComponent(articleTitle.replace(/ /g, '_'));
+        const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/${lang}.wikipedia/all-access/user/${encodedTitle}/monthly/${start}00/${end}00`;
+
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 2000); // 2s timeout
+
+        try {
+            const response = await fetch(url, {
+                headers: { 'User-Agent': 'POIViewer/1.0 (projet-tutore)' },
+                signal: controller.signal
+            });
+            clearTimeout(timer);
+            if (!response.ok) { this._pageviewsCache.set(cacheKey, 0); return 0; }
+            const data = await response.json();
+            if (!data.items) { this._pageviewsCache.set(cacheKey, 0); return 0; }
+            const total = data.items.reduce((sum, item) => sum + (item.views || 0), 0);
+            this._pageviewsCache.set(cacheKey, total);
+            return total;
+        } catch (e) {
+            clearTimeout(timer);
+            this._pageviewsCache.set(cacheKey, 0);
+            return 0;
+        }
+    }
+
+    /**
+     * Récupère et classe les pageviews Wikipedia pour les POIs de la liste.
+     * Limité à 3 POIs et à 5 secondes globales maximum.
+     */
+    async fetchPageviewsForPOIs(pois) {
+        const withWiki = pois
+            .filter(p => p.tags && p.tags.wikipedia)
+            .map(p => {
+                const raw = p.tags.wikipedia;
+                const colonIdx = raw.indexOf(':');
+                const lang = colonIdx > 0 ? raw.slice(0, colonIdx) : 'fr';
+                const title = colonIdx > 0 ? raw.slice(colonIdx + 1) : raw;
+                return { name: p.name || title, lang, articleTitle: title };
+            });
+
+        if (withWiki.length === 0) return { results: [], totalWikiPois: 0 };
+
+        // Dédupliquer par titre
+        const seen = new Set();
+        const unique = withWiki.filter(p => {
+            const key = `${p.lang}:${p.articleTitle}`;
+            if (seen.has(key)) return false;
+            seen.add(key);
+            return true;
+        });
+
+        const totalWikiPois = withWiki.length; // Total POIs with the tag (before deduplication)
+
+        // Limiter à 3 POIs maximum pour minimiser les délais
+        const candidates = unique.slice(0, 3);
+
+        // Timeout global de 5s
+        const globalTimeout = new Promise(resolve => setTimeout(() => resolve(null), 5000));
+
+        const fetchAll = Promise.all(
+            candidates.map(async (p) => {
+                const views = await this.fetchWikipediaPageviews(p.articleTitle, p.lang);
+                return { ...p, views };
+            })
+        );
+
+        const results = await Promise.race([fetchAll, globalTimeout]);
+
+        if (!results) return { results: [], totalWikiPois };
+
+        return {
+            results: results.filter(r => r.views > 0).sort((a, b) => b.views - a.views),
+            totalWikiPois
+        };
+    }
 }
