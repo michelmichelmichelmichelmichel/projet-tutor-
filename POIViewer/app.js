@@ -728,8 +728,7 @@ class App {
         const selectedCategories = this.uiRenderer.getSelectedPathCategories ? this.uiRenderer.getSelectedPathCategories() : [];
         const showAll = selectedCategories.length === 0 || selectedCategories.includes('all');
 
-        const hasActiveFilter = !!(this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight);
-
+        const hasActiveFilter = !!(this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight);
         const sacLabels = {
             'hiking': 'Randonnée (T1)', 'mountain_hiking': 'Montagne (T2)',
             'demanding_mountain_hiking': 'Montagne exigeante (T3)',
@@ -1078,7 +1077,8 @@ class App {
             }
         }
         pois.forEach(poi => {
-            let isHighlighted = this.selectedPoiType && poi.type === this.selectedPoiType;
+            // On ne met en surbrillance QUE le POI spécifiquement cliqué
+            let isHighlighted = this.selectedPoi && poi.id === this.selectedPoi.id;
 
             // Digital highlight: is this POI matching the current digital filter?
             let isDigitalMatch = false;
@@ -1233,8 +1233,7 @@ class App {
             }
         }
         this.lastFilterTargetedNetworks = targetsNetworks;
-
-        const hasActiveFilter = !!(this.selectedPoiType || this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight);
+        const hasActiveFilter = !!(this.digitalHighlight || this.accomHighlight || this.infraHighlight || this.treemapHighlight);
         const shouldDimPois = hasActiveFilter && (targetsNetworks || this.lastPoiMatchCount > 0);
 
         markersData.forEach(data => {
