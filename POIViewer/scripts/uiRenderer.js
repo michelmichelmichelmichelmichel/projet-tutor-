@@ -1436,20 +1436,13 @@ export class UiRenderer {
         if (inseeStats) {
             const totalBeds = inseeStats.hotel_beds + inseeStats.camping_beds + inseeStats.collective_beds;
             const maxBeds = Math.max(inseeStats.hotel_beds, inseeStats.camping_beds, inseeStats.collective_beds, 1);
-            let starsHtml = Object.entries(inseeStats.hotel_stars).filter(([k, v]) => v > 0)
-                .map(([k, v]) => `<span class="kpi-star-badge">${k === 'NC' ? 'NC' : k + '★'} ${v}</span>`).join('')
-                || '<span class="kpi-sub">Aucun classement</span>';
             const starEntries = Object.entries(inseeStats.hotel_stars)
-                .filter(([, value]) => value > 0)
-                .sort(([a], [b]) => {
-                    const aRank = a === 'NC' ? -1 : Number(a);
-                    const bRank = b === 'NC' ? -1 : Number(b);
-                    return bRank - aRank;
-                });
-            starsHtml = starEntries.length > 0
+                .filter(([rank, value]) => value > 0 && rank !== 'NC')
+                .sort(([a], [b]) => Number(b) - Number(a));
+
+            let starsHtml = starEntries.length > 0
                 ? `<div class="kpi-stars__title">Classement des hotels</div>${starEntries.map(([rank, count]) => {
-                    const isUnclassified = rank === 'NC';
-                    const tierText = isUnclassified ? 'NC' : '★'.repeat(Number(rank));
+                    const tierText = '★'.repeat(Number(rank));
                     const countText = `${count} hotel${count > 1 ? 's' : ''}`;
                     return `
                         <div class="kpi-star-badge kpi-star-badge--clickable" data-accom-filter="star-${rank}" title="Mettre en surbrillance sur la carte">
