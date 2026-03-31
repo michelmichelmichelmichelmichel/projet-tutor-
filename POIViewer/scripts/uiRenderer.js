@@ -1307,7 +1307,7 @@ export class UiRenderer {
             });
         }
     }
-    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null) {
+    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null, population = null) {
         const total = pois.length;
 
         // ── Calcul des KPI hébergement & sentiers (toujours, même si pois filtrés = 0) ──
@@ -1600,19 +1600,21 @@ export class UiRenderer {
         // ── Densité Heatmap ────────────────────────────────────────────────
         let densityHtml = '';
         if (areaKm2 > 0) {
-            const accomDensity = accommodationCount / areaKm2;
-            const pedDensity = pedestrianTrailCount / areaKm2;
-            const cycleDensity = cyclingTrailCount / areaKm2;
-            const maxDensity = Math.max(accomDensity, pedDensity, cycleDensity, 0.1);
+            const bestTotalBeds = inseeStats ? (inseeStats.hotel_beds + inseeStats.camping_beds + inseeStats.collective_beds) : totalBeds;
+            const touristCapacity = (population && population > 0) ? (bestTotalBeds / population) * 100 : null;
 
-            const densityBar = (label, value, color, colorRgb, heatType) => {
-                const pct = Math.min((value / maxDensity) * 100, 100);
-                const formatted = value < 0.01 ? value.toExponential(1) : value.toFixed(2);
+            const pedDensity = (pedestrianTrailCount / areaKm2);
+            const cycleDensity = (cyclingTrailCount / areaKm2);
+            const maxPathDensity = Math.max(pedDensity, cycleDensity, 0.1);
+
+            const indicatorBar = (label, value, max, color, colorRgb, heatType, suffix = ' / km²') => {
+                const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+                const formatted = value < 0.01 && value > 0 ? value.toExponential(1) : value.toFixed(2);
                 return `
                     <div class="density-bar density-bar--clickable" data-heatmap-trigger="${heatType}" title="Afficher/masquer la heatmap">
                         <div class="density-bar__header">
                             <span class="density-bar__label">${label}</span>
-                            <span class="density-bar__value" style="color:${color};">${formatted} <span class="density-bar__unit">/ km²</span></span>
+                            <span class="density-bar__value" style="color:${color};">${formatted} <span class="density-bar__unit">${suffix}</span></span>
                         </div>
                         <div class="density-bar__track">
                             <div class="density-bar__fill" style="width:${pct}%;background:linear-gradient(90deg,rgba(${colorRgb},0.4),rgba(${colorRgb},1));"></div>
@@ -1620,15 +1622,19 @@ export class UiRenderer {
                     </div>`;
             };
 
+            const touristCapacityHtml = touristCapacity !== null 
+                ? indicatorBar('Capacité d\'accueil', touristCapacity, 100, '#a78bfa', '167,139,250', 'accommodation', ' lits / 100 hab.')
+                : indicatorBar('Hébergements', (accommodationCount / areaKm2), (accommodationCount / areaKm2), '#a78bfa', '167,139,250', 'accommodation');
+
             densityHtml = `
                 <div id="density-heatmap-panel" class="density-panel">
                     <div class="density-panel__title">
-                        <span>Densite par km²</span>
+                        <span>Indicateurs territoriaux</span>
                         <span class="density-bar__unit">Surface : ${areaKm2.toFixed(1)} km²</span>
                     </div>
-                    ${densityBar('Hebergements', accomDensity, '#a78bfa', '167,139,250', 'accommodation')}
-                    ${densityBar('Sentiers pietons', pedDensity, '#34d399', '5,150,105', 'pedestrian')}
-                    ${densityBar('Pistes cyclables', cycleDensity, '#60a5fa', '59,130,246', 'cycling')}
+                    ${touristCapacityHtml}
+                    ${indicatorBar('Sentiers piétons', pedDensity, maxPathDensity, '#34d399', '5,150,105', 'pedestrian')}
+                    ${indicatorBar('Pistes cyclables', cycleDensity, maxPathDensity, '#60a5fa', '59,130,246', 'cycling')}
                     <div class="heatmap-toggles">
                         <div class="heatmap-toggles__title">Heatmap sur la carte</div>
                         <div class="heatmap-toggles__row">

@@ -131,7 +131,7 @@ class App {
             this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null);
                 if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
@@ -175,7 +175,7 @@ class App {
             this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats());
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null);
                 if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
@@ -490,7 +490,7 @@ class App {
                 }
 
                 // Update UI (Macro Stats) - Affiche les POIs, chemins, et soit la démo en cache, soit le spinner
-                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null);
+                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null);
 
                 // Construire et afficher les heatmaps
                 this.updateHeatmaps();
@@ -555,7 +555,7 @@ class App {
                                         </div>
                                     `;
 
-                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null);
+                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null, currentZone.population || null);
                                     if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                                     this.uiRenderer.renderSparkline();
                                 } catch (err) {
