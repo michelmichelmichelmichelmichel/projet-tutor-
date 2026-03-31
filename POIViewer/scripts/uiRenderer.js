@@ -1202,7 +1202,11 @@ export class UiRenderer {
                         <div class="demo-kpi__pct" style="color:${color};">${sign}${percent}%</div>
                         <div class="demo-kpi__since">depuis ${previous.year}</div>
                     </div>`;
-                sparklineHtml = `<div id="sparkline-container" style="width:100px;height:40px;margin-left:16px;"></div>`;
+                sparklineHtml = `
+                    <div style="display:flex; flex-direction:column; align-items:flex-end;">
+                        <button id="maximize-demo-btn" class="maximize-btn" style="margin-bottom:4px; font-size:0.65rem; padding:2px 6px;">⤢ Agrandir</button>
+                        <div id="sparkline-container" style="width:100px;height:40px;margin-left:16px;"></div>
+                    </div>`;
             }
         } else if (osmPopulation) {
             displayedPopulation = osmPopulation.toLocaleString('fr-FR');
@@ -1270,6 +1274,38 @@ export class UiRenderer {
         const config = { staticPlot: false, displayModeBar: false, responsive: true };
 
         Plotly.newPlot(container, data, layout, config);
+
+        const maxBtn = document.getElementById('maximize-demo-btn');
+        if (maxBtn) {
+            const fullLayout = {
+                title: 'Évolution démographique locale',
+                margin: { t: 50, b: 50, l: 60, r: 30 },
+                paper_bgcolor: 'rgba(0,0,0,0)',
+                plot_bgcolor: 'rgba(0,0,0,0)',
+                font: { family: 'Outfit, sans-serif', color: '#fff', size: 14 },
+                xaxis: { title: 'Année de recensement', gridcolor: 'rgba(255,255,255,0.08)', tickfont: { color: '#aaa' } },
+                yaxis: { title: 'Nombre d\'habitants', gridcolor: 'rgba(255,255,255,0.08)', tickfont: { color: '#aaa' }, rangemode: 'tozero' },
+                hovermode: 'x unified',
+                hoverlabel: {
+                    bgcolor: 'rgba(5,10,18,0.92)', bordercolor: 'rgba(255,255,255,0.14)', font: { family: 'Outfit, sans-serif', color: '#fff' }
+                }
+            };
+            const fullData = [{
+                x: xValues, y: yValues,
+                type: 'scatter', mode: 'lines+markers+text',
+                line: { color: lineColor, width: 4, shape: 'spline' },
+                marker: { size: 9, color: '#fff', line: { color: lineColor, width: 2 } },
+                fill: 'tozeroy', fillcolor: lineColor + '22',
+                name: 'Population',
+                text: yValues.map(v => v.toLocaleString('fr-FR')),
+                textposition: 'top center',
+                textfont: { color: 'rgba(255,255,255,0.7)', size: 11 }
+            }];
+            
+            maxBtn.addEventListener('click', () => {
+                this._toggleFullScreenChart(fullData, fullLayout);
+            });
+        }
     }
     renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null) {
         const total = pois.length;
