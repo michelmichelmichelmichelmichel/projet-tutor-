@@ -380,7 +380,7 @@ export class MapManager {
      * Met à jour les heatmaps spécifiques à la sur-fréquentation.
      * Distingue les villes et les POIs avec des palettes distinctes.
      */
-    updateOvertourismHeatmaps(overtourismData, visibility) {
+    updateOvertourismHeatmaps(overtourismData, visibility, activeZone = null) {
         if (!this._overLayers) this._overLayers = {};
 
         // Supprimer les anciennes couches de sur-fréquentation
@@ -389,28 +389,64 @@ export class MapManager {
         }
         this._overLayers = {};
 
+        // Restore active polygon style simply if heatmap is disabled
+        if (this.activePolygon && !visibility.overtourism_cities) {
+            const defaultColor = document.getElementById('polygon-color-picker') ? document.getElementById('polygon-color-picker').value : '#3388ff';
+            this.activePolygon.setStyle({
+                fillColor: defaultColor, fillOpacity: 0.1, color: defaultColor, weight: 3
+            });
+        }
+
         if (!overtourismData) return;
 
-        // Config pour les Villes (Gamme de Bleus / Cyan)
+        // Config pour les Villes (Gamme Jaune -> Rouge)
         if (visibility.overtourism_cities && overtourismData.municipalities) {
             const points = overtourismData.municipalities.map(m => [m.lat, m.lng, m.intensity]);
             this._overLayers.cities = L.heatLayer(points, {
-                radius: 35,
+                radius: 40,
                 maxZoom: 15,
                 gradient: {
-                    0.1: '#bae6fd', // light blue
-                    0.2: '#7dd3fc',
-                    0.3: '#38bdf8',
-                    0.4: '#0ea5e9',
-                    0.5: '#2563eb',
-                    0.6: '#1d4ed8',
-                    0.7: '#1e40af',
-                    0.8: '#1e3a8a',
-                    0.9: '#172554',
-                    1.0: '#020617'  // Slate 950 (Extremely dense)
+                    0.2: '#fef08a', // Yellow
+                    0.4: '#facc15', // Amber
+                    0.6: '#f97316', // Orange
+                    0.8: '#ef4444', // Red
+                    1.0: '#991b1b'  // Dark Red
                 },
                 minOpacity: 0.4
             }).addTo(this.map);
+
+            // COLOR THE ACTIVE POLYGON
+            if (this.activePolygon && activeZone) {
+                let intensity = 0;
+                if (activeZone.type === 'commune') {
+                    const match = overtourismData.municipalities.find(m =>
+                        (activeZone.name && m.name && m.name.toLowerCase() === activeZone.name.toLowerCase()) ||
+                        (activeZone.lat && Math.abs(m.lat - activeZone.lat) < 0.05 && Math.abs(m.lng - activeZone.lng) < 0.05)
+                    );
+                    if (match) intensity = match.intensity;
+                } else {
+                    const mapBounds = this.map.getBounds();
+                    const visibleMunis = overtourismData.municipalities.filter(m => mapBounds.contains([m.lat, m.lng]));
+                    if (visibleMunis.length > 0) {
+                        intensity = visibleMunis.reduce((sum, m) => sum + m.intensity, 0) / visibleMunis.length;
+                    }
+                }
+
+                // Interpolate color from yellow to red
+                let hexColor = '#facc15'; // default yellow
+                if (intensity > 0.8) hexColor = '#991b1b';
+                else if (intensity > 0.6) hexColor = '#ef4444';
+                else if (intensity > 0.4) hexColor = '#f97316';
+                else if (intensity > 0.2) hexColor = '#facc15';
+                else hexColor = '#fef08a';
+
+                this.activePolygon.setStyle({
+                    fillColor: hexColor,
+                    fillOpacity: 0.55,
+                    color: hexColor,
+                    weight: 3
+                });
+            }
         }
 
         // Config pour les POIs individels (Gamme de Jaunes -> Oranges -> Rouges -> Marron foncé)

@@ -651,7 +651,7 @@ class App {
     updateOvertourismHeatmaps() {
         const bounds = this.mapManager.map.getBounds();
         const overData = this.apiService.getOvertourismData(bounds);
-        this.mapManager.updateOvertourismHeatmaps(overData, this.heatmapVisibility);
+        this.mapManager.updateOvertourismHeatmaps(overData, this.heatmapVisibility, this.activeZone);
     }
 
     renderNetworks(networks) {
