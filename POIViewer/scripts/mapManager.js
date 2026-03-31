@@ -209,6 +209,8 @@ export class MapManager {
         this.drawnItems.addLayer(layer);
         this.map.fitBounds(bounds);
 
+        this.activePolygon = layer;
+
         return layer;
     }
 
@@ -227,6 +229,8 @@ export class MapManager {
 
         const bounds = layer.getBounds();
         this.map.fitBounds(bounds);
+
+        this.activePolygon = layer;
 
         return layer;
     }
@@ -426,7 +430,48 @@ export class MapManager {
 
         // Config pour les Villes (Gamme Jaune -> Rouge)
         if (visibility.overtourism_cities && overtourismData.municipalities) {
-            const points = overtourismData.municipalities.map(m => [m.lat, m.lng, m.intensity]);
+            let heatmapPoints = overtourismData.municipalities;
+            let match = null;
+
+            // COLOR THE ACTIVE POLYGON
+            if (this.activePolygon && activeZone) {
+                let intensity = 0;
+                if (activeZone.type === 'commune') {
+                    match = overtourismData.municipalities.find(m =>
+                        (activeZone.name && m.name && m.name.toLowerCase() === activeZone.name.toLowerCase()) ||
+                        (activeZone.lat && Math.abs(m.lat - activeZone.lat) < 0.05 && Math.abs(m.lng - activeZone.lng) < 0.05)
+                    );
+                    if (match) {
+                        intensity = match.intensity;
+                        heatmapPoints = overtourismData.municipalities.filter(m => m !== match);
+                    }
+                } else {
+                    const mapBounds = this.map.getBounds();
+                    const visibleMunis = overtourismData.municipalities.filter(m => mapBounds.contains([m.lat, m.lng]));
+                    if (visibleMunis.length > 0) {
+                        intensity = visibleMunis.reduce((sum, m) => sum + m.intensity, 0) / visibleMunis.length;
+                    }
+                }
+
+                if (intensity > 0) {
+                    // Interpolate color from yellow to red
+                    let hexColor = '#facc15'; // default yellow
+                    if (intensity > 0.8) hexColor = '#991b1b';
+                    else if (intensity > 0.6) hexColor = '#ef4444';
+                    else if (intensity > 0.4) hexColor = '#f97316';
+                    else if (intensity > 0.2) hexColor = '#facc15';
+                    else hexColor = '#fef08a';
+
+                    this.activePolygon.setStyle({
+                        fillColor: hexColor,
+                        fillOpacity: 0.55,
+                        color: hexColor,
+                        weight: 3
+                    });
+                }
+            }
+
+            const points = heatmapPoints.map(m => [m.lat, m.lng, m.intensity]);
             this._overLayers.cities = L.heatLayer(points, {
                 radius: 40,
                 maxZoom: 15,
@@ -439,39 +484,6 @@ export class MapManager {
                 },
                 minOpacity: 0.4
             }).addTo(this.map);
-
-            // COLOR THE ACTIVE POLYGON
-            if (this.activePolygon && activeZone) {
-                let intensity = 0;
-                if (activeZone.type === 'commune') {
-                    const match = overtourismData.municipalities.find(m =>
-                        (activeZone.name && m.name && m.name.toLowerCase() === activeZone.name.toLowerCase()) ||
-                        (activeZone.lat && Math.abs(m.lat - activeZone.lat) < 0.05 && Math.abs(m.lng - activeZone.lng) < 0.05)
-                    );
-                    if (match) intensity = match.intensity;
-                } else {
-                    const mapBounds = this.map.getBounds();
-                    const visibleMunis = overtourismData.municipalities.filter(m => mapBounds.contains([m.lat, m.lng]));
-                    if (visibleMunis.length > 0) {
-                        intensity = visibleMunis.reduce((sum, m) => sum + m.intensity, 0) / visibleMunis.length;
-                    }
-                }
-
-                // Interpolate color from yellow to red
-                let hexColor = '#facc15'; // default yellow
-                if (intensity > 0.8) hexColor = '#991b1b';
-                else if (intensity > 0.6) hexColor = '#ef4444';
-                else if (intensity > 0.4) hexColor = '#f97316';
-                else if (intensity > 0.2) hexColor = '#facc15';
-                else hexColor = '#fef08a';
-
-                this.activePolygon.setStyle({
-                    fillColor: hexColor,
-                    fillOpacity: 0.55,
-                    color: hexColor,
-                    weight: 3
-                });
-            }
         }
 
         // Config pour les POIs individels (Gamme de Jaunes -> Oranges -> Rouges -> Marron foncé)
