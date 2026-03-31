@@ -2479,3 +2479,11 @@ body {
         transform: scale(1.1);
     }
 }
+
+/* ============================================
+   OVERTOURISM HEATMAP GRADIENT EFFECT
+   ============================================ */
+.overtourism-gradient-polygon {
+    filter: blur(14px);
+    transition: filter 0.3s ease;
+}

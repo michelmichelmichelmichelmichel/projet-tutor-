@@ -203,14 +203,16 @@ export class ApiService {
     getOvertourismData(bounds) {
         if (!this.overtourismData) return { municipalities: [], pois: [] };
 
-        const allMuni = [
-            ...(this.overtourismData.municipalities_64 || []),
-            ...(this.overtourismData.municipalities_65 || [])
-        ];
-        const allPois = [
-            ...(this.overtourismData.pois_64 || []),
-            ...(this.overtourismData.pois_65 || [])
-        ];
+        const allMuni = [];
+        const allPois = [];
+
+        Object.keys(this.overtourismData).forEach(key => {
+            if (key.startsWith('municipalities_')) {
+                allMuni.push(...this.overtourismData[key]);
+            } else if (key.startsWith('pois_')) {
+                allPois.push(...this.overtourismData[key]);
+            }
+        });
 
         // Si on a des bounds, on peut filtrer géographiquement
         if (bounds) {
@@ -244,10 +246,23 @@ export class ApiService {
     async fetchOvertourismContours() {
         if (this._overtourismContours) return this._overtourismContours;
 
-        const deptCodes = ['64', '65'];
+        const deptCodes = new Set();
+        if (this.overtourismData) {
+            Object.keys(this.overtourismData).forEach(key => {
+                const match = key.match(/^municipalities_([0-9A-Za-z]+)$/);
+                if (match) {
+                    deptCodes.add(match[1]);
+                }
+            });
+        }
+        if (deptCodes.size === 0) {
+            deptCodes.add('64');
+            deptCodes.add('65');
+        }
+
         const contoursMap = new Map();
 
-        await Promise.all(deptCodes.map(async (deptCode) => {
+        await Promise.all(Array.from(deptCodes).map(async (deptCode) => {
             try {
                 const url = `https://geo.api.gouv.fr/departements/${deptCode}/communes?fields=nom,code&format=geojson&geometry=contour`;
                 const response = await fetch(url);

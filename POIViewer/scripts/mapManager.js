@@ -462,14 +462,14 @@ export class MapManager {
                 const hexColor = this._getOvertourismColor(m.intensity);
 
                 if (geometry) {
-                    // Dessiner le polygone communal avec aplat de couleur
+                    // Dessiner le polygone communal avec aplat de couleur et effet de dégradé
                     const geoLayer = L.geoJSON(geometry, {
                         style: {
                             fillColor: hexColor,
-                            fillOpacity: 0.55,
-                            color: hexColor,
-                            weight: 1.5,
-                            opacity: 0.8
+                            fillOpacity: 0.65,
+                            color: 'transparent',
+                            weight: 0,
+                            className: 'overtourism-gradient-polygon'
                         }
                     });
 
