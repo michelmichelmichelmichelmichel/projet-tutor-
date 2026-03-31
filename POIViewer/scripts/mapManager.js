@@ -341,6 +341,31 @@ export class MapManager {
             this.selectionMarker = null;
         }
     }
+    
+    /**
+     * Dessine une ligne pointillée entre le POI et l'arrêt de transport.
+     * @param {Array} poiCoords [lat, lng]
+     * @param {Array} stopCoords [lat, lng]
+     */
+    drawTransitLine(poiCoords, stopCoords) {
+        this.clearTransitLine();
+        
+        this.transitLine = L.polyline([poiCoords, stopCoords], {
+            color: '#3b82f6', // Bright blue
+            weight: 3,
+            dashArray: '8, 8',
+            opacity: 0.8,
+            lineJoin: 'round'
+        }).addTo(this.map);
+    }
+    
+    /** Supprime la ligne de transport. */
+    clearTransitLine() {
+        if (this.transitLine) {
+            this.map.removeLayer(this.transitLine);
+            this.transitLine = null;
+        }
+    }
 
     // ── Heatmap layers ────────────────────────────────────────────────────
 

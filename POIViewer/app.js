@@ -185,6 +185,7 @@ class App {
         // Bind POI Selection (List Click)
         this.uiRenderer.onPoiSelected = (poi) => {
             this.selectedPoiType = poi.type;
+            this.selectedPoi = poi; // Mémoriser le POI sélectionné
             this.digitalHighlight = null;
             this.accomHighlight = null;
             this.infraHighlight = null;
@@ -205,6 +206,8 @@ class App {
             this.infraHighlight = null;
             this.treemapHighlight = null;
             this.selectedPoiType = null;
+            this.selectedPoi = null; // Clear specific focus
+            this.mapManager.clearTransitLine();
             this.addMarkersToMap(this.getFilteredPOIs());
         };
 
@@ -215,6 +218,8 @@ class App {
             this.infraHighlight = null;
             this.treemapHighlight = null;
             this.selectedPoiType = null;
+            this.selectedPoi = null; // Clear specific focus
+            this.mapManager.clearTransitLine();
             this.addMarkersToMap(this.getFilteredPOIs());
         };
 
@@ -360,6 +365,7 @@ class App {
         this.currentAreaKm2 = 0;
         this.currentWikivoyageData = null;
         this.selectedPoiType = null;
+        this.selectedPoi = null; // POI spécifique sélectionné (pour le trait de transport)
         this.digitalHighlight = null;
         this.accomHighlight = null;
         this.infraHighlight = null;
@@ -469,6 +475,8 @@ class App {
                 const filteredPOIs = this.getFilteredPOIs();
 
                 // Add Markers to Map (Affiche les POIs sur la carte immédiatement)
+                this.selectedPoi = null;
+                this.mapManager.clearTransitLine();
                 this.addMarkersToMap(filteredPOIs);
 
                 // --- PRÉPARATION DE L'AFFICHAGE DÉMOGRAPHIQUE ---
@@ -1018,7 +1026,16 @@ class App {
 
         const markersData = [];
         this.lastPoiMatchCount = 0;
-
+        
+        // Si un POI est sélectionné, on met à jour sa ligne de transport (au cas où le filtre a changé)
+        if (this.selectedPoi) {
+            const nearestStop = this._findNearestTransitStop(this.selectedPoi);
+            if (nearestStop) {
+                this.mapManager.drawTransitLine([this.selectedPoi.lat, this.selectedPoi.lng], [nearestStop.lat, nearestStop.lng]);
+            } else {
+                this.mapManager.clearTransitLine();
+            }
+        }
         pois.forEach(poi => {
             let isHighlighted = this.selectedPoiType && poi.type === this.selectedPoiType;
 
@@ -1264,9 +1281,14 @@ class App {
 
                 // Trigger the highlight update
                 this.selectedPoiType = poi.type;
+                this.selectedPoi = poi; // Mémoriser le POI sélectionné
+                
                 this.addMarkersToMap(this.getFilteredPOIs());
 
                 this.mapManager.zoomToLocation(poi.lat, poi.lng);
+                
+                // Le trait est dessiné via addMarkersToMap -> _findNearestTransitStop
+
                 setTimeout(() => {
                     this.mapManager.showSelectionMarker(poi.lat, poi.lng, poi.name);
                 }, 1600);
@@ -1279,6 +1301,62 @@ class App {
     }
 
     // getCategoryColor has been moved to UiRenderer
+
+    /**
+     * Trouve l'arrêt de transport le plus proche du POI donné.
+     * @param {Object} poi 
+     * @returns {Object|null}
+     */
+    _findNearestTransitStop(poi) {
+        if (!this.currentPOIs || this.currentPOIs.length === 0) return null;
+
+        const transitTypes = ['bus_stop', 'bus_station', 'platform', 'station', 'halt', 'tram_stop', 'subway_entrance', 'aerodrome', 'aeroway', 'airport'];
+        
+        // Si un filtre infra est actif, on restreint la recherche à ce filtre
+        let candidates = this.currentPOIs.filter(p => {
+            const pType = p.type || '';
+            const t = p.tags || {};
+            
+            // On vérifie si c'est un transport
+            const isTransport = transitTypes.includes(pType) || 
+                                t.bus === 'yes' || t.highway === 'bus_stop' ||
+                                t.railway === 'station' || t.railway === 'halt' ||
+                                t.aeroway === 'aerodrome';
+            
+            if (!isTransport) return false;
+
+            // Si un filtre spécifique est actif (bus, gare...), on restreint
+            if (this.infraHighlight) {
+                switch (this.infraHighlight) {
+                    case 'bus': return ['bus_stop', 'bus_station', 'platform'].includes(pType) || t.bus === 'yes' || t.highway === 'bus_stop';
+                    case 'gare': return ['station', 'halt', 'tram_stop', 'subway_entrance'].includes(pType) || t.railway === 'station' || t.railway === 'halt';
+                    case 'aeroport': return ['aerodrome', 'aeroway', 'airport'].includes(pType) || t.aeroway === 'aerodrome';
+                    case 'transport': return true; // N'importe quel transport
+                    default: return true; // On garde tout si c'est un autre filtre (ex: parking) mais on reste sur du transport
+                }
+            }
+            return true;
+        });
+
+        if (candidates.length === 0) return null;
+
+        // Calculer la distance la plus courte (Euclidienne simple car échelle locale)
+        let minDistance = Infinity;
+        let nearest = null;
+
+        const poiLatLng = L.latLng(poi.lat, poi.lng);
+
+        candidates.forEach(stop => {
+            if (stop === poi) return; // Éviter de se lier à soi-même si le POI est l'arrêt
+            const dist = poiLatLng.distanceTo(L.latLng(stop.lat, stop.lng));
+            if (dist < minDistance) {
+                minDistance = dist;
+                nearest = stop;
+            }
+        });
+
+        return nearest;
+    }
 }
 
 // Start App
