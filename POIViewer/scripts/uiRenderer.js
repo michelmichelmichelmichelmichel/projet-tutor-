@@ -1323,7 +1323,7 @@ export class UiRenderer {
                 textposition: 'top center',
                 textfont: { color: 'rgba(255,255,255,0.7)', size: 11 }
             }];
-            
+
             maxBtn.addEventListener('click', () => {
                 this._toggleFullScreenChart(fullData, fullLayout);
             });
@@ -1681,7 +1681,7 @@ export class UiRenderer {
             else if (cycleDensity < 4) cycleRating = 'Élevée';
             else cycleRating = 'Excellente';
 
-            const touristCapacityHtml = touristCapacity !== null 
+            const touristCapacityHtml = touristCapacity !== null
                 ? indicatorBar('Capacité d\'accueil', touristCapacity, 100, '#a78bfa', '167,139,250', 'accommodation', ' lits / 100 hab.', capacityRating)
                 : indicatorBar('Hébergements', (accommodationCount / areaKm2), (accommodationCount / areaKm2), '#a78bfa', '167,139,250', 'accommodation');
 
@@ -1894,14 +1894,14 @@ export class UiRenderer {
         // ── Assemble the 4 sections ────────────────────────────────────────
         const totalPoisHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">NB POIs</span><span class="ind-block__big">${totalRaw.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs trouvés</span></span></div></div>`;
         const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
-        
+
         let localisationHtml = '';
         if (hierarchy && typeof hierarchy === 'object') {
             const parts = [];
             if (hierarchy.country) parts.push(`<span class="loc-item">${hierarchy.country}</span>`);
-            if (hierarchy.region)  parts.push(`<span class="loc-item">${hierarchy.region}</span>`);
-            if (hierarchy.dept)    parts.push(`<span class="loc-item">${hierarchy.dept}</span>`);
-            if (hierarchy.city)    parts.push(`<span class="loc-item loc-item--city">${hierarchy.city}</span>`);
+            if (hierarchy.region) parts.push(`<span class="loc-item">${hierarchy.region}</span>`);
+            if (hierarchy.dept) parts.push(`<span class="loc-item">${hierarchy.dept}</span>`);
+            if (hierarchy.city) parts.push(`<span class="loc-item loc-item--city">${hierarchy.city}</span>`);
             if (parts.length > 0) {
                 localisationHtml = `
                     <div class="ind-block loc-block" style="margin-bottom:6px;">
@@ -2338,7 +2338,7 @@ export class UiRenderer {
             offerDiv.on('plotly_click', (data) => {
                 if (data.points && data.points.length > 0) {
                     const label = data.points[0].label || data.points[0].y;
-                    
+
                     if (label === 'Sentiers piétons' && this.onTreemapItemClick) {
                         this.onTreemapItemClick('SacRoot', 'SacRoot', 'mini');
                     } else if (label === 'Offre cyclable' && this.onTreemapItemClick) {
@@ -2552,11 +2552,15 @@ export class UiRenderer {
         const color = this.getCategoryColor(poi.category);
         const bgStyle = `background: ${color}33; color: ${color};`;
         let distanceHtml = '';
-        if (poi.nearestBusStopDist !== undefined) {
-            const distStr = poi.nearestBusStopDist >= 1000
-                ? (poi.nearestBusStopDist / 1000).toFixed(1) + ' km'
-                : Math.round(poi.nearestBusStopDist) + ' m';
-            distanceHtml = `<div class="poi-desc" style="margin-top:4px;"><span style="color:var(--color-primary);font-weight:600;">🚌 Arrêt à ${distStr}</span></div>`;
+        const distParts = [];
+        const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+
+        if (poi.nearestBusStopDist !== undefined) distParts.push(`🚌 ${formatDist(poi.nearestBusStopDist)}`);
+        if (poi.nearestTrainStationDist !== undefined) distParts.push(`🚉 ${formatDist(poi.nearestTrainStationDist)}`);
+        if (poi.nearestAirportDist !== undefined) distParts.push(`✈️ ${formatDist(poi.nearestAirportDist)}`);
+
+        if (distParts.length > 0) {
+            distanceHtml = `<div class="poi-desc" style="margin-top:4px; font-size:0.75rem;"><span style="color:var(--color-primary);font-weight:600;">${distParts.join(' • ')}</span></div>`;
         }
         return `
             <div class="poi-card" data-id="${poi.id}" style="border-left: 3px solid ${color}">
@@ -2991,11 +2995,15 @@ export class UiRenderer {
         rows.push(this._infoRow('Coordonnées',
             `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
 
-        if (poi.nearestBusStopDist !== undefined) {
-            const distStr = poi.nearestBusStopDist >= 1000
-                ? (poi.nearestBusStopDist / 1000).toFixed(1) + ' km'
-                : Math.round(poi.nearestBusStopDist) + ' m';
-            rows.push(this._infoRow('Transport', `Arrêt à ${distStr}`));
+        const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+        const transportParts = [];
+
+        if (poi.nearestBusStopDist !== undefined) transportParts.push(`Bus à ${formatDist(poi.nearestBusStopDist)}`);
+        if (poi.nearestTrainStationDist !== undefined) transportParts.push(`Gare à ${formatDist(poi.nearestTrainStationDist)}`);
+        if (poi.nearestAirportDist !== undefined) transportParts.push(`Aéroport à ${formatDist(poi.nearestAirportDist)}`);
+
+        if (transportParts.length > 0) {
+            rows.push(this._infoRow('Transport', transportParts.join('<br>')));
         }
 
         return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée OSM disponible.</p>';
@@ -3234,7 +3242,7 @@ export class UiRenderer {
                 if (eventData.points && eventData.points.length > 0) {
                     const point = eventData.points[0];
                     if (this.onTreemapItemClick) this.onTreemapItemClick(point.id, point.parent, source);
-                    
+
                     // Optionnel: fermer la vue plein écran après un clic ?
                     // this._closeFullScreenChart();
                 }

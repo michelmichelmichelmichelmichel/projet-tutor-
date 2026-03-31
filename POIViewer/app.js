@@ -446,22 +446,48 @@ class App {
                 this.currentPOIs = pois;
 
                 // Pré-calcul de la distance à l'arrêt le plus proche pour chaque POI
+                // Pré-calcul des distances aux points de transport les plus proches pour chaque POI
                 const isBusStop = (p) => p.type === 'bus_stop' || p.type === 'bus_station' || p.type === 'platform' || (p.tags && (p.tags.highway === 'bus_stop' || p.tags.bus === 'yes')) || p.category === 'public_transport';
-                const busStops = pois.filter(isBusStop);
+                const isTrainStation = (p) => ['station', 'halt', 'tram_stop', 'subway_entrance'].includes(p.type) || (p.tags && (p.tags.railway === 'station' || p.tags.railway === 'halt'));
+                const isAirport = (p) => ['aerodrome', 'aeroway', 'airport'].includes(p.type) || (p.tags && p.tags.aeroway === 'aerodrome');
 
-                if (busStops.length > 0) {
-                    pois.forEach(poi => {
-                        if (!isBusStop(poi)) {
-                            const poiLatLng = L.latLng(poi.lat, poi.lng);
-                            let minD = Infinity;
-                            busStops.forEach(bs => {
-                                const d = poiLatLng.distanceTo(L.latLng(bs.lat, bs.lng));
-                                if (d < minD) minD = d;
-                            });
-                            poi.nearestBusStopDist = minD;
-                        }
-                    });
-                }
+                const busStops = pois.filter(isBusStop);
+                const trainStations = pois.filter(isTrainStation);
+                const airports = pois.filter(isAirport);
+
+                pois.forEach(poi => {
+                    const poiLatLng = L.latLng(poi.lat, poi.lng);
+
+                    // Distance Bus
+                    if (!isBusStop(poi) && busStops.length > 0) {
+                        let minD = Infinity;
+                        busStops.forEach(bs => {
+                            const d = poiLatLng.distanceTo(L.latLng(bs.lat, bs.lng));
+                            if (d < minD) minD = d;
+                        });
+                        if (minD !== Infinity) poi.nearestBusStopDist = minD;
+                    }
+
+                    // Distance Gare
+                    if (!isTrainStation(poi) && trainStations.length > 0) {
+                        let minD = Infinity;
+                        trainStations.forEach(ts => {
+                            const d = poiLatLng.distanceTo(L.latLng(ts.lat, ts.lng));
+                            if (d < minD) minD = d;
+                        });
+                        if (minD !== Infinity) poi.nearestTrainStationDist = minD;
+                    }
+
+                    // Distance Aéroport
+                    if (!isAirport(poi) && airports.length > 0) {
+                        let minD = Infinity;
+                        airports.forEach(ap => {
+                            const d = poiLatLng.distanceTo(L.latLng(ap.lat, ap.lng));
+                            if (d < minD) minD = d;
+                        });
+                        if (minD !== Infinity) poi.nearestAirportDist = minD;
+                    }
+                });
 
                 this.currentNetworks = networks;
 
@@ -1041,7 +1067,7 @@ class App {
 
         const markersData = [];
         this.lastPoiMatchCount = 0;
-        
+
         // Si un POI est sélectionné, on met à jour sa ligne de transport (au cas où le filtre a changé)
         if (this.selectedPoi) {
             const nearestStop = this._findNearestTransitStop(this.selectedPoi);
@@ -1297,11 +1323,11 @@ class App {
                 // Trigger the highlight update
                 this.selectedPoiType = poi.type;
                 this.selectedPoi = poi; // Mémoriser le POI sélectionné
-                
+
                 this.addMarkersToMap(this.getFilteredPOIs());
 
                 this.mapManager.zoomToLocation(poi.lat, poi.lng);
-                
+
                 // Le trait est dessiné via addMarkersToMap -> _findNearestTransitStop
 
                 setTimeout(() => {
@@ -1326,18 +1352,18 @@ class App {
         if (!this.currentPOIs || this.currentPOIs.length === 0) return null;
 
         const transitTypes = ['bus_stop', 'bus_station', 'platform', 'station', 'halt', 'tram_stop', 'subway_entrance', 'aerodrome', 'aeroway', 'airport'];
-        
+
         // Si un filtre infra est actif, on restreint la recherche à ce filtre
         let candidates = this.currentPOIs.filter(p => {
             const pType = p.type || '';
             const t = p.tags || {};
-            
+
             // On vérifie si c'est un transport
-            const isTransport = transitTypes.includes(pType) || 
-                                t.bus === 'yes' || t.highway === 'bus_stop' ||
-                                t.railway === 'station' || t.railway === 'halt' ||
-                                t.aeroway === 'aerodrome';
-            
+            const isTransport = transitTypes.includes(pType) ||
+                t.bus === 'yes' || t.highway === 'bus_stop' ||
+                t.railway === 'station' || t.railway === 'halt' ||
+                t.aeroway === 'aerodrome';
+
             if (!isTransport) return false;
 
             // Si un filtre spécifique est actif (bus, gare...), on restreint
