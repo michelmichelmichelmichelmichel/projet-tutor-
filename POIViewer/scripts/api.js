@@ -1489,7 +1489,7 @@ export class ApiService {
 
     /**
      * Récupère le nombre de vues d'un article Wikipedia sur les 3 derniers mois.
-     * Timeout de 2 secondes par requête. Cache en mémoire pour éviter les doublons.
+     * Timeout de 5 secondes par requête (augmenté pour plus d'exhaustivité). Cache en mémoire.
      */
     async fetchWikipediaPageviews(articleTitle, lang = 'fr') {
         // Cache en mémoire
@@ -1507,7 +1507,7 @@ export class ApiService {
         const url = `https://wikimedia.org/api/rest_v1/metrics/pageviews/per-article/${lang}.wikipedia/all-access/user/${encodedTitle}/monthly/${start}00/${end}00`;
 
         const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 2000); // 2s timeout
+        const timer = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
         try {
             const response = await fetch(url, {
@@ -1530,7 +1530,7 @@ export class ApiService {
 
     /**
      * Récupère et classe les pageviews Wikipedia pour les POIs de la liste.
-     * Limité à 3 POIs et à 5 secondes globales maximum.
+     * Limité à 5 POIs (augmenté) et à 10 secondes globales maximum.
      */
     async fetchPageviewsForPOIs(pois) {
         const withWiki = pois
@@ -1556,11 +1556,11 @@ export class ApiService {
 
         const totalWikiPois = withWiki.length; // Total POIs with the tag (before deduplication)
 
-        // Limiter à 3 POIs maximum pour minimiser les délais
-        const candidates = unique.slice(0, 3);
+        // Limiter à 5 POIs maximum pour équilibre performance/données
+        const candidates = unique.slice(0, 5);
 
-        // Timeout global de 5s
-        const globalTimeout = new Promise(resolve => setTimeout(() => resolve(null), 5000));
+        // Timeout global de 10s
+        const globalTimeout = new Promise(resolve => setTimeout(() => resolve(null), 10000));
 
         const fetchAll = Promise.all(
             candidates.map(async (p) => {
