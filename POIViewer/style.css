@@ -609,6 +609,19 @@ body {
     color: var(--color-text-muted);
 }
 
+.density-bar__metrics {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.density-bar__rating {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: var(--color-text-muted);
+    opacity: 0.8;
+}
+
 .density-bar__track {
     background: rgba(255, 255, 255, 0.06);
     border-radius: var(--radius-sm);

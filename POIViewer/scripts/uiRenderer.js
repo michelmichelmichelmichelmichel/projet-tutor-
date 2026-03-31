@@ -66,6 +66,28 @@ export class UiRenderer {
         this.loadingPresetTabs = new Map();
     }
 
+    _calculateDistance(lat1, lon1, lat2, lon2) {
+        const R = 6371; // Earth radius in km
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
+    }
+
+    _getPathLength(geometry) {
+        if (!geometry || geometry.length < 2) return 0;
+        let length = 0;
+        for (let i = 0; i < geometry.length - 1; i++) {
+            const p1 = geometry[i];
+            const p2 = geometry[i + 1];
+            length += this._calculateDistance(p1.lat, p1.lon, p2.lat, p2.lon);
+        }
+        return length;
+    }
+
     async initPresets() {
         this._initPresetTabs();
         this._hidePresetTab('regional');
@@ -1361,17 +1383,19 @@ export class UiRenderer {
         const pedestrianTypes = new Set(['path', 'footway', 'pedestrian', 'living_street']);
         const cyclingTypes = new Set(['cycleway']);
         let pedestrianTrailCount = 0;
+        let pedestrianTrailLength = 0;
         let cyclingTrailCount = 0;
+        let cyclingTrailLength = 0;
         networks.forEach(net => {
             const t = net.type;
             const route = net.relationRoute;
             // Piéton = sentiers classiques + randonnée (hiking/foot/sac_scale)
             if (pedestrianTypes.has(t) || route === 'hiking' || route === 'foot' || (net.tags && net.tags.sac_scale)) {
                 pedestrianTrailCount++;
-            }
-            // Vélo
-            if (cyclingTypes.has(t) || route === 'bicycle' || route === 'mtb') {
+                pedestrianTrailLength += this._getPathLength(net.geometry);
+            } else if (cyclingTypes.has(t) || route === 'bicycle' || route === 'mtb') {
                 cyclingTrailCount++;
+                cyclingTrailLength += this._getPathLength(net.geometry);
             }
         });
 
@@ -1603,18 +1627,21 @@ export class UiRenderer {
             const bestTotalBeds = inseeStats ? (inseeStats.hotel_beds + inseeStats.camping_beds + inseeStats.collective_beds) : totalBeds;
             const touristCapacity = (population && population > 0) ? (bestTotalBeds / population) * 100 : null;
 
-            const pedDensity = (pedestrianTrailCount / areaKm2);
-            const cycleDensity = (cyclingTrailCount / areaKm2);
-            const maxPathDensity = Math.max(pedDensity, cycleDensity, 0.1);
+            const pedDensity = (pedestrianTrailLength / areaKm2);
+            const cycleDensity = (cyclingTrailLength / areaKm2);
 
-            const indicatorBar = (label, value, max, color, colorRgb, heatType, suffix = ' / km²') => {
+            const indicatorBar = (label, value, max, color, colorRgb, heatType, suffix = ' / km²', rating = '') => {
                 const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
                 const formatted = value < 0.01 && value > 0 ? value.toExponential(1) : value.toFixed(2);
+                const ratingHtml = rating ? `<span class="density-bar__rating">(${rating})</span>` : '';
                 return `
                     <div class="density-bar density-bar--clickable" data-heatmap-trigger="${heatType}" title="Afficher/masquer la heatmap">
                         <div class="density-bar__header">
                             <span class="density-bar__label">${label}</span>
-                            <span class="density-bar__value" style="color:${color};">${formatted} <span class="density-bar__unit">${suffix}</span></span>
+                            <div class="density-bar__metrics">
+                                <span class="density-bar__value" style="color:${color};">${formatted} <span class="density-bar__unit">${suffix}</span></span>
+                                ${ratingHtml}
+                            </div>
                         </div>
                         <div class="density-bar__track">
                             <div class="density-bar__fill" style="width:${pct}%;background:linear-gradient(90deg,rgba(${colorRgb},0.4),rgba(${colorRgb},1));"></div>
@@ -1622,8 +1649,29 @@ export class UiRenderer {
                     </div>`;
             };
 
+            // Échelles et Ratings qualitatives
+            let capacityRating = '';
+            if (touristCapacity !== null) {
+                if (touristCapacity < 10) capacityRating = 'Faible';
+                else if (touristCapacity < 50) capacityRating = 'Modérée';
+                else if (touristCapacity < 100) capacityRating = 'Élevée';
+                else capacityRating = 'Saturation';
+            }
+
+            let pedRating = '';
+            if (pedDensity < 1) pedRating = 'Faible';
+            else if (pedDensity < 3) pedRating = 'Moyenne';
+            else if (pedDensity < 7) pedRating = 'Élevée';
+            else pedRating = 'Exceptionnelle';
+
+            let cycleRating = '';
+            if (cycleDensity < 0.5) cycleRating = 'Faible';
+            else if (cycleDensity < 2) cycleRating = 'Moyenne';
+            else if (cycleDensity < 4) cycleRating = 'Élevée';
+            else cycleRating = 'Excellente';
+
             const touristCapacityHtml = touristCapacity !== null 
-                ? indicatorBar('Capacité d\'accueil', touristCapacity, 100, '#a78bfa', '167,139,250', 'accommodation', ' lits / 100 hab.')
+                ? indicatorBar('Capacité d\'accueil', touristCapacity, 100, '#a78bfa', '167,139,250', 'accommodation', ' lits / 100 hab.', capacityRating)
                 : indicatorBar('Hébergements', (accommodationCount / areaKm2), (accommodationCount / areaKm2), '#a78bfa', '167,139,250', 'accommodation');
 
             densityHtml = `
@@ -1633,8 +1681,8 @@ export class UiRenderer {
                         <span class="density-bar__unit">Surface : ${areaKm2.toFixed(1)} km²</span>
                     </div>
                     ${touristCapacityHtml}
-                    ${indicatorBar('Sentiers piétons', pedDensity, maxPathDensity, '#34d399', '5,150,105', 'pedestrian')}
-                    ${indicatorBar('Pistes cyclables', cycleDensity, maxPathDensity, '#60a5fa', '59,130,246', 'cycling')}
+                    ${indicatorBar('Sentiers piétons', pedDensity, 10, '#34d399', '5,150,105', 'pedestrian', ' km / km²', pedRating)}
+                    ${indicatorBar('Pistes cyclables', cycleDensity, 5, '#60a5fa', '59,130,246', 'cycling', ' km / km²', cycleRating)}
                     <div class="heatmap-toggles">
                         <div class="heatmap-toggles__title">Heatmap sur la carte</div>
                         <div class="heatmap-toggles__row">
@@ -1650,7 +1698,6 @@ export class UiRenderer {
                                 <input type="checkbox" class="heatmap-toggle" data-heat="cycling" style="accent-color:#60a5fa;">
                                 <span class="heatmap-dot" style="background:#60a5fa;"></span> Vélo
                             </label>
-                        </div>
                         </div>
                     </div>
                 </div>`;
