@@ -236,6 +236,39 @@ export class ApiService {
         };
     }
 
+    /**
+     * Récupère les contours GeoJSON de toutes les communes des départements de sur-fréquentation (64, 65).
+     * Résultat mis en cache en mémoire.
+     * @returns {Promise<Map<string, object>>}  Map code_insee → GeoJSON geometry
+     */
+    async fetchOvertourismContours() {
+        if (this._overtourismContours) return this._overtourismContours;
+
+        const deptCodes = ['64', '65'];
+        const contoursMap = new Map();
+
+        await Promise.all(deptCodes.map(async (deptCode) => {
+            try {
+                const url = `https://geo.api.gouv.fr/departements/${deptCode}/communes?fields=nom,code&format=geojson&geometry=contour`;
+                const response = await fetch(url);
+                if (!response.ok) return;
+                const data = await response.json();
+                if (!data.features) return;
+                data.features.forEach(feature => {
+                    if (feature.properties && feature.properties.code && feature.geometry) {
+                        contoursMap.set(feature.properties.code, feature.geometry);
+                    }
+                });
+            } catch (e) {
+                console.warn(`Erreur chargement contours dept ${deptCode}:`, e);
+            }
+        }));
+
+        this._overtourismContours = contoursMap;
+        console.log(`✅ Contours sur-fréquentation chargés: ${contoursMap.size} communes`);
+        return contoursMap;
+    }
+
     getInseeStats(inseeCode) {
         if (!this.inseeData || !inseeCode) return null;
         return this.inseeData[inseeCode] || null;

@@ -163,9 +163,9 @@ class App {
             }
         };
 
-        // Mettre à jour la heatmap d'overtourism quand la carte bouge (si activée)
+        // Mettre à jour la heatmap d'overtourism quand la carte bouge (uniquement pour les POIs qui dépendent de l'emprise)
         this.mapManager.map.on('moveend', () => {
-            if (this.heatmapVisibility.overtourism_cities || this.heatmapVisibility.overtourism_pois) {
+            if (this.heatmapVisibility.overtourism_pois) {
                 this.updateOvertourismHeatmaps();
             }
         });
@@ -672,10 +672,25 @@ class App {
     }
 
     /** Met à jour les heatmaps de sur-fréquentation */
-    updateOvertourismHeatmaps() {
+    async updateOvertourismHeatmaps() {
+        // Les villes utilisent des polygones plats → pas besoin de filtrage par emprise
+        // Les POIs gardent le filtrage géographique classique
         const bounds = this.mapManager.map.getBounds();
-        const overData = this.apiService.getOvertourismData(bounds);
-        this.mapManager.updateOvertourismHeatmaps(overData, this.heatmapVisibility, this.activeZone);
+        const allData = this.apiService.getOvertourismData(null);   // toutes les municipalités
+        const boundsData = this.apiService.getOvertourismData(bounds); // POIs filtrés par vue
+
+        const overData = {
+            municipalities: allData.municipalities,
+            pois: boundsData.pois
+        };
+
+        // Récupérer les contours communaux pour l'aplat coloré (cachés en mémoire après le 1er appel)
+        let contours = null;
+        if (this.heatmapVisibility.overtourism_cities && overData.municipalities && overData.municipalities.length > 0) {
+            contours = await this.apiService.fetchOvertourismContours();
+        }
+
+        this.mapManager.updateOvertourismHeatmaps(overData, this.heatmapVisibility, this.activeZone, contours);
     }
 
     renderNetworks(networks) {
