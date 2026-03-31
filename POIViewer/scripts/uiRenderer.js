@@ -2305,7 +2305,7 @@ export class UiRenderer {
         if (!content || !btn) return;
 
         const options = [
-            { id: 'overtourism_cities', label: 'Villes', color: '#06b6d4' },
+            { id: 'overtourism_cities', label: 'Villes', color: '#ef4444' },
             { id: 'overtourism_pois', label: 'POIs', color: '#facc15' }
         ];
 
