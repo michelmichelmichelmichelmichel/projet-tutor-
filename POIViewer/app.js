@@ -199,6 +199,38 @@ class App {
             }, 1600);
         };
 
+        // Bind retour : désélectionner le PIN et revenir à la vue de la zone active
+        this.uiRenderer.onBackToList = () => {
+            // 1. Supprimer le marqueur PIN de sélection
+            this.mapManager.clearSelectionMarker();
+            this.mapManager.clearTransitLine();
+
+            // 2. Effacer le POI sélectionné et les highlights liés
+            this.selectedPoi = null;
+            this.selectedPoiType = null;
+
+            // 3. Remettre tous les marqueurs sans highlight
+            this.addMarkersToMap(this.getFilteredPOIs());
+
+            // 4. Dézoomer pour revenir à la vue de la zone active
+            if (this.currentLayer) {
+                try {
+                    const bounds = this.currentLayer.getBounds
+                        ? this.currentLayer.getBounds()
+                        : null;
+                    if (bounds && bounds.isValid()) {
+                        this.mapManager.map.flyToBounds(bounds, {
+                            animate: true,
+                            duration: 1.2,
+                            padding: [20, 20]
+                        });
+                    }
+                } catch (e) {
+                    console.warn('Impossible de revenir aux bounds de la zone:', e);
+                }
+            }
+        };
+
         // Bind Digital Filter Click ("Site web" / "Réseaux sociaux")
         this.uiRenderer.onDigitalFilterClick = (filterType) => {
             this.digitalHighlight = filterType;

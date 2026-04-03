@@ -25,6 +25,7 @@ export class UiRenderer {
         this.onSubCategoryFilterChange = null;
         this.onPoiSelected = null;
         this.onServerChange = null;
+        this.onBackToList = null;
 
         this.categories = [
             { id: 'tourism', label: 'Tourisme' },
@@ -2636,10 +2637,11 @@ export class UiRenderer {
             </div>`;
 
         // Back button
-        // Back button
         document.getElementById('back-to-list').addEventListener('click', () => {
             const filtersContainer = document.getElementById('micro-filters-container');
             if (filtersContainer) filtersContainer.style.display = 'block';
+            // Notifier app.js pour supprimer le PIN et dézoomer
+            if (this.onBackToList) this.onBackToList();
             this.filterList();
         });
 
