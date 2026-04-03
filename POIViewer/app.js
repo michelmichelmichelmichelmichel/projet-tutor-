@@ -170,6 +170,47 @@ class App {
             }
         });
 
+        // Interaction carte : clic sur zone vide → désactiver tous les filtres/sélections
+        this.mapManager.map.on('click', () => {
+            const hasFocus = this.selectedPoi || this.selectedPoiType ||
+                             this.digitalHighlight || this.accomHighlight ||
+                             this.infraHighlight || this.treemapHighlight;
+
+            if (!hasFocus) return;
+
+            // Si la vue détails est ouverte, simuler le bouton Retour
+            const backBtn = document.getElementById('back-to-list');
+            if (backBtn) {
+                backBtn.click();
+                return;
+            }
+
+            // Vue macro avec highlight actif : tout réinitialiser
+            this.mapManager.clearSelectionMarker();
+            this.mapManager.clearTransitLine();
+            this.selectedPoi = null;
+            this.selectedPoiType = null;
+            this.digitalHighlight = null;
+            this.accomHighlight = null;
+            this.infraHighlight = null;
+            this.treemapHighlight = null;
+            this.uiRenderer._clearAllHighlightFilters();
+            this.addMarkersToMap(this.getFilteredPOIs());
+            if (this.currentNetworks && this.currentNetworks.length > 0) {
+                this.renderNetworks(this.currentNetworks);
+            }
+
+            // Dézoomer pour revenir à la vue de la zone active
+            if (this.currentLayer) {
+                try {
+                    const bounds = this.currentLayer.getBounds ? this.currentLayer.getBounds() : null;
+                    if (bounds && bounds.isValid()) {
+                        this.mapManager.map.flyToBounds(bounds, { animate: true, duration: 1.2, padding: [20, 20] });
+                    }
+                } catch (e) { console.warn('Impossible de revenir aux bounds:', e); }
+            }
+        });
+
         // Bind Sub-Category Filter Change (Client-side only, no API refetch)
         this.uiRenderer.onSubCategoryFilterChange = () => {
             this.selectedPoiType = null;
@@ -201,18 +242,28 @@ class App {
 
         // Bind retour : désélectionner le PIN et revenir à la vue de la zone active
         this.uiRenderer.onBackToList = () => {
-            // 1. Supprimer le marqueur PIN de sélection
+            // 1. Supprimer le marqueur PIN et la ligne transport
             this.mapManager.clearSelectionMarker();
             this.mapManager.clearTransitLine();
 
-            // 2. Effacer le POI sélectionné et les highlights liés
+            // 2. Effacer le POI sélectionné et TOUS les highlights
             this.selectedPoi = null;
             this.selectedPoiType = null;
+            this.digitalHighlight = null;
+            this.accomHighlight = null;
+            this.infraHighlight = null;
+            this.treemapHighlight = null;
 
-            // 3. Remettre tous les marqueurs sans highlight
+            // 3. Réinitialiser l'apparence visuelle des filtres
+            this.uiRenderer._clearAllHighlightFilters();
+
+            // 4. Remettre tous les marqueurs et chemins sans highlight
             this.addMarkersToMap(this.getFilteredPOIs());
+            if (this.currentNetworks && this.currentNetworks.length > 0) {
+                this.renderNetworks(this.currentNetworks);
+            }
 
-            // 4. Dézoomer pour revenir à la vue de la zone active
+            // 5. Dézoomer pour revenir à la vue de la zone active
             if (this.currentLayer) {
                 try {
                     const bounds = this.currentLayer.getBounds
@@ -1347,7 +1398,10 @@ class App {
                 });
             }
 
-            marker.on('click', () => {
+            marker.on('click', (e) => {
+                // Empêche la propagation vers map.on('click') qui déclencherait le reset
+                L.DomEvent.stopPropagation(e);
+
                 this.uiRenderer.renderPoiDetails(poi);
                 this.uiRenderer.toggleMicroSidebar(true);
 
