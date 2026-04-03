@@ -1588,7 +1588,8 @@ export class ApiService {
                 const colonIdx = raw.indexOf(':');
                 const lang = colonIdx > 0 ? raw.slice(0, colonIdx) : 'fr';
                 const title = colonIdx > 0 ? raw.slice(colonIdx + 1) : raw;
-                return { name: p.name || title, lang, articleTitle: title };
+                const displayName = title.replace(/_/g, ' ');
+                return { name: displayName || p.name, lang, articleTitle: title };
             });
 
         if (withWiki.length === 0) return { results: [], totalWikiPois: 0 };
