@@ -1567,7 +1567,7 @@ export class UiRenderer {
                     </div>
                 </div>
             </div>`;
-        const section3Html = accommodationHtml + trailsHtml;
+        const section3Html = accommodationHtml + `<div id="section-tourisme-content"></div>`;
 
         // ── SECTION 4 : Marketing digital ─────────────────────────────────
         const webPct = total > 0 ? (websiteCount / total * 100) : 0;
@@ -1786,7 +1786,7 @@ export class UiRenderer {
             const totalPoisHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">NB POIs</span><span class="ind-block__big">${totalRaw.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs trouvés</span></span></div></div>`;
             const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
             const section1Html = totalPoisHtml + areaHtml + demoHtml + densityHtml;
-            const infraKpisHtml = buildInfraKpis() + '<div id="section-infra-content"></div>';
+            const infraKpisHtml = buildInfraKpis() + trailsHtml + '<div id="section-infra-content"></div>';
             const countLabel = totalRaw > 0
                 ? `${totalRaw.toLocaleString('fr-FR')} POIs trouvés`
                 : 'POIs disponibles';
@@ -1915,7 +1915,7 @@ export class UiRenderer {
         }
 
         const section1Html = totalPoisHtml + areaHtml + localisationHtml + demoHtml + densityHtml;
-        const infraKpisHtml = buildInfraKpis() + `<div id="section-infra-content"></div>`;
+        const infraKpisHtml = buildInfraKpis() + trailsHtml + `<div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
             buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
             buildCollapsibleSection('Infrastructures & activités', infraKpisHtml, 'section-infra', true) +
@@ -1932,6 +1932,7 @@ export class UiRenderer {
 
         // ── Section 2: Infrastructures & activités (injected via DOM) ──────
         const infraContainer = document.getElementById('section-infra-content');
+        const tourismeContainer = document.getElementById('section-tourisme-content');
 
         // Header for Chart + Maximize Button
         const chartHeader = document.createElement('div');
@@ -1992,7 +1993,7 @@ export class UiRenderer {
         };
         const miniConfig = { responsive: true, displayModeBar: false };
 
-        const addMiniTreemap = (titleText, treemapData, metaText = '') => {
+        const addMiniTreemap = (titleText, treemapData, metaText = '', targetContainer = null) => {
             if (!treemapData || treemapData.values.length <= 1) return;
 
             const section = document.createElement('div');
@@ -2033,7 +2034,9 @@ export class UiRenderer {
 
             section.appendChild(headerRow);
             section.appendChild(miniDiv);
-            infraContainer.appendChild(section);
+            
+            const container = targetContainer || infraContainer;
+            if (container) container.appendChild(section);
 
             Plotly.newPlot(miniDiv, plotData, miniLayout, miniConfig);
             miniDiv.on('plotly_click', (data) => {
@@ -2077,7 +2080,7 @@ export class UiRenderer {
                 accomTreemap.colors.push(baseColors[ci % baseColors.length]);
                 ci++;
             });
-            addMiniTreemap('Hébergements par type', accomTreemap, `${Object.keys(accomCounts).length} types`);
+            addMiniTreemap('Hébergements par type', accomTreemap, `${Object.keys(accomCounts).length} types`, tourismeContainer);
         }
 
         // ─── 2. Treemap Sentiers piétons par sac_scale ────────────────────
