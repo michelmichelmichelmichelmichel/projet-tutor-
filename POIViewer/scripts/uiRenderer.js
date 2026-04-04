@@ -1493,10 +1493,10 @@ export class UiRenderer {
                     ${pBar('Lits dans héb. collectifs', inseeStats.collective_beds, maxBeds, '#8b5cf6', ' lits')}
                     
                     <div class="accom-detail-grid">
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span><span class="accom-detail-val">${osmHotelPOIs.filter(p => p.type === 'hotel').length}</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span><span class="accom-detail-val">${osmHotelPOIs.filter(p => ['hostel', 'guest_house', 'bed_and_breakfast'].includes(p.type)).length}</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span><span class="accom-detail-val">${osmCampingPOIs.length}</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span><span class="accom-detail-val">${osmCollectifPOIs.length}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span></div>
                     </div>
 
                     <div class="ind-block__footer">
@@ -1534,11 +1534,11 @@ export class UiRenderer {
                     ${pBar('Campings & aires', osmCampings, osmMax, '#a78bfa')}
                     
                     <div class="accom-detail-grid">
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span><span class="accom-detail-val">${osmHotelCount}</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span><span class="accom-detail-val">${osmHostelCount}</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span><span class="accom-detail-val">${osmCampCount}</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="caravan" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🚚</span><span class="accom-detail-label">Aires CC</span><span class="accom-detail-val">${osmCaravanCount}</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span><span class="accom-detail-val">${osmCollectCount}</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="caravan" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🚚</span><span class="accom-detail-label">Aires CC</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span></div>
                     </div>
 
                     <div class="ind-block__footer" style="font-size:0.65rem;opacity:0.55;margin-top:4px;">
