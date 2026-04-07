@@ -2597,29 +2597,81 @@ export class UiRenderer {
                     <div class="poi-gallery__skeleton"></div>
                 </div>
 
-                <!-- OSM Static Block -->
-                <div class="poi-section">
-                    <div class="poi-section__title">Informations</div>
-                    <div class="detail-info" id="poi-osm-block">
-                        ${this._buildOsmRows(poi, color)}
+                <!-- Section 1: Informations générales -->
+                <div class="poi-section poi-section--collapsible">
+                    <div class="poi-section__title poi-section__title--toggle" data-target="poi-sec-info">
+                        Informations générales
+                        <span class="poi-section__chevron">▾</span>
+                    </div>
+                    <div class="detail-info" id="poi-sec-info">
+                        ${this._buildGeneralInfoRows(poi, color)}
                     </div>
                 </div>
 
-                <!-- Digital Data Block -->
-                <div class="poi-section">
-                    <div class="poi-section__title">Données Digitales</div>
-                    <div class="detail-info" id="poi-digital-block">
+                <!-- Section 2: Infrastructures & activités -->
+                <div class="poi-section poi-section--collapsible">
+                    <div class="poi-section__title poi-section__title--toggle" data-target="poi-sec-infra">
+                        Infrastructures & activités
+                        <span class="poi-section__chevron">▾</span>
+                    </div>
+                    <div id="poi-sec-infra">
+                        <div class="detail-info" id="poi-infra-block">
+                            ${this._buildInfraRows(poi, color)}
+                        </div>
+                        <!-- Transport filter toggles -->
+                        <div class="poi-transport-filter" id="poi-transport-filter">
+                            <div class="poi-transport-filter__title">Afficher l'itinéraire vers :</div>
+                            <div class="poi-transport-filter__toggles">
+                                <label class="poi-transport-toggle ${poi.nearestBusStopDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="bus" class="poi-transit-cb" ${poi.nearestBusStopDist !== undefined ? 'checked' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🚌</span>
+                                    <span class="poi-transport-toggle__label">Bus</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestTrainStationDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="gare" class="poi-transit-cb" ${poi.nearestTrainStationDist !== undefined ? 'checked' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🚉</span>
+                                    <span class="poi-transport-toggle__label">Gare</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestAirportDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="aeroport" class="poi-transit-cb" ${poi.nearestAirportDist !== undefined ? 'checked' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">✈️</span>
+                                    <span class="poi-transport-toggle__label">Aéroport</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Tourisme -->
+                <div class="poi-section poi-section--collapsible" id="poi-tourisme-section">
+                    <div class="poi-section__title poi-section__title--toggle" data-target="poi-sec-tourisme">
+                        Tourisme
+                        <span class="poi-section__chevron">▾</span>
+                    </div>
+                    <div id="poi-sec-tourisme">
+                        <div class="detail-info" id="poi-tourisme-block">
+                            ${this._buildTourismeRows(poi, color)}
+                        </div>
+                        <!-- Wikidata Block (skeleton then replaced) -->
+                        <div id="poi-wikidata-section" style="display:none">
+                            <div class="poi-section__subtitle">
+                                <img src="https://www.wikidata.org/static/favicon/wikidata.ico" width="14" height="14" style="vertical-align:middle;margin-right:5px;" alt="">
+                                Wikidata
+                            </div>
+                            <div id="poi-wikidata-block" class="detail-info"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Marketing digital -->
+                <div class="poi-section poi-section--collapsible">
+                    <div class="poi-section__title poi-section__title--toggle" data-target="poi-sec-marketing">
+                        Marketing digital
+                        <span class="poi-section__chevron">▾</span>
+                    </div>
+                    <div class="detail-info" id="poi-sec-marketing">
                         ${this._buildDigitalRows(poi, color)}
                     </div>
-                </div>
-
-                <!-- Wikidata Block (skeleton then replaced) -->
-                <div class="poi-section" id="poi-wikidata-section" style="display:none">
-                    <div class="poi-section__title">
-                        <img src="https://www.wikidata.org/static/favicon/wikidata.ico" width="14" height="14" style="vertical-align:middle;margin-right:5px;" alt="">
-                        Wikidata
-                    </div>
-                    <div id="poi-wikidata-block" class="detail-info"></div>
                 </div>
 
                 <!-- Source Links -->
@@ -2643,10 +2695,42 @@ export class UiRenderer {
         document.getElementById('back-to-list').addEventListener('click', () => {
             const filtersContainer = document.getElementById('micro-filters-container');
             if (filtersContainer) filtersContainer.style.display = 'block';
-            // Notifier app.js pour supprimer le PIN et dézoomer
             if (this.onBackToList) this.onBackToList();
             this.filterList();
         });
+
+        // Collapsible section toggles
+        document.querySelectorAll('.poi-section__title--toggle').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const targetId = btn.dataset.target;
+                const body = document.getElementById(targetId);
+                if (!body) return;
+                const isOpen = body.style.display !== 'none';
+                body.style.display = isOpen ? 'none' : '';
+                const chevron = btn.querySelector('.poi-section__chevron');
+                if (chevron) chevron.style.transform = isOpen ? 'rotate(-90deg)' : '';
+            });
+        });
+
+        // Transport filter checkboxes → trigger transit line redraw
+        document.querySelectorAll('.poi-transit-cb').forEach(cb => {
+            cb.addEventListener('change', () => {
+                const activeFilters = Array.from(document.querySelectorAll('.poi-transit-cb:checked'))
+                    .map(c => c.value);
+                if (this.onTransitFilterChange) {
+                    this.onTransitFilterChange(poi, activeFilters);
+                }
+            });
+        });
+
+        // Trigger initial transit lines for all available types
+        setTimeout(() => {
+            const activeFilters = Array.from(document.querySelectorAll('.poi-transit-cb:checked'))
+                .map(c => c.value);
+            if (this.onTransitFilterChange && activeFilters.length > 0) {
+                this.onTransitFilterChange(poi, activeFilters);
+            }
+        }, 100);
 
         // ── Async enrichment ──────────────────────────────────────────────────
         if (!this.apiService) return;
@@ -2730,7 +2814,7 @@ export class UiRenderer {
                     }
                 }
 
-                // --- Mise à jour du bloc des Données Digitales ---
+                // --- Mise à jour du bloc Marketing digital ---
                 if (poi.digital) {
                     if (wikidataInfo) {
                         poi.digital.wikidataLanguagesCount = wikidataInfo.wikidataLanguagesCount || 0;
@@ -2740,7 +2824,7 @@ export class UiRenderer {
                     } else {
                         poi.digital.wikidataLanguagesCount = 0;
                     }
-                    const digitalBlock = document.getElementById('poi-digital-block');
+                    const digitalBlock = document.getElementById('poi-sec-marketing');
                     if (digitalBlock) {
                         digitalBlock.innerHTML = this._buildDigitalRows(poi, color);
                     }
@@ -2749,7 +2833,7 @@ export class UiRenderer {
                 console.warn('POI enrichment error:', err);
                 if (poi.digital) {
                     poi.digital.wikidataLanguagesCount = 0;
-                    const digitalBlock = document.getElementById('poi-digital-block');
+                    const digitalBlock = document.getElementById('poi-sec-marketing');
                     if (digitalBlock) {
                         digitalBlock.innerHTML = this._buildDigitalRows(poi, color);
                     }
@@ -2761,13 +2845,35 @@ export class UiRenderer {
 
     _buildDigitalRows(poi, color) {
         const d = poi.digital || {};
+        const t = poi.tags;
         const rows = [];
 
         const yesLabel = `<span style="color:#10b981;font-weight:bold;">Oui</span>`;
         const noLabel = `<span style="color:var(--color-text-muted);opacity:0.8;">Non</span>`;
 
-        rows.push(this._infoRow('Site Web', d.hasWebsite ? yesLabel : noLabel));
-        rows.push(this._infoRow('Réseaux Sociaux', d.hasSocialMedia ? yesLabel : noLabel));
+        // Website with link
+        const website = t.website || t['contact:website'] || t.url;
+        if (website) {
+            rows.push(this._infoRow('Site Web', `<a href="${website}" target="_blank" style="color:${color}">Ouvrir ↗</a>`));
+        } else {
+            rows.push(this._infoRow('Site Web', d.hasWebsite ? yesLabel : noLabel));
+        }
+
+        // Social media with links
+        const socialLinks = [];
+        ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok'].forEach(sm => {
+            const url = t[sm] || t[`contact:${sm}`];
+            if (url) {
+                const validUrl = url.startsWith('http') ? url : `https://${url}`;
+                socialLinks.push(`<a href="${validUrl}" target="_blank" style="color:${color};margin-right:8px;">${sm.charAt(0).toUpperCase() + sm.slice(1)} ↗</a>`);
+            }
+        });
+        if (socialLinks.length > 0) {
+            rows.push(this._infoRow('Réseaux Sociaux', socialLinks.join('')));
+        } else {
+            rows.push(this._infoRow('Réseaux Sociaux', d.hasSocialMedia ? yesLabel : noLabel));
+        }
+
         rows.push(this._infoRow('Wikivoyage', d.hasWikivoyage ? yesLabel : noLabel));
 
         let langLabel = '';
@@ -2944,8 +3050,8 @@ export class UiRenderer {
         if (this.macroStats) this._bindDigitalFilterClicks();
     }
 
-    /** Build all OSM info rows from poi.tags */
-    _buildOsmRows(poi, color) {
+    /** Build general info rows for the 'Informations générales' section */
+    _buildGeneralInfoRows(poi, color) {
         const t = poi.tags;
         const rows = [];
 
@@ -2962,56 +3068,72 @@ export class UiRenderer {
 
         if (t.opening_hours) rows.push(this._infoRow('Horaires', this._renderOpeningHours(t.opening_hours)));
 
-        const website = t.website || t['contact:website'] || t.url;
-        if (website) rows.push(this._infoRow('Site Web',
-            `<a href="${website}" target="_blank" style="color:${color}">Ouvrir ↗</a>`));
-
-        const socialLinks = [];
-        ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok'].forEach(sm => {
-            const url = t[sm] || t[`contact:${sm}`];
-            if (url) {
-                const validUrl = url.startsWith('http') ? url : `https://${url}`;
-                socialLinks.push(`<a href="${validUrl}" target="_blank" style="color:${color};margin-right:8px;">${sm.charAt(0).toUpperCase() + sm.slice(1)} ↗</a>`);
-            }
-        });
-        if (socialLinks.length > 0) {
-            rows.push(this._infoRow('Réseaux', socialLinks.join('')));
-        }
-
-        if (t.cuisine) rows.push(this._infoRow('Cuisine', t.cuisine.replace(/_/g, ' ')));
-        if (t.stars) rows.push(this._infoRow('Étoiles', isNaN(t.stars) ? t.stars : '★'.repeat(Number(t.stars))));
         if (t.operator) rows.push(this._infoRow('Opérateur', t.operator));
         if (t.brand) rows.push(this._infoRow('Enseigne', t.brand));
         if (t.ele) rows.push(this._infoRow('Altitude', t.ele + ' m'));
-        if (t.capacity) rows.push(this._infoRow('Capacité', t.capacity + ' pers.'));
         if (t.start_date) rows.push(this._infoRow('Création', t.start_date));
+        if (t.description) rows.push(this._infoRow('Description', t.description));
+
+        rows.push(this._infoRow('Coordonnées',
+            `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
+
+        return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée disponible.</p>';
+    }
+
+    /** Build infra rows for the 'Infrastructures & activités' section */
+    _buildInfraRows(poi, color) {
+        const t = poi.tags;
+        const rows = [];
+        const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+
+        // Transport distances
+        if (poi.nearestBusStopDist !== undefined) {
+            const busName = poi.nearestBusStopName || 'Arrêt de bus';
+            rows.push(this._infoRow('🚌 Bus le plus proche',
+                `<span style="color:${color};font-weight:600">${busName}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestBusStopDist)}</span>`));
+        }
+        if (poi.nearestTrainStationDist !== undefined) {
+            const trainName = poi.nearestTrainStationName || 'Gare';
+            rows.push(this._infoRow('🚉 Gare la plus proche',
+                `<span style="color:${color};font-weight:600">${trainName}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestTrainStationDist)}</span>`));
+        }
+        if (poi.nearestAirportDist !== undefined) {
+            const airportName = poi.nearestAirportName || 'Aéroport';
+            rows.push(this._infoRow('✈️ Aéroport le plus proche',
+                `<span style="color:${color};font-weight:600">${airportName}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAirportDist)}</span>`));
+        }
+
         if (t.fee) rows.push(this._infoRow('Tarif', t.fee === 'yes' ? 'Payant' : t.fee === 'no' ? 'Gratuit' : t.fee));
         if (t.access) rows.push(this._infoRow('Accès', t.access));
         if (t.wheelchair) rows.push(this._infoRow('Accessibilité',
             t.wheelchair === 'yes' ? 'Accessible PMR' :
                 t.wheelchair === 'limited' ? 'Accès limité' : 'Non accessible'));
-        if (t.description) rows.push(this._infoRow('Description', t.description));
+
+        return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée d\'infrastructure.</p>';
+    }
+
+    /** Build tourisme rows for the 'Tourisme' section */
+    _buildTourismeRows(poi, color) {
+        const t = poi.tags;
+        const rows = [];
+
+        if (t.cuisine) rows.push(this._infoRow('Cuisine', t.cuisine.replace(/_/g, ' ')));
+        if (t.stars) rows.push(this._infoRow('Étoiles', isNaN(t.stars) ? t.stars : '★'.repeat(Number(t.stars))));
+        if (t.capacity) rows.push(this._infoRow('Capacité', t.capacity + ' pers.'));
         if (t.wikipedia && !t.wikidata) {
             const wikiTitle = t.wikipedia.replace(/^fr:/, '');
             rows.push(this._infoRow('Wikipédia',
                 `<a href="https://fr.wikipedia.org/wiki/${encodeURIComponent(wikiTitle)}" target="_blank" style="color:${color}">Voir l'article ↗</a>`));
         }
 
-        rows.push(this._infoRow('Coordonnées',
-            `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
+        return rows.join('');
+    }
 
-        const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
-        const transportParts = [];
-
-        if (poi.nearestBusStopDist !== undefined) transportParts.push(`Bus à ${formatDist(poi.nearestBusStopDist)}`);
-        if (poi.nearestTrainStationDist !== undefined) transportParts.push(`Gare à ${formatDist(poi.nearestTrainStationDist)}`);
-        if (poi.nearestAirportDist !== undefined) transportParts.push(`Aéroport à ${formatDist(poi.nearestAirportDist)}`);
-
-        if (transportParts.length > 0) {
-            rows.push(this._infoRow('Transport', transportParts.join('<br>')));
-        }
-
-        return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée OSM disponible.</p>';
+    /** Backward compat: Build all OSM info rows (legacy) */
+    _buildOsmRows(poi, color) {
+        return this._buildGeneralInfoRows(poi, color)
+            + this._buildInfraRows(poi, color)
+            + this._buildTourismeRows(poi, color);
     }
 
     /** Generates a WP URL from OSM tags if existing */

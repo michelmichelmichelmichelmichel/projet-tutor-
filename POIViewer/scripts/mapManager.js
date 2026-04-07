@@ -350,24 +350,81 @@ export class MapManager {
      * Dessine une ligne pointillée entre le POI et l'arrêt de transport.
      * @param {Array} poiCoords [lat, lng]
      * @param {Array} stopCoords [lat, lng]
+     * @param {string} color Couleur de la ligne (CSS value)
      */
-    drawTransitLine(poiCoords, stopCoords) {
+    drawTransitLine(poiCoords, stopCoords, color = '#3b82f6') {
         this.clearTransitLine();
         
         this.transitLine = L.polyline([poiCoords, stopCoords], {
-            color: '#3b82f6', // Bright blue
+            color: color,
             weight: 3,
             dashArray: '8, 8',
             opacity: 0.8,
             lineJoin: 'round'
         }).addTo(this.map);
     }
+
+    /**
+     * Dessine plusieurs lignes pointillées vers différents types de transport.
+     * @param {Array<{from: [lat, lng], to: [lat, lng], type: string, name: string}>} lines
+     */
+    drawTransitLines(lines) {
+        this.clearTransitLines();
+        if (!this._transitLines) this._transitLines = [];
+
+        const colors = {
+            bus: '#f59e0b',      // Amber
+            gare: '#8b5cf6',     // Purple
+            aeroport: '#0ea5e9'  // Sky blue
+        };
+
+        lines.forEach(line => {
+            const color = colors[line.type] || '#3b82f6';
+            const polyline = L.polyline([line.from, line.to], {
+                color: color,
+                weight: 3,
+                dashArray: '8, 8',
+                opacity: 0.8,
+                lineJoin: 'round'
+            }).addTo(this.map);
+
+            // Add a small marker at the destination
+            const emoji = line.type === 'bus' ? '🚌' : line.type === 'gare' ? '🚉' : '✈️';
+            const stopMarker = L.marker(line.to, {
+                icon: L.divIcon({
+                    className: '',
+                    html: `<div class="transit-stop-marker" style="--stop-color: ${color}">
+                               <span class="transit-stop-marker__icon">${emoji}</span>
+                           </div>`,
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14]
+                }),
+                zIndexOffset: 600
+            }).addTo(this.map);
+
+            if (line.name) {
+                stopMarker.bindTooltip(`<b>${line.name}</b>`, { direction: 'top', className: 'transit-stop-tooltip' });
+            }
+
+            this._transitLines.push(polyline);
+            this._transitLines.push(stopMarker);
+        });
+    }
     
-    /** Supprime la ligne de transport. */
+    /** Supprime la ligne de transport (legacy single). */
     clearTransitLine() {
         if (this.transitLine) {
             this.map.removeLayer(this.transitLine);
             this.transitLine = null;
+        }
+    }
+
+    /** Supprime toutes les lignes de transport. */
+    clearTransitLines() {
+        this.clearTransitLine();
+        if (this._transitLines) {
+            this._transitLines.forEach(l => this.map.removeLayer(l));
+            this._transitLines = [];
         }
     }
 

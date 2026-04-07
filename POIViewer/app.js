@@ -187,7 +187,7 @@ class App {
 
             // Vue macro avec highlight actif : tout réinitialiser
             this.mapManager.clearSelectionMarker();
-            this.mapManager.clearTransitLine();
+            this.mapManager.clearTransitLines();
             this.selectedPoi = null;
             this.selectedPoiType = null;
             this.digitalHighlight = null;
@@ -226,7 +226,7 @@ class App {
         // Bind POI Selection (List Click)
         this.uiRenderer.onPoiSelected = (poi) => {
             this.selectedPoiType = poi.type;
-            this.selectedPoi = poi; // Mémoriser le POI sélectionné
+            this.selectedPoi = poi;
             this.digitalHighlight = null;
             this.accomHighlight = null;
             this.infraHighlight = null;
@@ -234,17 +234,20 @@ class App {
             this.addMarkersToMap(this.getFilteredPOIs());
 
             this.mapManager.zoomToLocation(poi.lat, poi.lng);
-            // Afficher le marqueur de sélection après le début du vol (1.6 s = durée flyTo + petite marge)
             setTimeout(() => {
                 this.mapManager.showSelectionMarker(poi.lat, poi.lng, poi.name);
             }, 1600);
         };
 
-        // Bind retour : désélectionner le PIN et revenir à la vue de la zone active
+        // Bind transit filter change from micro detail view
+        this.uiRenderer.onTransitFilterChange = (poi, activeFilters) => {
+            this._drawTransitLinesForPoi(poi, activeFilters);
+        };
+
         this.uiRenderer.onBackToList = () => {
-            // 1. Supprimer le marqueur PIN et la ligne transport
+            // 1. Supprimer le marqueur PIN et les lignes transport
             this.mapManager.clearSelectionMarker();
-            this.mapManager.clearTransitLine();
+            this.mapManager.clearTransitLines();
 
             // 2. Effacer le POI sélectionné et TOUS les highlights
             this.selectedPoi = null;
@@ -290,7 +293,7 @@ class App {
             this.treemapHighlight = null;
             this.selectedPoiType = null;
             this.selectedPoi = null; // Clear specific focus
-            this.mapManager.clearTransitLine();
+            this.mapManager.clearTransitLines();
             this.addMarkersToMap(this.getFilteredPOIs());
         };
 
@@ -301,8 +304,8 @@ class App {
             this.infraHighlight = null;
             this.treemapHighlight = null;
             this.selectedPoiType = null;
-            this.selectedPoi = null; // Clear specific focus
-            this.mapManager.clearTransitLine();
+            this.selectedPoi = null;
+            this.mapManager.clearTransitLines();
             this.addMarkersToMap(this.getFilteredPOIs());
         };
 
@@ -543,32 +546,44 @@ class App {
 
                     // Distance Bus
                     if (!isBusStop(poi) && busStops.length > 0) {
-                        let minD = Infinity;
+                        let minD = Infinity, nearest = null;
                         busStops.forEach(bs => {
                             const d = poiLatLng.distanceTo(L.latLng(bs.lat, bs.lng));
-                            if (d < minD) minD = d;
+                            if (d < minD) { minD = d; nearest = bs; }
                         });
-                        if (minD !== Infinity) poi.nearestBusStopDist = minD;
+                        if (minD !== Infinity && nearest) {
+                            poi.nearestBusStopDist = minD;
+                            poi.nearestBusStopName = nearest.name || nearest.tags?.name || 'Arrêt de bus';
+                            poi.nearestBusStopCoords = [nearest.lat, nearest.lng];
+                        }
                     }
 
                     // Distance Gare
                     if (!isTrainStation(poi) && trainStations.length > 0) {
-                        let minD = Infinity;
+                        let minD = Infinity, nearest = null;
                         trainStations.forEach(ts => {
                             const d = poiLatLng.distanceTo(L.latLng(ts.lat, ts.lng));
-                            if (d < minD) minD = d;
+                            if (d < minD) { minD = d; nearest = ts; }
                         });
-                        if (minD !== Infinity) poi.nearestTrainStationDist = minD;
+                        if (minD !== Infinity && nearest) {
+                            poi.nearestTrainStationDist = minD;
+                            poi.nearestTrainStationName = nearest.name || nearest.tags?.name || 'Gare';
+                            poi.nearestTrainStationCoords = [nearest.lat, nearest.lng];
+                        }
                     }
 
                     // Distance Aéroport
                     if (!isAirport(poi) && airports.length > 0) {
-                        let minD = Infinity;
+                        let minD = Infinity, nearest = null;
                         airports.forEach(ap => {
                             const d = poiLatLng.distanceTo(L.latLng(ap.lat, ap.lng));
-                            if (d < minD) minD = d;
+                            if (d < minD) { minD = d; nearest = ap; }
                         });
-                        if (minD !== Infinity) poi.nearestAirportDist = minD;
+                        if (minD !== Infinity && nearest) {
+                            poi.nearestAirportDist = minD;
+                            poi.nearestAirportName = nearest.name || nearest.tags?.name || 'Aéroport';
+                            poi.nearestAirportCoords = [nearest.lat, nearest.lng];
+                        }
                     }
                 });
 
@@ -585,7 +600,7 @@ class App {
 
                 // Add Markers to Map (Affiche les POIs sur la carte immédiatement)
                 this.selectedPoi = null;
-                this.mapManager.clearTransitLine();
+                this.mapManager.clearTransitLines();
                 this.addMarkersToMap(filteredPOIs);
 
                 // --- PRÉPARATION DE L'AFFICHAGE DÉMOGRAPHIQUE ---
@@ -1150,15 +1165,7 @@ class App {
         const markersData = [];
         this.lastPoiMatchCount = 0;
 
-        // Si un POI est sélectionné, on met à jour sa ligne de transport (au cas où le filtre a changé)
-        if (this.selectedPoi) {
-            const nearestStop = this._findNearestTransitStop(this.selectedPoi);
-            if (nearestStop) {
-                this.mapManager.drawTransitLine([this.selectedPoi.lat, this.selectedPoi.lng], [nearestStop.lat, nearestStop.lng]);
-            } else {
-                this.mapManager.clearTransitLine();
-            }
-        }
+        // Les lignes de transport sont gérées par le filtre dans la vue micro (onTransitFilterChange)
         pois.forEach(poi => {
             // On ne met en surbrillance QUE le POI spécifiquement cliqué
             let isHighlighted = this.selectedPoi && poi.id === this.selectedPoi.id;
@@ -1442,7 +1449,7 @@ class App {
 
                 this.mapManager.zoomToLocation(poi.lat, poi.lng);
 
-                // Le trait est dessiné via addMarkersToMap -> _findNearestTransitStop
+                // Les lignes de transport sont dessinées via renderPoiDetails → onTransitFilterChange
 
                 setTimeout(() => {
                     this.mapManager.showSelectionMarker(poi.lat, poi.lng, poi.name);
@@ -1456,6 +1463,48 @@ class App {
     }
 
     // getCategoryColor has been moved to UiRenderer
+
+    /**
+     * Dessine les lignes pointillées entre un POI et ses arrêts de transport les plus proches
+     * en fonction des filtres actifs (bus, gare, aeroport).
+     * @param {Object} poi  Le POI sélectionné
+     * @param {string[]} activeFilters  Les types de transport actifs ['bus', 'gare', 'aeroport']
+     */
+    _drawTransitLinesForPoi(poi, activeFilters) {
+        const lines = [];
+        const from = [poi.lat, poi.lng];
+
+        if (activeFilters.includes('bus') && poi.nearestBusStopCoords) {
+            lines.push({
+                from,
+                to: poi.nearestBusStopCoords,
+                type: 'bus',
+                name: poi.nearestBusStopName || 'Arrêt de bus'
+            });
+        }
+        if (activeFilters.includes('gare') && poi.nearestTrainStationCoords) {
+            lines.push({
+                from,
+                to: poi.nearestTrainStationCoords,
+                type: 'gare',
+                name: poi.nearestTrainStationName || 'Gare'
+            });
+        }
+        if (activeFilters.includes('aeroport') && poi.nearestAirportCoords) {
+            lines.push({
+                from,
+                to: poi.nearestAirportCoords,
+                type: 'aeroport',
+                name: poi.nearestAirportName || 'Aéroport'
+            });
+        }
+
+        if (lines.length > 0) {
+            this.mapManager.drawTransitLines(lines);
+        } else {
+            this.mapManager.clearTransitLines();
+        }
+    }
 
     /**
      * Trouve l'arrêt de transport le plus proche du POI donné.
