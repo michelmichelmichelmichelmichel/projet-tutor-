@@ -1366,36 +1366,65 @@ class App {
                 let opacity = shouldDimPois ? 0.3 : 1;
                 let fillOpacity = shouldDimPois ? 0.3 : 1;
 
-                // --- SUR-FRÉQUENTATION : Highlight special palette ---
+                // --- SUR-FRÉQUENTATION : Pin coloré selon la popularité ---
                 let overOpaque = false;
                 let overColor = null;
+                let overIntensity = 0;
                 if (this.heatmapVisibility.overtourism_pois) {
                     const overData = this.apiService.getOvertourismData();
                     const overPoi = overData.pois.find(ovp => ovp.name === poi.name);
                     if (overPoi) {
                         overOpaque = true;
-                        // Palette Intensity (POI) - Extended Yellow/Amber range
-                        if (overPoi.intensity >= 0.95) overColor = '#450a0a';      // dark maroon 950
-                        else if (overPoi.intensity >= 0.88) overColor = '#7f1d1d'; // Red 900
-                        else if (overPoi.intensity >= 0.82) overColor = '#dc2626'; // Red 600
-                        else if (overPoi.intensity >= 0.75) overColor = '#ea580c'; // Orange 600
-                        else if (overPoi.intensity >= 0.68) overColor = '#f97316'; // Orange 500
-                        else if (overPoi.intensity >= 0.60) overColor = '#fbbf24'; // Amber 400 (Warm yellow)
-                        else if (overPoi.intensity >= 0.52) overColor = '#facc15'; // Yellow 400
-                        else if (overPoi.intensity >= 0.44) overColor = '#fde047'; // Yellow 300
-                        else if (overPoi.intensity >= 0.35) overColor = '#fef08a'; // Yellow 200
-                        else overColor = '#fef9c3';                               // Yellow 100
+                        overIntensity = overPoi.intensity;
+                        // Utiliser le même algorithme de couleur que mapManager._getPoiPinColor
+                        // en calculant le rang relatif à partir de l'intensité
+                        const sortedPois = [...overData.pois].sort((a, b) => b.intensity - a.intensity);
+                        const rank = sortedPois.findIndex(sp => sp.name === poi.name);
+                        const total = sortedPois.length;
+                        const t = total > 1 ? rank / (total - 1) : 0;
+                        const stops = [
+                            [69, 10, 10], [127, 29, 29], [185, 28, 28], [220, 38, 38],
+                            [234, 88, 12], [249, 115, 22], [251, 191, 36], [250, 204, 21],
+                            [253, 224, 71], [254, 240, 138]
+                        ];
+                        const scaledT = t * (stops.length - 1);
+                        const idx = Math.min(Math.floor(scaledT), stops.length - 2);
+                        const frac = scaledT - idx;
+                        const c0 = stops[idx], c1 = stops[idx + 1];
+                        const r = Math.round(c0[0] + (c1[0] - c0[0]) * frac);
+                        const g = Math.round(c0[1] + (c1[1] - c0[1]) * frac);
+                        const b = Math.round(c0[2] + (c1[2] - c0[2]) * frac);
+                        overColor = `rgb(${r},${g},${b})`;
                     }
                 }
 
-                marker = L.circleMarker([poi.lat, poi.lng], {
-                    radius: overOpaque ? 8 : 6,
-                    fillColor: overColor || this.uiRenderer.getCategoryColor(poi.category),
-                    color: overOpaque ? '#ffeb3b' : '#fff',
-                    weight: overOpaque ? 2 : 1,
-                    opacity: opacity,
-                    fillOpacity: fillOpacity
-                });
+                if (overOpaque) {
+                    // Créer un pin (épingle) comme divIcon
+                    const isLarge = overIntensity >= 0.9;
+                    const size = isLarge ? 30 : 24;
+                    const tipH = isLarge ? 11 : 9;
+                    const pinHtml = `<div class="overtourism-poi-pin" style="--pin-color: ${overColor}; --pin-size: ${size}px; --pin-tip: ${tipH}px; opacity: ${opacity};">
+                                         <div class="overtourism-poi-pin__head"></div>
+                                         <div class="overtourism-poi-pin__tip"></div>
+                                     </div>`;
+                    const icon = L.divIcon({
+                        className: '',
+                        html: pinHtml,
+                        iconSize: [size, size + tipH],
+                        iconAnchor: [size / 2, size + tipH],
+                        tooltipAnchor: [0, -(size + tipH - 2)]
+                    });
+                    marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 500 + Math.round(overIntensity * 100) });
+                } else {
+                    marker = L.circleMarker([poi.lat, poi.lng], {
+                        radius: 6,
+                        fillColor: this.uiRenderer.getCategoryColor(poi.category),
+                        color: '#fff',
+                        weight: 1,
+                        opacity: opacity,
+                        fillOpacity: fillOpacity
+                    });
+                }
             }
 
             marker.on('click', (e) => {

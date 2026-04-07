@@ -420,9 +420,70 @@ export class MapManager {
     }
 
     /**
+     * Renvoie une couleur de pin POI en fonction de son rang dans la liste triée par popularité.
+     * Les premiers (les plus populaires) sont rouge intense, les derniers jaune clair.
+     * @param {number} rank     Position dans la liste triée (0 = plus populaire)
+     * @param {number} total    Nombre total de POIs
+     * @returns {string} couleur hex
+     */
+    _getPoiPinColor(rank, total) {
+        // t = 0 → le plus populaire (rouge foncé), t = 1 → le moins populaire (jaune)
+        const t = total > 1 ? rank / (total - 1) : 0;
+
+        // Palette de 10 arrêts du rouge intense au jaune
+        const stops = [
+            [69, 10, 10],     // #450a0a  — dark maroon
+            [127, 29, 29],    // #7f1d1d  — red 900
+            [185, 28, 28],    // #b91c1c  — red 700
+            [220, 38, 38],    // #dc2626  — red 600
+            [234, 88, 12],    // #ea580c  — orange 600
+            [249, 115, 22],   // #f97316  — orange 500
+            [251, 191, 36],   // #fbbf24  — amber 400
+            [250, 204, 21],   // #facc15  — yellow 400
+            [253, 224, 71],   // #fde047  — yellow 300
+            [254, 240, 138],  // #fef08a  — yellow 200
+        ];
+
+        const scaledT = t * (stops.length - 1);
+        const idx = Math.min(Math.floor(scaledT), stops.length - 2);
+        const frac = scaledT - idx;
+        const c0 = stops[idx], c1 = stops[idx + 1];
+
+        const r = Math.round(c0[0] + (c1[0] - c0[0]) * frac);
+        const g = Math.round(c0[1] + (c1[1] - c0[1]) * frac);
+        const b = Math.round(c0[2] + (c1[2] - c0[2]) * frac);
+
+        return `rgb(${r},${g},${b})`;
+    }
+
+    /**
+     * Crée un divIcon en forme de pin (épingle) coloré.
+     * @param {string} color   Couleur du pin (CSS value)
+     * @param {boolean} isLarge  Si true, pin légèrement plus grand
+     * @returns {L.DivIcon}
+     */
+    _createPoiPinIcon(color, isLarge = false) {
+        const size = isLarge ? 32 : 26;
+        const anchor = isLarge ? 16 : 13;
+        const tipH = isLarge ? 12 : 10;
+        return L.divIcon({
+            className: '',
+            html: `<div class="overtourism-poi-pin" style="--pin-color: ${color}; --pin-size: ${size}px; --pin-tip: ${tipH}px;">
+                       <div class="overtourism-poi-pin__head"></div>
+                       <div class="overtourism-poi-pin__tip"></div>
+                   </div>`,
+            iconSize: [size, size + tipH],
+            iconAnchor: [anchor, size + tipH],
+            tooltipAnchor: [0, -(size + tipH - 2)]
+        });
+    }
+
+    /**
      * Met à jour les heatmaps spécifiques à la sur-fréquentation.
      * Les villes sont affichées en aplat coloré sur tout leur polygone communal.
-     * Les POIs individuels conservent un heatmap classique.
+     * Les POIs individuels sont affichés en mode dual :
+     *   - Zoom IN  → Pins colorés par popularité avec tooltip au survol
+     *   - Zoom OUT → Heatmap de densité
      * @param {object} overtourismData  { municipalities: [...], pois: [...] }
      * @param {object} visibility  { overtourism_cities: bool, overtourism_pois: bool }
      * @param {object|null} activeZone  Zone active courante
@@ -441,6 +502,18 @@ export class MapManager {
         if (this._overChoroplethGroup) {
             this.map.removeLayer(this._overChoroplethGroup);
             this._overChoroplethGroup = null;
+        }
+
+        // Supprimer l'ancien groupe de pins POI
+        if (this._overPoiPinGroup) {
+            this.map.removeLayer(this._overPoiPinGroup);
+            this._overPoiPinGroup = null;
+        }
+
+        // Nettoyer l'ancien listener de zoom pour les POIs
+        if (this._overPoiZoomHandler) {
+            this.map.off('zoomend', this._overPoiZoomHandler);
+            this._overPoiZoomHandler = null;
         }
 
         // Restore active polygon style simply if heatmap is disabled
@@ -462,7 +535,6 @@ export class MapManager {
                 const hexColor = this._getOvertourismColor(m.intensity);
 
                 if (geometry) {
-                    // Dessiner le polygone communal avec aplat de couleur et effet de dégradé
                     const geoLayer = L.geoJSON(geometry, {
                         style: {
                             fillColor: hexColor,
@@ -480,7 +552,6 @@ export class MapManager {
 
                     this._overChoroplethGroup.addLayer(geoLayer);
                 } else {
-                    // Fallback: petit cercle plat si le contour n'est pas disponible
                     const circle = L.circleMarker([m.lat, m.lng], {
                         radius: 10,
                         fillColor: hexColor,
@@ -496,7 +567,6 @@ export class MapManager {
                 }
             });
 
-            // Colorier aussi le polygone actif si c'est une commune dans la liste
             if (this.activePolygon && activeZone && activeZone.type === 'commune') {
                 const match = overtourismData.municipalities.find(m =>
                     (activeZone.name && m.name && m.name.toLowerCase() === activeZone.name.toLowerCase()) ||
@@ -514,12 +584,30 @@ export class MapManager {
             }
         }
 
-        // ── POIs individuels : heatmap classique ────────────────────────
-        if (visibility.overtourism_pois && overtourismData.pois) {
-            const points = overtourismData.pois.map(p => [p.lat, p.lng, p.intensity]);
-            this._overLayers.pois = L.heatLayer(points, {
-                radius: 25,
-                blur: 15,
+        // ── POIs individuels : mode dual (pins + heatmap de densité) ──────
+        if (visibility.overtourism_pois && overtourismData.pois && overtourismData.pois.length > 0) {
+            // Trier les POIs par intensité décroissante (les plus populaires en premier)
+            const sortedPois = [...overtourismData.pois].sort((a, b) => b.intensity - a.intensity);
+            const total = sortedPois.length;
+
+            // 1. Créer le groupe de pins individuels
+            this._overPoiPinGroup = L.layerGroup();
+            sortedPois.forEach((poi, rank) => {
+                const pinColor = this._getPoiPinColor(rank, total);
+                const icon = this._createPoiPinIcon(pinColor, poi.intensity >= 0.9);
+                const marker = L.marker([poi.lat, poi.lng], { icon, zIndexOffset: 500 + Math.round(poi.intensity * 100) });
+                marker.bindTooltip(
+                    `<b>${poi.name}</b><br>Popularité : ${Math.round(poi.intensity * 100)}%`,
+                    { direction: 'top', className: 'overtourism-poi-tooltip' }
+                );
+                this._overPoiPinGroup.addLayer(marker);
+            });
+
+            // 2. Créer la heatmap de densité
+            const heatPoints = sortedPois.map(p => [p.lat, p.lng, p.intensity]);
+            this._overLayers.poisDensity = L.heatLayer(heatPoints, {
+                radius: 30,
+                blur: 20,
                 maxZoom: 18,
                 gradient: {
                     0.1: '#fef9c3',
@@ -533,8 +621,38 @@ export class MapManager {
                     0.9: '#7f1d1d',
                     1.0: '#450a0a'
                 },
-                minOpacity: 0.5
-            }).addTo(this.map);
+                minOpacity: 0.45
+            });
+
+            // 3. Logique de basculement selon le zoom
+            const ZOOM_THRESHOLD = 11;
+            const updatePoiVisibility = () => {
+                const z = this.map.getZoom();
+                if (z >= ZOOM_THRESHOLD) {
+                    // Zoom IN → Pins individuels
+                    if (!this.map.hasLayer(this._overPoiPinGroup)) {
+                        this._overPoiPinGroup.addTo(this.map);
+                    }
+                    if (this.map.hasLayer(this._overLayers.poisDensity)) {
+                        this.map.removeLayer(this._overLayers.poisDensity);
+                    }
+                } else {
+                    // Zoom OUT → Heatmap de densité
+                    if (this.map.hasLayer(this._overPoiPinGroup)) {
+                        this.map.removeLayer(this._overPoiPinGroup);
+                    }
+                    if (!this.map.hasLayer(this._overLayers.poisDensity)) {
+                        this._overLayers.poisDensity.addTo(this.map);
+                    }
+                }
+            };
+
+            // Appliquer immédiatement
+            updatePoiVisibility();
+
+            // Écouter les changements de zoom
+            this._overPoiZoomHandler = updatePoiVisibility;
+            this.map.on('zoomend', this._overPoiZoomHandler);
         }
     }
 
@@ -555,6 +673,14 @@ export class MapManager {
         if (this._overChoroplethGroup) {
             this.map.removeLayer(this._overChoroplethGroup);
             this._overChoroplethGroup = null;
+        }
+        if (this._overPoiPinGroup) {
+            this.map.removeLayer(this._overPoiPinGroup);
+            this._overPoiPinGroup = null;
+        }
+        if (this._overPoiZoomHandler) {
+            this.map.off('zoomend', this._overPoiZoomHandler);
+            this._overPoiZoomHandler = null;
         }
     }
 }
