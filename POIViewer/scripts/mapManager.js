@@ -373,9 +373,22 @@ export class MapManager {
         if (!this._transitLines) this._transitLines = [];
 
         const colors = {
-            bus: '#f59e0b',      // Amber
-            gare: '#8b5cf6',     // Purple
-            aeroport: '#0ea5e9'  // Sky blue
+            bus: '#f59e0b',           // Amber
+            gare: '#8b5cf6',          // Purple
+            aeroport: '#0ea5e9',      // Sky blue
+            route: '#64748b',         // Slate
+            rando: '#22c55e',         // Green
+            cyclable: '#f97316',      // Orange
+            accom_hotel: '#ec4899',   // Pink
+            accom_camping: '#14b8a6', // Teal
+            accom_refuge: '#a855f7',  // Violet
+            accom_gite: '#e11d48'     // Rose
+        };
+
+        const emojis = {
+            bus: '🚌', gare: '🚉', aeroport: '✈️',
+            route: '🛣️', rando: '🥾', cyclable: '🚴',
+            accom_hotel: '🏨', accom_camping: '⛺', accom_refuge: '🏔️', accom_gite: '🏡'
         };
 
         lines.forEach(line => {
@@ -389,7 +402,7 @@ export class MapManager {
             }).addTo(this.map);
 
             // Add a small marker at the destination
-            const emoji = line.type === 'bus' ? '🚌' : line.type === 'gare' ? '🚉' : '✈️';
+            const emoji = emojis[line.type] || '📍';
             const stopMarker = L.marker(line.to, {
                 icon: L.divIcon({
                     className: '',

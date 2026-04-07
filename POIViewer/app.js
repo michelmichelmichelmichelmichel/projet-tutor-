@@ -585,9 +585,128 @@ class App {
                             poi.nearestAirportCoords = [nearest.lat, nearest.lng];
                         }
                     }
+
+                    // ── Nearest accommodation (hotel, camping, refuge, guesthouse) ──
+                    const isAccom = (p) => p.category === 'accommodation' || ['hotel', 'guest_house', 'hostel', 'camp_site', 'chalet', 'alpine_hut', 'apartment', 'motel', 'caravan_site', 'shelter', 'wilderness_hut', 'bed_and_breakfast', 'holiday_flat'].includes(p.type);
+                    const isHotel = (p) => p.type === 'hotel' || p.type === 'motel';
+                    const isCamping = (p) => p.type === 'camp_site' || p.type === 'caravan_site';
+                    const isRefuge = (p) => p.type === 'alpine_hut' || p.type === 'wilderness_hut' || p.type === 'shelter' || p.type === 'chalet';
+                    const isGite = (p) => p.type === 'guest_house' || p.type === 'bed_and_breakfast' || p.type === 'hostel' || p.type === 'holiday_flat';
+
+                    if (!isAccom(poi)) {
+                        const accomTypes = [
+                            { key: 'Hotel', filter: isHotel, emoji: '🏨' },
+                            { key: 'Camping', filter: isCamping, emoji: '⛺' },
+                            { key: 'Refuge', filter: isRefuge, emoji: '🏔️' },
+                            { key: 'Gite', filter: isGite, emoji: "🏡" }
+                        ];
+                        accomTypes.forEach(({ key, filter }) => {
+                            const candidates = pois.filter(filter);
+                            if (candidates.length > 0) {
+                                let minD = Infinity, nearest = null;
+                                candidates.forEach(c => {
+                                    const d = poiLatLng.distanceTo(L.latLng(c.lat, c.lng));
+                                    if (d < minD) { minD = d; nearest = c; }
+                                });
+                                if (minD !== Infinity && nearest) {
+                                    poi[`nearestAccom${key}Dist`] = minD;
+                                    poi[`nearestAccom${key}Name`] = nearest.name || nearest.tags?.name || key;
+                                    poi[`nearestAccom${key}Coords`] = [nearest.lat, nearest.lng];
+                                }
+                            }
+                        });
+                    }
                 });
 
                 this.currentNetworks = networks;
+
+                // ── Nearest access routes (routes, trails, cycling paths) per POI ──
+                // Helper: find the closest point on a polyline geometry to a given latlng
+                const closestPointOnGeometry = (geometry, poiLL) => {
+                    let minD = Infinity, closestPt = null;
+                    geometry.forEach(pt => {
+                        const d = poiLL.distanceTo(L.latLng(pt.lat, pt.lon));
+                        if (d < minD) { minD = d; closestPt = [pt.lat, pt.lon]; }
+                    });
+                    return { dist: minD, coords: closestPt };
+                };
+
+                const isRoadNetwork = (net) => {
+                    const t = net.type;
+                    const tags = net.tags || {};
+                    return t === 'primary' || t === 'secondary' || t === 'tertiary' || t === 'residential' ||
+                        t === 'unclassified' || t === 'service' || t === 'living_street' ||
+                        tags.highway === 'primary' || tags.highway === 'secondary' || tags.highway === 'tertiary' ||
+                        tags.highway === 'residential' || tags.highway === 'unclassified';
+                };
+                const isHikingNetwork = (net) => {
+                    const t = net.type;
+                    const tags = net.tags || {};
+                    return t === 'path' || t === 'footway' || t === 'pedestrian' || t === 'steps' ||
+                        t === 'bridleway' || tags.sac_scale !== undefined ||
+                        net.relationRoute === 'hiking' || net.relationRoute === 'foot';
+                };
+                const isCyclingNetwork = (net) => {
+                    const t = net.type;
+                    return t === 'cycleway' || t === 'track' ||
+                        net.relationRoute === 'bicycle' || net.relationRoute === 'mtb';
+                };
+
+                const roadNets = networks.filter(n => n.geometry?.length > 0 && isRoadNetwork(n));
+                const hikingNets = networks.filter(n => n.geometry?.length > 0 && isHikingNetwork(n));
+                const cyclingNets = networks.filter(n => n.geometry?.length > 0 && isCyclingNetwork(n));
+
+                pois.forEach(poi => {
+                    const poiLL = L.latLng(poi.lat, poi.lng);
+
+                    // Nearest road
+                    if (roadNets.length > 0) {
+                        let best = { dist: Infinity, coords: null, name: null };
+                        roadNets.forEach(net => {
+                            const { dist, coords } = closestPointOnGeometry(net.geometry, poiLL);
+                            if (dist < best.dist) {
+                                best = { dist, coords, name: net.tags?.name || net.relationRef || 'Route' };
+                            }
+                        });
+                        if (best.dist !== Infinity) {
+                            poi.nearestRoadDist = best.dist;
+                            poi.nearestRoadName = best.name;
+                            poi.nearestRoadCoords = best.coords;
+                        }
+                    }
+
+                    // Nearest hiking trail
+                    if (hikingNets.length > 0) {
+                        let best = { dist: Infinity, coords: null, name: null };
+                        hikingNets.forEach(net => {
+                            const { dist, coords } = closestPointOnGeometry(net.geometry, poiLL);
+                            if (dist < best.dist) {
+                                best = { dist, coords, name: net.tags?.name || net.relationRef || 'Sentier' };
+                            }
+                        });
+                        if (best.dist !== Infinity) {
+                            poi.nearestHikingDist = best.dist;
+                            poi.nearestHikingName = best.name;
+                            poi.nearestHikingCoords = best.coords;
+                        }
+                    }
+
+                    // Nearest cycling path
+                    if (cyclingNets.length > 0) {
+                        let best = { dist: Infinity, coords: null, name: null };
+                        cyclingNets.forEach(net => {
+                            const { dist, coords } = closestPointOnGeometry(net.geometry, poiLL);
+                            if (dist < best.dist) {
+                                best = { dist, coords, name: net.tags?.name || net.relationRef || 'Piste cyclable' };
+                            }
+                        });
+                        if (best.dist !== Infinity) {
+                            poi.nearestCyclingDist = best.dist;
+                            poi.nearestCyclingName = best.name;
+                            poi.nearestCyclingCoords = best.coords;
+                        }
+                    }
+                });
 
                 // Render Networks (Affiche les tracés immédiatement)
                 this.renderNetworks(networks);
@@ -1465,38 +1584,49 @@ class App {
     // getCategoryColor has been moved to UiRenderer
 
     /**
-     * Dessine les lignes pointillées entre un POI et ses arrêts de transport les plus proches
-     * en fonction des filtres actifs (bus, gare, aeroport).
+     * Dessine les lignes pointillées entre un POI et ses points d'intérêt les plus proches
+     * en fonction de tous les filtres actifs (transport, accès, hébergement).
      * @param {Object} poi  Le POI sélectionné
-     * @param {string[]} activeFilters  Les types de transport actifs ['bus', 'gare', 'aeroport']
+     * @param {string[]} activeFilters  Tous les filtres actifs combinés
      */
     _drawTransitLinesForPoi(poi, activeFilters) {
         const lines = [];
         const from = [poi.lat, poi.lng];
 
+        // ── Transport ──
         if (activeFilters.includes('bus') && poi.nearestBusStopCoords) {
-            lines.push({
-                from,
-                to: poi.nearestBusStopCoords,
-                type: 'bus',
-                name: poi.nearestBusStopName || 'Arrêt de bus'
-            });
+            lines.push({ from, to: poi.nearestBusStopCoords, type: 'bus', name: poi.nearestBusStopName || 'Arrêt de bus' });
         }
         if (activeFilters.includes('gare') && poi.nearestTrainStationCoords) {
-            lines.push({
-                from,
-                to: poi.nearestTrainStationCoords,
-                type: 'gare',
-                name: poi.nearestTrainStationName || 'Gare'
-            });
+            lines.push({ from, to: poi.nearestTrainStationCoords, type: 'gare', name: poi.nearestTrainStationName || 'Gare' });
         }
         if (activeFilters.includes('aeroport') && poi.nearestAirportCoords) {
-            lines.push({
-                from,
-                to: poi.nearestAirportCoords,
-                type: 'aeroport',
-                name: poi.nearestAirportName || 'Aéroport'
-            });
+            lines.push({ from, to: poi.nearestAirportCoords, type: 'aeroport', name: poi.nearestAirportName || 'Aéroport' });
+        }
+
+        // ── Voies d'accès ──
+        if (activeFilters.includes('route') && poi.nearestRoadCoords) {
+            lines.push({ from, to: poi.nearestRoadCoords, type: 'route', name: poi.nearestRoadName || 'Route' });
+        }
+        if (activeFilters.includes('rando') && poi.nearestHikingCoords) {
+            lines.push({ from, to: poi.nearestHikingCoords, type: 'rando', name: poi.nearestHikingName || 'Sentier' });
+        }
+        if (activeFilters.includes('cyclable') && poi.nearestCyclingCoords) {
+            lines.push({ from, to: poi.nearestCyclingCoords, type: 'cyclable', name: poi.nearestCyclingName || 'Piste cyclable' });
+        }
+
+        // ── Hébergement ──
+        if (activeFilters.includes('accom_hotel') && poi.nearestAccomHotelCoords) {
+            lines.push({ from, to: poi.nearestAccomHotelCoords, type: 'accom_hotel', name: poi.nearestAccomHotelName || 'Hôtel' });
+        }
+        if (activeFilters.includes('accom_camping') && poi.nearestAccomCampingCoords) {
+            lines.push({ from, to: poi.nearestAccomCampingCoords, type: 'accom_camping', name: poi.nearestAccomCampingName || 'Camping' });
+        }
+        if (activeFilters.includes('accom_refuge') && poi.nearestAccomRefugeCoords) {
+            lines.push({ from, to: poi.nearestAccomRefugeCoords, type: 'accom_refuge', name: poi.nearestAccomRefugeName || 'Refuge' });
+        }
+        if (activeFilters.includes('accom_gite') && poi.nearestAccomGiteCoords) {
+            lines.push({ from, to: poi.nearestAccomGiteCoords, type: 'accom_gite', name: poi.nearestAccomGiteName || "Maison d'hôtes" });
         }
 
         if (lines.length > 0) {

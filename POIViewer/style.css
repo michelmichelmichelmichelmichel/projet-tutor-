@@ -2268,6 +2268,10 @@ body {
     gap: 6px;
 }
 
+.poi-transport-filter__toggles--wrap {
+    flex-wrap: wrap;
+}
+
 .poi-transport-toggle {
     flex: 1;
     display: flex;

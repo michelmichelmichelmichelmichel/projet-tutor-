@@ -2620,7 +2620,7 @@ export class UiRenderer {
                         </div>
                         <!-- Transport filter toggles -->
                         <div class="poi-transport-filter" id="poi-transport-filter">
-                            <div class="poi-transport-filter__title">Afficher l'itinéraire vers :</div>
+                            <div class="poi-transport-filter__title">🚏 Transport — itinéraire vers :</div>
                             <div class="poi-transport-filter__toggles">
                                 <label class="poi-transport-toggle ${poi.nearestBusStopDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="bus" class="poi-transit-cb" ${poi.nearestBusStopDist !== undefined ? 'checked' : 'disabled'}>
@@ -2639,6 +2639,39 @@ export class UiRenderer {
                                 </label>
                             </div>
                         </div>
+
+                        <!-- Accessibilité sub-section -->
+                        <div class="poi-transport-filter">
+                            <div class="poi-transport-filter__title">♿ Accessibilité</div>
+                            ${poi.tags.wheelchair ? `<div class="detail-info" style="padding:4px 0;">
+                                ${this._infoRow('PMR', poi.tags.wheelchair === 'yes' ? '<span style="color:#10b981;font-weight:bold;">Accessible PMR ♿</span>' :
+                                    poi.tags.wheelchair === 'limited' ? '<span style="color:#f59e0b;font-weight:bold;">Accès limité ⚠️</span>' :
+                                    '<span style="color:#ef4444;font-weight:bold;">Non accessible ❌</span>')}
+                            </div>` : '<div class="detail-info" style="padding:4px 0;"><div class="info-row"><span class="info-label">PMR</span><span class="info-value" style="color:var(--color-text-muted);opacity:0.6;">Non renseigné</span></div></div>'}
+                        </div>
+
+                        <!-- Voies d'accès filter toggles -->
+                        <div class="poi-transport-filter">
+                            <div class="poi-transport-filter__title">🛤️ Voies d'accès — itinéraire vers :</div>
+                            <div class="poi-transport-filter__toggles">
+                                <label class="poi-transport-toggle ${poi.nearestRoadDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="route" class="poi-transit-cb" ${poi.nearestRoadDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🛣️</span>
+                                    <span class="poi-transport-toggle__label">Route</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestHikingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="rando" class="poi-transit-cb" ${poi.nearestHikingDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🥾</span>
+                                    <span class="poi-transport-toggle__label">Rando</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestCyclingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="cyclable" class="poi-transit-cb" ${poi.nearestCyclingDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🚴</span>
+                                    <span class="poi-transport-toggle__label">Cyclable</span>
+                                </label>
+                            </div>
+                            ${this._buildAccessRows(poi, color)}
+                        </div>
                     </div>
                 </div>
 
@@ -2652,6 +2685,35 @@ export class UiRenderer {
                         <div class="detail-info" id="poi-tourisme-block">
                             ${this._buildTourismeRows(poi, color)}
                         </div>
+
+                        <!-- Hébergement filter toggles -->
+                        <div class="poi-transport-filter">
+                            <div class="poi-transport-filter__title">🛏️ Hébergement le plus proche :</div>
+                            <div class="poi-transport-filter__toggles poi-transport-filter__toggles--wrap">
+                                <label class="poi-transport-toggle ${poi.nearestAccomHotelDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="accom_hotel" class="poi-transit-cb" ${poi.nearestAccomHotelDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🏨</span>
+                                    <span class="poi-transport-toggle__label">Hôtel</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestAccomCampingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="accom_camping" class="poi-transit-cb" ${poi.nearestAccomCampingDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">⛺</span>
+                                    <span class="poi-transport-toggle__label">Camping</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestAccomRefugeDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="accom_refuge" class="poi-transit-cb" ${poi.nearestAccomRefugeDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🏔️</span>
+                                    <span class="poi-transport-toggle__label">Refuge</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestAccomGiteDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="accom_gite" class="poi-transit-cb" ${poi.nearestAccomGiteDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🏡</span>
+                                    <span class="poi-transport-toggle__label">Gîte</span>
+                                </label>
+                            </div>
+                            ${this._buildAccomDistRows(poi, color)}
+                        </div>
+
                         <!-- Wikidata Block (skeleton then replaced) -->
                         <div id="poi-wikidata-section" style="display:none">
                             <div class="poi-section__subtitle">
@@ -3105,11 +3167,54 @@ export class UiRenderer {
 
         if (t.fee) rows.push(this._infoRow('Tarif', t.fee === 'yes' ? 'Payant' : t.fee === 'no' ? 'Gratuit' : t.fee));
         if (t.access) rows.push(this._infoRow('Accès', t.access));
-        if (t.wheelchair) rows.push(this._infoRow('Accessibilité',
-            t.wheelchair === 'yes' ? 'Accessible PMR' :
-                t.wheelchair === 'limited' ? 'Accès limité' : 'Non accessible'));
 
         return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée d\'infrastructure.</p>';
+    }
+
+    /** Build access routes distance rows */
+    _buildAccessRows(poi, color) {
+        const rows = [];
+        const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+
+        if (poi.nearestRoadDist !== undefined) {
+            rows.push(this._infoRow('🛣️ Route',
+                `<span style="color:${color};font-weight:600">${poi.nearestRoadName || 'Route'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestRoadDist)}</span>`));
+        }
+        if (poi.nearestHikingDist !== undefined) {
+            rows.push(this._infoRow('🥾 Sentier rando',
+                `<span style="color:${color};font-weight:600">${poi.nearestHikingName || 'Sentier'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestHikingDist)}</span>`));
+        }
+        if (poi.nearestCyclingDist !== undefined) {
+            rows.push(this._infoRow('🚴 Piste cyclable',
+                `<span style="color:${color};font-weight:600">${poi.nearestCyclingName || 'Piste cyclable'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestCyclingDist)}</span>`));
+        }
+
+        return rows.length > 0 ? `<div class="detail-info" style="padding:4px 0;">${rows.join('')}</div>` : '';
+    }
+
+    /** Build nearest accommodation distance rows */
+    _buildAccomDistRows(poi, color) {
+        const rows = [];
+        const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+
+        if (poi.nearestAccomHotelDist !== undefined) {
+            rows.push(this._infoRow('🏨 Hôtel',
+                `<span style="color:${color};font-weight:600">${poi.nearestAccomHotelName || 'Hôtel'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAccomHotelDist)}</span>`));
+        }
+        if (poi.nearestAccomCampingDist !== undefined) {
+            rows.push(this._infoRow('⛺ Camping',
+                `<span style="color:${color};font-weight:600">${poi.nearestAccomCampingName || 'Camping'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAccomCampingDist)}</span>`));
+        }
+        if (poi.nearestAccomRefugeDist !== undefined) {
+            rows.push(this._infoRow('🏔️ Refuge',
+                `<span style="color:${color};font-weight:600">${poi.nearestAccomRefugeName || 'Refuge'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAccomRefugeDist)}</span>`));
+        }
+        if (poi.nearestAccomGiteDist !== undefined) {
+            rows.push(this._infoRow("🏡 Maison d'hôtes",
+                `<span style="color:${color};font-weight:600">${poi.nearestAccomGiteName || "Maison d'hôtes"}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAccomGiteDist)}</span>`));
+        }
+
+        return rows.length > 0 ? `<div class="detail-info" style="padding:4px 0;">${rows.join('')}</div>` : '';
     }
 
     /** Build tourisme rows for the 'Tourisme' section */
