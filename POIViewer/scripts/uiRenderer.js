@@ -1330,7 +1330,7 @@ export class UiRenderer {
             });
         }
     }
-    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null, population = null) {
+    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null, population = null, romaniaStats = null) {
         const total = pois.length;
 
         // ── Calcul des KPI hébergement & sentiers (toujours, même si pois filtrés = 0) ──
@@ -1567,7 +1567,7 @@ export class UiRenderer {
                     </div>
                 </div>
             </div>`;
-        const section3Html = accommodationHtml + `<div id="section-tourisme-content"></div>`;
+        const section3Html = accommodationHtml + `<div id="section-tourisme-content"></div>` + `<div id="romania-tourism-section"></div>`;
 
         // ── SECTION 4 : Marketing digital ─────────────────────────────────
         const webPct = total > 0 ? (websiteCount / total * 100) : 0;
@@ -1808,6 +1808,10 @@ export class UiRenderer {
             this.lastPois = pois; // SYNC: Even if empty, update lastPois reference
             if (totalRaw > 0) {
                 this.showToast(`${countLabel} — activez les filtres pour les afficher`, 'info', 5000);
+            }
+            // Render Romania tourism charts even with 0 filtered POIs
+            if (romaniaStats) {
+                this._renderRomaniaTourismCharts(romaniaStats, areaKm2, population);
             }
             return;
         }
@@ -2356,6 +2360,451 @@ export class UiRenderer {
                     }
                 }
             });
+        }
+
+        // ── ROMANIA TOURISM CHARTS (INSSE) ─────────────────────────────────
+        if (romaniaStats) {
+            this._renderRomaniaTourismCharts(romaniaStats, areaKm2, population);
+        }
+    }
+
+    /**
+     * Renders Romania INSSE tourism indicators into the #romania-tourism-section container.
+     * @param {object} romaniaStats — { countyName, data, metadata } from getRomaniaStats()
+     * @param {number} areaKm2 — area of selected zone in km²
+     * @param {number|null} population — population of the zone
+     */
+    _renderRomaniaTourismCharts(romaniaStats, areaKm2 = 0, population = null) {
+        const container = document.getElementById('romania-tourism-section');
+        if (!container || !romaniaStats) return;
+
+        const { countyName, data, metadata } = romaniaStats;
+        const monthlyData = data.monthly_data;
+        const annualCap = data.annual_capacity;
+        const months = Object.keys(monthlyData).sort();
+
+        if (months.length === 0) return;
+
+        // ── Plotly shared config ──
+        const plotConfig = { responsive: true, displayModeBar: false };
+        const basePlotLayout = {
+            paper_bgcolor: 'rgba(0,0,0,0)',
+            plot_bgcolor: 'rgba(0,0,0,0)',
+            font: { family: 'Outfit, sans-serif', color: '#fff', size: 11 },
+            hoverlabel: {
+                bgcolor: 'rgba(5,10,18,0.92)',
+                bordercolor: 'rgba(255,255,255,0.14)',
+                font: { family: 'Outfit, sans-serif', color: '#ffffff', size: 11 }
+            },
+            showlegend: false,
+            xaxis: {
+                gridcolor: 'rgba(255,255,255,0.06)',
+                tickfont: { size: 9, color: 'rgba(255,255,255,0.6)' },
+                tickangle: -45
+            },
+            yaxis: {
+                gridcolor: 'rgba(255,255,255,0.06)',
+                tickfont: { size: 9, color: 'rgba(255,255,255,0.5)' },
+                rangemode: 'tozero'
+            }
+        };
+
+        // ── Month label helper ──
+        const monthLabels = {
+            '01': 'Jan', '02': 'Fév', '03': 'Mar', '04': 'Avr',
+            '05': 'Mai', '06': 'Juin', '07': 'Juil', '08': 'Août',
+            '09': 'Sep', '10': 'Oct', '11': 'Nov', '12': 'Déc'
+        };
+        const formatMonth = (m) => {
+            const [y, mo] = m.split('-');
+            return `${monthLabels[mo] || mo} ${y.slice(2)}`;
+        };
+        const xLabels = months.map(formatMonth);
+
+        // ── Helper: create a chart section ──
+        const createChartSection = (titleText, metaText, height = '220px') => {
+            const section = document.createElement('div');
+            section.className = 'mini-treemap-section';
+            section.style.marginTop = '8px';
+
+            const headerRow = document.createElement('div');
+            headerRow.className = 'mini-treemap-header';
+
+            const headerGroup = document.createElement('div');
+            headerGroup.className = 'mini-treemap-title-group';
+
+            const header = document.createElement('span');
+            header.className = 'mini-treemap-title';
+            header.textContent = titleText;
+            headerGroup.appendChild(header);
+
+            if (metaText) {
+                const meta = document.createElement('span');
+                meta.className = 'mini-treemap-meta';
+                meta.textContent = metaText;
+                headerGroup.appendChild(meta);
+            }
+
+            const chartDiv = document.createElement('div');
+            chartDiv.id = 'ro-chart-' + Math.random().toString(36).substring(2, 9);
+            chartDiv.style.height = height;
+            chartDiv.className = 'mini-chart-canvas';
+
+            const maxBtn = document.createElement('button');
+            maxBtn.className = 'maximize-btn';
+            maxBtn.innerHTML = '⤢ Agrandir';
+            maxBtn.title = 'Voir en plein écran';
+
+            headerRow.appendChild(headerGroup);
+            headerRow.appendChild(maxBtn);
+            section.appendChild(headerRow);
+            section.appendChild(chartDiv);
+
+            return { section, chartDiv, maxBtn };
+        };
+
+        // ── HEADER ──
+        const headerBlock = document.createElement('div');
+        headerBlock.className = 'ind-block';
+        headerBlock.style.marginTop = '10px';
+        headerBlock.innerHTML = `
+            <div class="ind-block__header">
+                <span class="ind-block__title">🇷🇴 INSSE Roumanie — ${countyName}</span>
+                <span class="ind-block__big">${months.length} <span class="ind-block__unit">mois de données</span></span>
+            </div>
+            <div style="font-size:0.65rem;opacity:0.5;padding:2px 0 6px;">
+                Période : ${formatMonth(months[0])} → ${formatMonth(months[months.length - 1])} · Source : TEMPO Online
+            </div>
+        `;
+        container.appendChild(headerBlock);
+
+        // ═══════════════════════════════════════════════════════════════════
+        // 1. NUITÉES MENSUELLES (TUR105H) — Line chart
+        // ═══════════════════════════════════════════════════════════════════
+        {
+            const yVals = months.map(m => monthlyData[m]?.overnight_stays?.total || 0);
+            const { section, chartDiv, maxBtn } = createChartSection('Nuitées mensuelles (TUR105H)', countyName, '200px');
+
+            const traceData = [{
+                x: xLabels, y: yVals,
+                type: 'scatter', mode: 'lines+markers',
+                line: { color: '#c4b5fd', width: 3, shape: 'spline' },
+                marker: { size: 5, color: '#e9d5ff' },
+                fill: 'tozeroy',
+                fillcolor: 'rgba(196,181,253,0.12)',
+                hovertemplate: '<b>%{x}</b><br>%{y:,.0f} nuitées<extra></extra>'
+            }];
+
+            const layout = {
+                ...basePlotLayout,
+                margin: { t: 10, l: 50, r: 15, b: 50 },
+                yaxis: { ...basePlotLayout.yaxis, title: { text: 'Nuitées', font: { size: 9, color: 'rgba(255,255,255,0.4)' } } }
+            };
+
+            maxBtn.addEventListener('click', () => this._toggleFullScreenChart(traceData, { ...layout, margin: { t: 40, l: 60, r: 30, b: 60 }, title: `Nuitées mensuelles — ${countyName}` }));
+            container.appendChild(section);
+            Plotly.newPlot(chartDiv, traceData, layout, plotConfig);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // 2. ARRIVÉES PAR TYPE D'ÉTABLISSEMENT (TUR104H) — Line chart multi
+        // ═══════════════════════════════════════════════════════════════════
+        {
+            const typeColors = {
+                'Hotels': '#818cf8', 'Touristic boarding houses': '#f472b6',
+                'Agroturistic boarding houses': '#34d399', 'Hostels': '#fbbf24',
+                'Motels': '#fb923c', 'Touristic villas': '#a78bfa',
+                'Touristic chalets': '#22d3ee', 'Campings': '#4ade80'
+            };
+
+            // Collect all establishment types that have data
+            const typeArrivals = {};
+            months.forEach(m => {
+                const byType = monthlyData[m]?.arrivals?.by_type || {};
+                Object.entries(byType).forEach(([type, val]) => {
+                    if (!typeArrivals[type]) typeArrivals[type] = {};
+                    typeArrivals[type][m] = val;
+                });
+            });
+
+            // Sum totals to find top 5
+            const typeTotals = Object.entries(typeArrivals).map(([type, vals]) => ({
+                type,
+                total: Object.values(vals).reduce((a, b) => a + b, 0)
+            })).sort((a, b) => b.total - a.total);
+
+            const top5Types = typeTotals.slice(0, 5).map(t => t.type);
+            const othersTotal = typeTotals.slice(5).reduce((sum, t) => sum + t.total, 0);
+
+            const { section, chartDiv, maxBtn } = createChartSection('Arrivées par type (TUR104H)', `${typeTotals.length} types`, '240px');
+
+            const traces = top5Types.map((type, i) => ({
+                x: xLabels,
+                y: months.map(m => typeArrivals[type]?.[m] || 0),
+                type: 'scatter', mode: 'lines',
+                name: type,
+                line: { color: typeColors[type] || `hsl(${i * 55 + 200}, 70%, 65%)`, width: 2 },
+                hovertemplate: `<b>${type}</b><br>%{x}: %{y:,.0f} arrivées<extra></extra>`
+            }));
+
+            const layout = {
+                ...basePlotLayout,
+                margin: { t: 10, l: 50, r: 15, b: 50 },
+                showlegend: true,
+                legend: {
+                    orientation: 'h', x: 0, y: -0.3,
+                    font: { size: 8, color: 'rgba(255,255,255,0.7)' },
+                    bgcolor: 'rgba(0,0,0,0)'
+                },
+                yaxis: { ...basePlotLayout.yaxis, title: { text: 'Arrivées', font: { size: 9, color: 'rgba(255,255,255,0.4)' } } }
+            };
+
+            maxBtn.addEventListener('click', () => this._toggleFullScreenChart(traces, { ...layout, margin: { t: 40, l: 60, r: 30, b: 80 }, title: `Arrivées par type — ${countyName}` }));
+            container.appendChild(section);
+            Plotly.newPlot(chartDiv, traces, layout, plotConfig);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // 3. CAPACITÉ MENSUELLE EN LITS (TUR103F) — Bar chart
+        // ═══════════════════════════════════════════════════════════════════
+        {
+            const yVals = months.map(m => monthlyData[m]?.bed_capacity?.total || 0);
+            const { section, chartDiv, maxBtn } = createChartSection('Capacité mensuelle — lits (TUR103F)', 'Places-jours', '200px');
+
+            const traceData = [{
+                x: xLabels, y: yVals,
+                type: 'bar',
+                marker: {
+                    color: yVals.map((v, i) => {
+                        const [yy, mm] = months[i].split('-');
+                        return parseInt(mm) >= 6 && parseInt(mm) <= 9 ? '#a78bfa' : '#7c3aed';
+                    }),
+                    line: { color: 'rgba(255,255,255,0.12)', width: 0.5 }
+                },
+                hovertemplate: '<b>%{x}</b><br>%{y:,.0f} places-jours<extra></extra>'
+            }];
+
+            const layout = {
+                ...basePlotLayout,
+                margin: { t: 10, l: 55, r: 15, b: 50 },
+                bargap: 0.15,
+                yaxis: { ...basePlotLayout.yaxis, title: { text: 'Places-jours', font: { size: 9, color: 'rgba(255,255,255,0.4)' } } }
+            };
+
+            maxBtn.addEventListener('click', () => this._toggleFullScreenChart(traceData, { ...layout, margin: { t: 40, l: 60, r: 30, b: 60 }, title: `Capacité mensuelle lits — ${countyName}` }));
+            container.appendChild(section);
+            Plotly.newPlot(chartDiv, traceData, layout, plotConfig);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // 4. CAPACITÉ ANNUELLE PAR TYPE (TUR102C) — Grouped bar chart
+        // ═══════════════════════════════════════════════════════════════════
+        {
+            const years = Object.keys(annualCap.total || {}).sort();
+            const byType = annualCap.by_type || {};
+
+            // Get top 5 types by latest year
+            const typeYearTotals = Object.entries(byType).map(([type, yearVals]) => ({
+                type,
+                latest: yearVals[years[years.length - 1]] || 0,
+                data: yearVals
+            })).sort((a, b) => b.latest - a.latest);
+
+            const topTypes = typeYearTotals.slice(0, 5);
+            const typeBarColors = ['#818cf8', '#f472b6', '#34d399', '#fbbf24', '#fb923c'];
+
+            if (years.length > 0 && topTypes.length > 0) {
+                const { section, chartDiv, maxBtn } = createChartSection('Capacité annuelle par type (TUR102C)', `${years[0]}–${years[years.length - 1]}`, '220px');
+
+                const traces = topTypes.map((t, i) => ({
+                    x: years,
+                    y: years.map(yr => t.data[yr] || 0),
+                    type: 'bar',
+                    name: t.type,
+                    marker: { color: typeBarColors[i % typeBarColors.length] },
+                    hovertemplate: `<b>${t.type}</b><br>%{x}: %{y:,.0f} places<extra></extra>`
+                }));
+
+                // Add total line
+                traces.push({
+                    x: years,
+                    y: years.map(yr => annualCap.total[yr] || 0),
+                    type: 'scatter', mode: 'lines+markers',
+                    name: 'Total',
+                    line: { color: '#fff', width: 2, dash: 'dot' },
+                    marker: { size: 6, color: '#fff' },
+                    yaxis: 'y',
+                    hovertemplate: '<b>Total</b><br>%{x}: %{y:,.0f} places<extra></extra>'
+                });
+
+                const layout = {
+                    ...basePlotLayout,
+                    margin: { t: 10, l: 50, r: 15, b: 35 },
+                    barmode: 'stack',
+                    showlegend: true,
+                    legend: {
+                        orientation: 'h', x: 0, y: -0.25,
+                        font: { size: 8, color: 'rgba(255,255,255,0.7)' },
+                        bgcolor: 'rgba(0,0,0,0)'
+                    },
+                    yaxis: { ...basePlotLayout.yaxis, title: { text: 'Places', font: { size: 9, color: 'rgba(255,255,255,0.4)' } } }
+                };
+
+                maxBtn.addEventListener('click', () => this._toggleFullScreenChart(traces, { ...layout, margin: { t: 40, l: 60, r: 30, b: 60 }, title: `Capacité annuelle — ${countyName}` }));
+                container.appendChild(section);
+                Plotly.newPlot(chartDiv, traces, layout, plotConfig);
+            }
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // 5-7. KPI INDICATORS (Tourist Density, Accommodation Density, Tourist Intensity)
+        // ═══════════════════════════════════════════════════════════════════
+        {
+            // Compute annual totals from monthly data
+            const totalArrivals = months.reduce((sum, m) => sum + (monthlyData[m]?.arrivals?.total || 0), 0);
+            const totalBeds = months.reduce((sum, m) => sum + (monthlyData[m]?.bed_capacity?.total || 0), 0);
+            const totalNights = months.reduce((sum, m) => sum + (monthlyData[m]?.overnight_stays?.total || 0), 0);
+            const monthCount = months.length;
+
+            const kpiBlock = document.createElement('div');
+            kpiBlock.className = 'ind-block';
+            kpiBlock.style.marginTop = '8px';
+
+            let kpiHtml = `<div class="ind-block__header">
+                <span class="ind-block__title">Indicateurs de surtourisme</span>
+                <span class="ind-block__big">${countyName}</span>
+            </div>`;
+
+            // Tourist Density : Arrivals / Surface
+            if (areaKm2 > 0) {
+                const touristDensity = totalArrivals / areaKm2;
+                let rating = '';
+                if (touristDensity < 100) rating = 'Faible';
+                else if (touristDensity < 500) rating = 'Modérée';
+                else if (touristDensity < 2000) rating = 'Élevée';
+                else rating = 'Très élevée';
+
+                const pct = Math.min((touristDensity / 5000) * 100, 100);
+                kpiHtml += `
+                    <div class="density-bar" style="margin-top:6px;">
+                        <div class="density-bar__header">
+                            <span class="density-bar__label">Tourist Density</span>
+                            <div class="density-bar__metrics">
+                                <span class="density-bar__value" style="color:#818cf8;">${touristDensity.toFixed(1)} <span class="density-bar__unit">arrivées / km²</span></span>
+                                <span class="density-bar__rating">(${rating})</span>
+                            </div>
+                        </div>
+                        <div class="density-bar__track">
+                            <div class="density-bar__fill" style="width:${pct}%;background:linear-gradient(90deg,rgba(129,140,248,0.4),rgba(129,140,248,1));"></div>
+                        </div>
+                    </div>`;
+            }
+
+            // Accommodation Density : Avg monthly beds / Surface
+            if (areaKm2 > 0 && totalBeds > 0) {
+                const avgMonthlyBeds = totalBeds / monthCount;
+                const accomDensity = avgMonthlyBeds / areaKm2;
+                let rating = '';
+                if (accomDensity < 500) rating = 'Faible';
+                else if (accomDensity < 5000) rating = 'Modérée';
+                else if (accomDensity < 20000) rating = 'Élevée';
+                else rating = 'Très élevée';
+
+                const pct = Math.min((accomDensity / 50000) * 100, 100);
+                kpiHtml += `
+                    <div class="density-bar" style="margin-top:6px;">
+                        <div class="density-bar__header">
+                            <span class="density-bar__label">Accommodation Density</span>
+                            <div class="density-bar__metrics">
+                                <span class="density-bar__value" style="color:#a78bfa;">${accomDensity.toFixed(0)} <span class="density-bar__unit">places-jours / km²</span></span>
+                                <span class="density-bar__rating">(${rating})</span>
+                            </div>
+                        </div>
+                        <div class="density-bar__track">
+                            <div class="density-bar__fill" style="width:${pct}%;background:linear-gradient(90deg,rgba(167,139,250,0.4),rgba(167,139,250,1));"></div>
+                        </div>
+                    </div>`;
+            }
+
+            // Tourist Intensity : Arrivals / Population
+            if (population && population > 0) {
+                const intensity = (totalArrivals / population);
+                let rating = '';
+                if (intensity < 1) rating = 'Faible';
+                else if (intensity < 5) rating = 'Modérée';
+                else if (intensity < 20) rating = 'Élevée';
+                else rating = 'Saturation';
+
+                const pct = Math.min((intensity / 30) * 100, 100);
+                kpiHtml += `
+                    <div class="density-bar" style="margin-top:6px;">
+                        <div class="density-bar__header">
+                            <span class="density-bar__label">Tourist Intensity</span>
+                            <div class="density-bar__metrics">
+                                <span class="density-bar__value" style="color:#f472b6;">${intensity.toFixed(2)} <span class="density-bar__unit">arrivées / habitant</span></span>
+                                <span class="density-bar__rating">(${rating})</span>
+                            </div>
+                        </div>
+                        <div class="density-bar__track">
+                            <div class="density-bar__fill" style="width:${pct}%;background:linear-gradient(90deg,rgba(244,114,182,0.4),rgba(244,114,182,1));"></div>
+                        </div>
+                    </div>`;
+            }
+
+            kpiBlock.innerHTML = kpiHtml;
+            container.appendChild(kpiBlock);
+        }
+
+        // ═══════════════════════════════════════════════════════════════════
+        // 8. TAUX D'OCCUPATION (Utilization Rate) — Bar chart
+        // ═══════════════════════════════════════════════════════════════════
+        {
+            const utilizationData = months.map(m => {
+                const beds = monthlyData[m]?.bed_capacity?.total || 0;
+                const nights = monthlyData[m]?.overnight_stays?.total || 0;
+                return beds > 0 ? (nights / beds) * 100 : 0;
+            });
+
+            const { section, chartDiv, maxBtn } = createChartSection('Taux d\'occupation (TUR105H / TUR103F)', 'Nuitées / Capacité × 100', '200px');
+
+            const traceData = [{
+                x: xLabels,
+                y: utilizationData,
+                type: 'bar',
+                marker: {
+                    color: utilizationData.map(v => {
+                        if (v < 30) return '#22c55e';
+                        if (v < 60) return '#fbbf24';
+                        return '#ef4444';
+                    }),
+                    line: { color: 'rgba(255,255,255,0.12)', width: 0.5 }
+                },
+                hovertemplate: '<b>%{x}</b><br>Taux : %{y:.1f}%<extra></extra>'
+            }];
+
+            const layout = {
+                ...basePlotLayout,
+                margin: { t: 10, l: 40, r: 15, b: 50 },
+                bargap: 0.15,
+                yaxis: {
+                    ...basePlotLayout.yaxis,
+                    title: { text: '%', font: { size: 9, color: 'rgba(255,255,255,0.4)' } },
+                    range: [0, Math.max(...utilizationData, 100) * 1.1]
+                },
+                shapes: [{
+                    type: 'line', x0: 0, x1: 1, xref: 'paper',
+                    y0: 50, y1: 50,
+                    line: { color: 'rgba(251,191,36,0.4)', width: 1, dash: 'dash' }
+                }, {
+                    type: 'line', x0: 0, x1: 1, xref: 'paper',
+                    y0: 80, y1: 80,
+                    line: { color: 'rgba(239,68,68,0.4)', width: 1, dash: 'dash' }
+                }]
+            };
+
+            maxBtn.addEventListener('click', () => this._toggleFullScreenChart(traceData, { ...layout, margin: { t: 40, l: 50, r: 30, b: 60 }, title: `Taux d'occupation — ${countyName}` }));
+            container.appendChild(section);
+            Plotly.newPlot(chartDiv, traceData, layout, plotConfig);
         }
     }
 

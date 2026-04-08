@@ -131,7 +131,7 @@ class App {
             this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null);
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats());
                 if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
@@ -216,7 +216,7 @@ class App {
             this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null);
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats());
                 if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
@@ -491,6 +491,16 @@ class App {
         return null;
     }
 
+    _getRomaniaStats() {
+        if (this.apiService.currentCountryCode !== 'ro') return null;
+        if (!this.activeZone) return null;
+        const zoneName = this.activeZone.name || this.activeZone.hierarchy?.dept || this.activeZone.hierarchy?.region;
+        if (!zoneName) return null;
+        const stats = this.apiService.getRomaniaStats(zoneName);
+        if (stats) console.log(`Données INSSE Roumanie trouvées pour ${zoneName} → county: ${stats.countyName}`);
+        return stats;
+    }
+
     async handleAreaSelection(layer, name = null, type = null, ref = null) {
         this.currentLayer = layer;
         this.uiRenderer.showLoading(true);
@@ -503,6 +513,11 @@ class App {
         } else if (!this.activeZone) {
             // If it's a drawn polygon and no activeZone is set yet
             this.activeZone = null;
+        }
+
+        // Charger les données INSSE Roumanie si le pays est 'ro' (lazy loading)
+        if (this.apiService.currentCountryCode === 'ro' && !this.apiService.romaniaData) {
+            await this.apiService.loadRomaniaData();
         }
 
 
@@ -741,7 +756,7 @@ class App {
                 }
 
                 // Update UI (Macro Stats) - Affiche les POIs, chemins, et soit la démo en cache, soit le spinner
-                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null);
+                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats());
 
                 // Construire et afficher les heatmaps
                 this.updateHeatmaps();
@@ -821,7 +836,7 @@ class App {
                                         </div>
                                     `;
 
-                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null, currentZone.population || null);
+                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null, currentZone.population || null, this._getRomaniaStats());
                                     if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                                     if (this.currentPageviewsData !== undefined) this.uiRenderer.updatePageviewsPanel(this.currentPageviewsData);
                                     this.uiRenderer.renderSparkline();

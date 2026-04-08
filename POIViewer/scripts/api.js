@@ -56,6 +56,7 @@ export class ApiService {
         this.corsProxy = "https://api.allorigins.win/raw?url=";
         this.inseeData = null;
         this.overtourismData = null;
+        this.romaniaData = null;
         // Version du cache — incrémenter pour invalider les anciennes entrées
         this._cacheVersion = 'v4';
     }
@@ -287,6 +288,61 @@ export class ApiService {
     getInseeStats(inseeCode) {
         if (!this.inseeData || !inseeCode) return null;
         return this.inseeData[inseeCode] || null;
+    }
+
+    /**
+     * Charge les données touristiques INSSE Roumanie (lazy, une seule fois)
+     */
+    async loadRomaniaData() {
+        if (this.romaniaData) return this.romaniaData;
+        try {
+            console.log("Loading Romania tourism data...");
+            const response = await fetch('./data/romania_tourism_data.json');
+            if (response.ok) {
+                this.romaniaData = await response.json();
+                console.log(`Romania tourism data loaded: ${Object.keys(this.romaniaData.counties).length} counties`);
+            } else {
+                console.warn("Could not load Romania tourism data. Status:", response.status);
+            }
+        } catch (error) {
+            console.error("Error loading Romania tourism data:", error);
+        }
+        return this.romaniaData;
+    }
+
+    /**
+     * Recherche les stats INSSE pour un county roumain.
+     * Matching flexible : case-insensitive, sans diacritiques, partiel.
+     * @param {string} zoneName — nom de la zone (county, ville ou département)
+     * @returns {object|null} — { countyName, data } ou null
+     */
+    getRomaniaStats(zoneName) {
+        if (!this.romaniaData || !this.romaniaData.counties || !zoneName) return null;
+
+        const normalize = (s) => s.toLowerCase()
+            .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+            .replace(/[-_]/g, ' ').trim();
+
+        const needle = normalize(zoneName);
+        const counties = Object.keys(this.romaniaData.counties);
+
+        // 1. Exact match (normalized)
+        let match = counties.find(c => normalize(c) === needle);
+
+        // 2. Starts-with or contains match
+        if (!match) match = counties.find(c => normalize(c).startsWith(needle) || needle.startsWith(normalize(c)));
+
+        // 3. Partial word match
+        if (!match) match = counties.find(c => needle.includes(normalize(c)) || normalize(c).includes(needle));
+
+        if (match) {
+            return {
+                countyName: match,
+                data: this.romaniaData.counties[match],
+                metadata: this.romaniaData.metadata
+            };
+        }
+        return null;
     }
 
     async fetchPOIs(latLngs, selectedCategories = []) {
