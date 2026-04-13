@@ -1502,6 +1502,114 @@ body {
     line-height: 1.4;
 }
 
+/* ---- Sort bar ---- */
+.poi-sort-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.poi-sort-bar__label {
+    font-size: 0.75rem;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.poi-sort-select {
+    flex: 1;
+    padding: 5px 8px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--glass-border);
+    background: rgba(0, 0, 0, 0.3);
+    color: var(--color-text);
+    font-family: "Google Sans", sans-serif;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: border-color 0.15s;
+}
+
+.poi-sort-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+}
+
+/* ---- Category group header ---- */
+.poi-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0 4px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-text-muted);
+    position: sticky;
+    top: 0;
+    background: rgba(10, 18, 34, 0.92);
+    backdrop-filter: blur(6px);
+    z-index: 1;
+}
+
+.poi-group-header__dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.poi-group-header__count {
+    margin-left: auto;
+    font-size: 0.68rem;
+    opacity: 0.6;
+    font-weight: 400;
+    text-transform: none;
+    letter-spacing: 0;
+}
+
+.poi-group-header--spotlight {
+    color: var(--color-primary);
+    border-bottom-color: rgba(16, 185, 129, 0.35);
+    background: rgba(16, 185, 129, 0.06);
+    border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+    padding-left: 4px;
+}
+
+/* ---- Completeness badge ---- */
+.poi-completeness {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.poi-completeness__bar-track {
+    flex: 1;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.poi-completeness__bar-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.3s ease;
+}
+
+.poi-completeness__label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    white-space: nowrap;
+    min-width: 30px;
+    text-align: right;
+}
+
 /* ============================================
    PRESETS PANEL (Tabbed, bas gauche)
    ============================================ */

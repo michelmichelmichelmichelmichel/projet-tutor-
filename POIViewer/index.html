@@ -153,6 +153,22 @@
 
         <div class="filters-container" id="micro-filters-container">
             <input type="text" id="poi-search-input" placeholder="Rechercher par nom..." class="search-input">
+            <div class="poi-sort-bar">
+                <label class="poi-sort-bar__label" for="poi-sort-select">Trier par</label>
+                <select id="poi-sort-select" class="poi-sort-select">
+                    <option value="default">Par défaut</option>
+                    <option value="alpha">Alphabétique (A → Z)</option>
+                    <option value="cat_alpha">Catégorie + Alphabétique</option>
+                    <option value="completeness_desc">Score de complétude (↓ 100% → 0%)</option>
+                    <option value="completeness_asc">Score de complétude (↑ 0% → 100%)</option>
+                </select>
+            </div>
+            <div class="poi-sort-bar">
+                <label class="poi-sort-bar__label" for="poi-cat-spotlight">Catégorie</label>
+                <select id="poi-cat-spotlight" class="poi-sort-select">
+                    <option value="">Toutes les catégories</option>
+                </select>
+            </div>
         </div>
 
         <div id="poi-list" class="poi-list">

@@ -44,6 +44,8 @@ export class UiRenderer {
         ];
 
         this.lastPois = [];
+        this.currentSort = 'default';
+        this.currentCatSpotlight = '';
 
         // Definir les parcs nationaux (Coordonnées approximatives des bounding boxes + OSM Relation ID)
         this.nationalParks = [
@@ -705,6 +707,22 @@ export class UiRenderer {
 
         if (this.poiSearchInput) {
             this.poiSearchInput.addEventListener('input', () => {
+                this.filterList();
+            });
+        }
+
+        const sortSelect = document.getElementById('poi-sort-select');
+        if (sortSelect) {
+            sortSelect.addEventListener('change', (e) => {
+                this.currentSort = e.target.value;
+                this.filterList();
+            });
+        }
+
+        const catSpotlightSelect = document.getElementById('poi-cat-spotlight');
+        if (catSpotlightSelect) {
+            catSpotlightSelect.addEventListener('change', (e) => {
+                this.currentCatSpotlight = e.target.value;
                 this.filterList();
             });
         }
@@ -2981,7 +2999,121 @@ export class UiRenderer {
 
         this.lastPois = pois; // SYNC: Update the source of truth for the list
 
-        this.poiList.innerHTML = pois.map(poi => this.createPoiCard(poi)).join('');
+        // Peupler le select de catégorie avec les catégories présentes dans les POIs
+        const catSpotlightSelect = document.getElementById('poi-cat-spotlight');
+        if (catSpotlightSelect) {
+            const catLabels = this.categories.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
+            const presentCats = [...new Set(pois.map(p => p.category).filter(Boolean))]
+                .sort((a, b) => (catLabels[a] || a).localeCompare(catLabels[b] || b, 'fr'));
+            // Conserver la valeur sélectionnée si elle est toujours valide
+            const currentVal = catSpotlightSelect.value;
+            catSpotlightSelect.innerHTML = '<option value="">Toutes les catégories</option>';
+            presentCats.forEach(cat => {
+                const opt = document.createElement('option');
+                opt.value = cat;
+                opt.textContent = catLabels[cat] || cat;
+                catSpotlightSelect.appendChild(opt);
+            });
+            catSpotlightSelect.value = presentCats.includes(currentVal) ? currentVal : '';
+            this.currentCatSpotlight = catSpotlightSelect.value;
+        }
+
+        this._renderSortedList(pois);
+    }
+
+    /**
+     * Applique le tri courant (this.currentSort) et injecte les cartes dans la liste.
+     */
+    _renderSortedList(pois) {
+        const sort = this.currentSort || 'default';
+        const spotlight = this.currentCatSpotlight || '';
+
+        // Si une catégorie est sélectionnée, mettre ses POIs en premier selon le tri courant,
+        // puis afficher le reste également selon le tri courant.
+        if (spotlight) {
+            const rawSpotlight = pois.filter(p => p.category === spotlight);
+            const rawOthers    = pois.filter(p => p.category !== spotlight);
+
+            const sortedSpotlight = this._applySortToPois(rawSpotlight, sort);
+            const sortedOthers    = this._applySortToPois(rawOthers, sort);
+
+            const catLabels = this.categories.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
+            const color = this.getCategoryColor(spotlight);
+            const label = catLabels[spotlight] || spotlight;
+            const showScore = sort.startsWith('completeness');
+
+            let html = '';
+            if (sortedSpotlight.length > 0) {
+                html += `<div class="poi-group-header poi-group-header--spotlight">
+                    <span class="poi-group-header__dot" style="background:${color};"></span>
+                    ${this.escapeHtml(label)}
+                    <span class="poi-group-header__count">${sortedSpotlight.length} POI${sortedSpotlight.length > 1 ? 's' : ''} — prioritaire</span>
+                </div>`;
+                html += sortedSpotlight.map(p => this.createPoiCard(p, showScore)).join('');
+            }
+            if (sortedOthers.length > 0) {
+                html += `<div class="poi-group-header" style="margin-top:12px;">
+                    <span style="opacity:0.5;font-size:0.68rem;">Reste des POIs (${sortedOthers.length})</span>
+                </div>`;
+                html += sortedOthers.map(p => this.createPoiCard(p, showScore)).join('');
+            }
+            this.poiList.innerHTML = html;
+            this._bindPoiCardClicks();
+            return;
+        }
+
+
+        if (sort === 'alpha') {
+            // Tri alphabétique global, sans groupement par catégorie
+            const sorted = pois.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+            this.poiList.innerHTML = sorted.map(p => this.createPoiCard(p)).join('');
+
+        } else if (sort === 'cat_alpha') {
+            // Grouper par catégorie, puis trier alphabétiquement au sein de chaque groupe
+            const groups = {};
+            pois.forEach(p => {
+                const cat = p.category || 'other';
+                if (!groups[cat]) groups[cat] = [];
+                groups[cat].push(p);
+            });
+            const catLabels = this.categories.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
+            const sortedCats = Object.keys(groups).sort((a, b) =>
+                (catLabels[a] || a).localeCompare(catLabels[b] || b, 'fr')
+            );
+
+            let html = '';
+            sortedCats.forEach(cat => {
+                const color = this.getCategoryColor(cat);
+                const label = catLabels[cat] || cat;
+                const sorted = groups[cat].slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+                html += `<div class="poi-group-header">
+                    <span class="poi-group-header__dot" style="background:${color};"></span>
+                    ${this.escapeHtml(label)}
+                    <span class="poi-group-header__count">${sorted.length} POI${sorted.length > 1 ? 's' : ''}</span>
+                </div>`;
+                html += sorted.map(p => this.createPoiCard(p)).join('');
+            });
+            this.poiList.innerHTML = html;
+
+        } else if (sort === 'completeness_desc' || sort === 'completeness_asc') {
+            // Tri par score de complétude — liste plate, sans groupement par catégorie
+            const desc = sort === 'completeness_desc';
+            const sorted = pois.slice().sort((a, b) => {
+                const diff = this._computeCompleteness(b) - this._computeCompleteness(a);
+                return desc ? diff : -diff;
+            });
+            this.poiList.innerHTML = sorted.map(p => this.createPoiCard(p, true)).join('');
+
+        } else {
+            // Par défaut : ordre d'arrivée
+            this.poiList.innerHTML = pois.map(p => this.createPoiCard(p)).join('');
+        }
+
+        this._bindPoiCardClicks();
+    }
+
+    /** Rebind les clicks sur toutes les .poi-card actuellement dans le DOM. */
+    _bindPoiCardClicks() {
         this.poiList.querySelectorAll('.poi-card').forEach(card => {
             card.addEventListener('click', () => {
                 const poiId = card.getAttribute('data-id');
@@ -2994,7 +3126,56 @@ export class UiRenderer {
         });
     }
 
-    createPoiCard(poi) {
+    /**
+     * Applique un tri nommé à un tableau de POIs et retourne le tableau trié.
+     * Utilisé pour trier la section "reste des POIs" dans le mode spotlight.
+     */
+    _applySortToPois(pois, sort) {
+        if (sort === 'alpha') {
+            return pois.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'));
+        }
+        if (sort === 'completeness_desc') {
+            return pois.slice().sort((a, b) => this._computeCompleteness(b) - this._computeCompleteness(a));
+        }
+        if (sort === 'completeness_asc') {
+            return pois.slice().sort((a, b) => this._computeCompleteness(a) - this._computeCompleteness(b));
+        }
+        return pois; // cat_alpha et default : ordre d'arrivée pour le reste
+    }
+
+    /**
+     * Calcule un score de complétude (0-100) basé sur les tags OSM disponibles.
+     * Les critères sont pondérés : chaque champ rempli apporte des points.
+     */
+    _computeCompleteness(poi) {
+        const tags = poi.tags || {};
+        const digital = poi.digital || {};
+        let score = 0;
+        const checks = [
+            // Identité (40 pts)
+            [!!(tags.name), 15],
+            [!!(tags['name:fr'] || tags['name:en']), 5],
+            [!!(tags.description || tags['description:fr']), 10],
+            [!!(tags.image || tags.wikimedia_commons), 10],
+            // Contact / numérique (25 pts)
+            [!!(tags.website || tags['contact:website'] || tags.url), 10],
+            [!!(tags.phone || tags['contact:phone']), 7],
+            [!!(digital.hasSocialMedia), 5],
+            [!!(tags.email || tags['contact:email']), 3],
+            // Informations pratiques (25 pts)
+            [!!(tags.opening_hours), 10],
+            [!!(tags.wheelchair), 5],
+            [!!(tags.fee !== undefined || tags['fee:conditional']), 5],
+            [!!(tags.cuisine || tags.sport || tags.tourism || tags.historic), 5],
+            // Wikidata / Wikipedia (10 pts)
+            [!!(tags.wikidata), 5],
+            [!!(tags.wikipedia || tags.wikivoyage), 5],
+        ];
+        checks.forEach(([cond, pts]) => { if (cond) score += pts; });
+        return Math.min(score, 100);
+    }
+
+    createPoiCard(poi, showCompleteness = false) {
         const color = this.getCategoryColor(poi.category);
         const bgStyle = `background: ${color}33; color: ${color};`;
         let distanceHtml = '';
@@ -3008,12 +3189,30 @@ export class UiRenderer {
         if (distParts.length > 0) {
             distanceHtml = `<div class="poi-desc" style="margin-top:4px; font-size:0.75rem;"><span style="color:var(--color-primary);font-weight:600;">${distParts.join(' • ')}</span></div>`;
         }
+
+        let completenessHtml = '';
+        if (showCompleteness) {
+            const score = this._computeCompleteness(poi);
+            const barColor = score >= 70 ? '#34d399' : score >= 40 ? '#f59e0b' : '#ef4444';
+            completenessHtml = `
+                <div class="poi-completeness">
+                    <div class="poi-completeness__bar-track">
+                        <div class="poi-completeness__bar-fill" style="width:${score}%; background:${barColor};"></div>
+                    </div>
+                    <span class="poi-completeness__label" style="color:${barColor};">${score}%</span>
+                </div>`;
+        }
+
+        const catLabels = this.categories.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
+        const catLabel = catLabels[poi.category] || poi.category;
+
         return `
             <div class="poi-card" data-id="${poi.id}" style="border-left: 3px solid ${color}">
                 <span class="poi-category-tag" style="${bgStyle}">${this.translateType(poi.type)}</span>
                 <div class="poi-name">${poi.name}</div>
-                <div class="poi-desc">Catégorie: ${this.getCategoryEmoji(poi.category)} ${poi.category}</div>
+                <div class="poi-desc">${this.escapeHtml(catLabel)}</div>
                 ${distanceHtml}
+                ${completenessHtml}
             </div>
         `;
     }
