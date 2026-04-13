@@ -1610,6 +1610,74 @@ body {
     text-align: right;
 }
 
+/* ---- Scores widget (fiche détail) ---- */
+.poi-scores-widget {
+    margin: 14px 0;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: var(--radius);
+}
+
+.poi-scores-widget__title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 10px;
+}
+
+.poi-scores-widget__global {
+    font-size: 1.1rem;
+    font-weight: 800;
+    letter-spacing: 0;
+    text-transform: none;
+}
+
+.poi-score-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 7px;
+}
+
+.poi-score-row:last-child {
+    margin-bottom: 0;
+}
+
+.poi-score-row__label {
+    font-size: 0.72rem;
+    color: var(--color-text-muted);
+    width: 120px;
+    flex-shrink: 0;
+}
+
+.poi-score-row__track {
+    flex: 1;
+    height: 5px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.poi-score-row__fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+}
+
+.poi-score-row__pct {
+    font-size: 0.72rem;
+    font-weight: 700;
+    min-width: 34px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
 /* ============================================
    PRESETS PANEL (Tabbed, bas gauche)
    ============================================ */

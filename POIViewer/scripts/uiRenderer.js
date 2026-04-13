@@ -3144,35 +3144,89 @@ export class UiRenderer {
     }
 
     /**
-     * Calcule un score de complétude (0-100) basé sur les tags OSM disponibles.
-     * Les critères sont pondérés : chaque champ rempli apporte des points.
+     * Calcule les 4 scores de complétude (0-100) alignés sur les sections de la fiche micro.
+     * Retourne un objet { general, infra, tourisme, digital, global }
+     *
+     * Calibration :
+     *  - Un POI correctement renseigné (nom + type + horaires) doit être orange (≈50%)
+     *  - Un POI enrichi (+ description + site web OU wikipedia) doit être vert (≥60%)
+     *  - global = moyenne pondérée : General 40% + Tourisme 35% + Infra 15% + Digital 10%
+     */
+    _computeCompletenessBreakdown(poi) {
+        const t = poi.tags || {};
+        const d = poi.digital || {};
+
+        // ── 1. Informations générales (/100) ───────────────────────────────────
+        // Critère clé : nom (45), horaires (25), description (20), contact (10)
+        let general = 0;
+        if (t.name)                                              general += 45;
+        if (t.opening_hours)                                     general += 25;
+        if (t.description || t['description:fr'])                general += 20;
+        if (t.phone || t['contact:phone'] ||
+            t.email || t['contact:email'])                       general += 10;
+        // Bonus: nom traduit ou adresse structurée
+        if (t['name:fr'] || t['name:en'] ||
+            t['addr:street'] || t['addr:housenumber'])           general = Math.min(general + 5, 100);
+
+        // ── 2. Infrastructures & activités (/100) ──────────────────────────────
+        // Combine tags OSM + données de proximité calculées par l'app
+        let infra = 0;
+        // Accès transport (présence = l'app a calculé la distance)
+        const hasTransport = poi.nearestBusStopDist !== undefined ||
+                             poi.nearestTrainStationDist !== undefined;
+        const hasAirport   = poi.nearestAirportDist !== undefined;
+        const hasRoad      = poi.nearestRoadDist !== undefined;
+        const hasTrail     = poi.nearestHikingDist !== undefined ||
+                             poi.nearestCyclingDist !== undefined;
+        const hasAccom     = poi.nearestAccomHotelDist !== undefined ||
+                             poi.nearestAccomCampingDist !== undefined;
+        if (hasTransport)                                        infra += 30;
+        if (hasRoad)                                             infra += 20;
+        if (hasTrail)                                            infra += 20;
+        if (hasAirport)                                          infra += 10;
+        if (hasAccom)                                            infra += 10;
+        // Tags OSM d'accessibilité
+        if (t.wheelchair)                                        infra += 5;
+        if (t.fee !== undefined && t.fee !== null)               infra += 5;
+
+        // ── 3. Tourisme (/100) ─────────────────────────────────────────────────
+        // Avoir un type OSM spécifique est la base (50 pts)
+        let tourisme = 0;
+        if (t.tourism || t.historic || t.natural ||
+            t.leisure || t.amenity)                              tourisme += 50;
+        if (t.wikipedia || t.wikidata)                           tourisme += 30;
+        if (t.stars || t['stars:tourism'])                       tourisme += 10;
+        if (t.cuisine || t.sport || t.capacity)                  tourisme += 10;
+
+        // ── 4. Données digitales (/100) ────────────────────────────────────────
+        // Website seul = déjà bien (55 pts)
+        let digital = 0;
+        if (t.website || t['contact:website'] || t.url)         digital += 55;
+        if (d.hasSocialMedia)                                    digital += 25;
+        if (d.hasWikivoyage || t.wikivoyage)                     digital += 10;
+        if (d.wikidataLanguagesCount > 0)                        digital += 10;
+
+        general  = Math.min(general, 100);
+        infra    = Math.min(infra, 100);
+        tourisme = Math.min(tourisme, 100);
+        digital  = Math.min(digital, 100);
+
+        // Moyenne pondérée : General 40% + Tourisme 35% + Infra 15% + Digital 10%
+        const global = Math.round(
+            general  * 0.40 +
+            tourisme * 0.35 +
+            infra    * 0.15 +
+            digital  * 0.10
+        );
+
+        return { general, infra, tourisme, digital, global };
+    }
+
+    /**
+     * Score global (0-100) utilisé pour le tri — moyenne des 4 scores.
      */
     _computeCompleteness(poi) {
-        const tags = poi.tags || {};
-        const digital = poi.digital || {};
-        let score = 0;
-        const checks = [
-            // Identité (40 pts)
-            [!!(tags.name), 15],
-            [!!(tags['name:fr'] || tags['name:en']), 5],
-            [!!(tags.description || tags['description:fr']), 10],
-            [!!(tags.image || tags.wikimedia_commons), 10],
-            // Contact / numérique (25 pts)
-            [!!(tags.website || tags['contact:website'] || tags.url), 10],
-            [!!(tags.phone || tags['contact:phone']), 7],
-            [!!(digital.hasSocialMedia), 5],
-            [!!(tags.email || tags['contact:email']), 3],
-            // Informations pratiques (25 pts)
-            [!!(tags.opening_hours), 10],
-            [!!(tags.wheelchair), 5],
-            [!!(tags.fee !== undefined || tags['fee:conditional']), 5],
-            [!!(tags.cuisine || tags.sport || tags.tourism || tags.historic), 5],
-            // Wikidata / Wikipedia (10 pts)
-            [!!(tags.wikidata), 5],
-            [!!(tags.wikipedia || tags.wikivoyage), 5],
-        ];
-        checks.forEach(([cond, pts]) => { if (cond) score += pts; });
-        return Math.min(score, 100);
+        return this._computeCompletenessBreakdown(poi).global;
     }
 
     createPoiCard(poi, showCompleteness = false) {
@@ -3237,6 +3291,33 @@ export class UiRenderer {
                 <div id="poi-gallery" class="poi-gallery poi-gallery--loading">
                     <div class="poi-gallery__skeleton"></div>
                 </div>
+
+                <!-- Scores de complétude par section -->
+                ${(() => {
+                    const s = this._computeCompletenessBreakdown(poi);
+                    // Seuils : vert ≥60%, orange ≥35%, rouge <35%
+                    const col = (score) => score >= 60 ? '#34d399' : score >= 35 ? '#f59e0b' : '#ef4444';
+                    const bar = (label, score) => {
+                        const c = col(score);
+                        return `<div class="poi-score-row">
+                            <span class="poi-score-row__label">${label}</span>
+                            <div class="poi-score-row__track">
+                                <div class="poi-score-row__fill" style="width:${score}%;background:${c};"></div>
+                            </div>
+                            <span class="poi-score-row__pct" style="color:${c};">${score}%</span>
+                        </div>`;
+                    };
+                    return `<div class="poi-scores-widget">
+                        <div class="poi-scores-widget__title">
+                            📊 Complétude de la fiche
+                            <span class="poi-scores-widget__global" style="color:${col(s.global)};">${s.global}%</span>
+                        </div>
+                        ${bar('Infos générales', s.general)}
+                        ${bar('Infrastructures', s.infra)}
+                        ${bar('Tourisme', s.tourisme)}
+                        ${bar('Données digitales', s.digital)}
+                    </div>`;
+                })()}
 
                 <!-- Section 1: Informations générales -->
                 <div class="poi-section poi-section--collapsible">
