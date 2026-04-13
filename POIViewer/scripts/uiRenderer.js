@@ -3185,6 +3185,14 @@ export class UiRenderer {
                     </div>
                 </div>
 
+                <!-- OSM Metadata -->
+                ${poi.osmMetadata && poi.osmMetadata.timestamp ? `
+                    <div class="osm-meta-row">
+                        <span class="osm-meta-icon">🕒</span>
+                        <span>Dernière modification OSM : <span class="osm-meta-value">${this._formatOsmDate(poi.osmMetadata.timestamp)}</span></span>
+                    </div>
+                ` : ''}
+
                 <!-- Source Links -->
                 <div style="margin-top:16px;text-align:center;display:flex;justify-content:center;gap:15px;">
                     <a href="https://www.openstreetmap.org/node/${poi.id}" target="_blank"
@@ -3820,6 +3828,22 @@ export class UiRenderer {
         //     'other': '❓'
         // };
         // return emojis[category] || emojis['other'];
+    }
+
+    _formatOsmDate(dateStr) {
+        if (!dateStr) return 'Inconnue';
+        try {
+            const date = new Date(dateStr);
+            return date.toLocaleDateString('fr-FR', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        } catch (e) {
+            return dateStr;
+        }
     }
 
     translateType(type) {

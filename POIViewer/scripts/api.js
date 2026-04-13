@@ -468,7 +468,7 @@ export class ApiService {
                   ${nodeQuery}
                   ${wayQuery}
                 );
-                out geom;
+                out geom meta;
             `;
 
             const response = await this._overpassFetch(query, 'POIs');
@@ -611,6 +611,11 @@ export class ApiService {
                             category: info.category,
                             type: info.type,
                             tags: el.tags,
+                            osmMetadata: {
+                                timestamp: el.timestamp,
+                                version: el.version,
+                                user: el.user
+                            },
                             digital: {
                                 hasWebsite,
                                 hasSocialMedia,

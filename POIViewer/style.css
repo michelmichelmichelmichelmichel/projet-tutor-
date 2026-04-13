@@ -1959,8 +1959,25 @@ body {
     text-decoration: none;
 }
 
-.info-value a:hover {
-    text-decoration: underline;
+.osm-meta-row {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--color-text-muted);
+    font-size: 0.75rem;
+    opacity: 0.8;
+}
+
+.osm-meta-icon {
+    font-size: 0.9rem;
+    opacity: 0.7;
+}
+
+.osm-meta-value {
+    font-weight: 500;
 }
 
 /* ============================================
