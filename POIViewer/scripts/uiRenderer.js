@@ -2842,14 +2842,7 @@ export class UiRenderer {
                 }
             });
 
-            const dot = document.createElement('span');
-            dot.style.width = '12px';
-            dot.style.height = '12px';
-            dot.style.borderRadius = '50%';
-            dot.style.background = opt.color;
-
             label.appendChild(checkbox);
-            label.appendChild(dot);
             label.appendChild(document.createTextNode(` ${opt.label}`));
             div.appendChild(label);
             content.appendChild(div);
