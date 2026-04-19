@@ -3063,51 +3063,33 @@ export class UiRenderer {
         }
 
 
-        if (sort === 'alpha') {
-            // Tri alphabétique global, sans groupement par catégorie
-            const sorted = pois.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'));
-            this.poiList.innerHTML = sorted.map(p => this.createPoiCard(p)).join('');
+        // ── Grouper par catégorie, puis appliquer le tri au sein de chaque groupe ──
+        const groups = {};
+        pois.forEach(p => {
+            const cat = p.category || 'other';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(p);
+        });
+        const catLabels = this.categories.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
+        const sortedCats = Object.keys(groups).sort((a, b) =>
+            (catLabels[a] || a).localeCompare(catLabels[b] || b, 'fr')
+        );
 
-        } else if (sort === 'cat_alpha') {
-            // Grouper par catégorie, puis trier alphabétiquement au sein de chaque groupe
-            const groups = {};
-            pois.forEach(p => {
-                const cat = p.category || 'other';
-                if (!groups[cat]) groups[cat] = [];
-                groups[cat].push(p);
-            });
-            const catLabels = this.categories.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
-            const sortedCats = Object.keys(groups).sort((a, b) =>
-                (catLabels[a] || a).localeCompare(catLabels[b] || b, 'fr')
-            );
+        const showScore = sort === 'completeness_desc' || sort === 'completeness_asc';
 
-            let html = '';
-            sortedCats.forEach(cat => {
-                const color = this.getCategoryColor(cat);
-                const label = catLabels[cat] || cat;
-                const sorted = groups[cat].slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'));
-                html += `<div class="poi-group-header">
-                    <span class="poi-group-header__dot" style="background:${color};"></span>
-                    ${this.escapeHtml(label)}
-                    <span class="poi-group-header__count">${sorted.length} POI${sorted.length > 1 ? 's' : ''}</span>
-                </div>`;
-                html += sorted.map(p => this.createPoiCard(p)).join('');
-            });
-            this.poiList.innerHTML = html;
-
-        } else if (sort === 'completeness_desc' || sort === 'completeness_asc') {
-            // Tri par score de complétude — liste plate, sans groupement par catégorie
-            const desc = sort === 'completeness_desc';
-            const sorted = pois.slice().sort((a, b) => {
-                const diff = this._computeCompleteness(b) - this._computeCompleteness(a);
-                return desc ? diff : -diff;
-            });
-            this.poiList.innerHTML = sorted.map(p => this.createPoiCard(p, true)).join('');
-
-        } else {
-            // Par défaut : ordre d'arrivée
-            this.poiList.innerHTML = pois.map(p => this.createPoiCard(p)).join('');
-        }
+        let html = '';
+        sortedCats.forEach(cat => {
+            const color = this.getCategoryColor(cat);
+            const label = catLabels[cat] || cat;
+            const sorted = this._applySortToPois(groups[cat], sort);
+            html += `<div class="poi-group-header">
+                <span class="poi-group-header__dot" style="background:${color};"></span>
+                ${this.escapeHtml(label)}
+                <span class="poi-group-header__count">${sorted.length} POI${sorted.length > 1 ? 's' : ''}</span>
+            </div>`;
+            html += sorted.map(p => this.createPoiCard(p, showScore)).join('');
+        });
+        this.poiList.innerHTML = html;
 
         this._bindPoiCardClicks();
     }
@@ -3131,7 +3113,7 @@ export class UiRenderer {
      * Utilisé pour trier la section "reste des POIs" dans le mode spotlight.
      */
     _applySortToPois(pois, sort) {
-        if (sort === 'alpha') {
+        if (sort === 'alpha' || sort === 'cat_alpha') {
             return pois.slice().sort((a, b) => a.name.localeCompare(b.name, 'fr'));
         }
         if (sort === 'completeness_desc') {
