@@ -550,8 +550,8 @@ class App {
 
                 // Pré-calcul de la distance à l'arrêt le plus proche pour chaque POI
                 // Pré-calcul des distances aux points de transport les plus proches pour chaque POI
-                const isBusStop = (p) => p.type === 'bus_stop' || p.type === 'bus_station' || p.type === 'platform' || (p.tags && (p.tags.highway === 'bus_stop' || p.tags.bus === 'yes')) || p.category === 'public_transport';
-                const isTrainStation = (p) => ['station', 'halt', 'tram_stop', 'subway_entrance', 'stop_area'].includes(p.type) || (p.tags && (p.tags.railway === 'station' || p.tags.railway === 'halt' || p.tags.train === 'yes'));
+                const isTrainStation = (p) => ['station', 'halt', 'tram_stop', 'subway_entrance'].includes(p.type) || (p.tags && (p.tags.railway === 'station' || p.tags.railway === 'halt' || p.tags.train === 'yes'));
+                const isBusStop = (p) => !isTrainStation(p) && (['bus_stop', 'bus_station', 'platform', 'stop_area'].includes(p.type) || (p.tags && (p.tags.highway === 'bus_stop' || p.tags.bus === 'yes')) || p.category === 'public_transport');
                 const isAirport = (p) => ['aerodrome', 'aeroway', 'airport'].includes(p.type) || (p.tags && p.tags.aeroway === 'aerodrome');
 
                 const busStops = pois.filter(isBusStop);
