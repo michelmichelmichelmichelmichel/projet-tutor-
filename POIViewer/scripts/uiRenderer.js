@@ -3857,8 +3857,10 @@ export class UiRenderer {
         if (t.start_date) rows.push(this._infoRow('Création', t.start_date));
         if (t.description) rows.push(this._infoRow('Description', t.description));
 
-        rows.push(this._infoRow('Coordonnées',
-            `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
+        if (poi.lat != null && poi.lng != null) {
+            rows.push(this._infoRow('Coordonnées',
+                `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
+        }
 
         return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée disponible.</p>';
     }

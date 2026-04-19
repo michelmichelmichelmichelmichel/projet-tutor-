@@ -444,7 +444,7 @@ export class ApiService {
 
             // Build queries for multiple polygons (if MultiPolygon)
             const nodeQuery = polyCoordsArray.map(polyCoords =>
-                `node[~"^(${keysRegex})$"~"."](poly:"${polyCoords}");`
+                `nwr[~"^(${keysRegex})$"~"."](poly:"${polyCoords}");`
             ).join('\n              ');
 
             const wayQuery = polyCoordsArray.map(polyCoords => `
@@ -468,7 +468,7 @@ export class ApiService {
                   ${nodeQuery}
                   ${wayQuery}
                 );
-                out geom meta;
+                out center geom meta;
             `;
 
             const response = await this._overpassFetch(query, 'POIs');
@@ -578,20 +578,22 @@ export class ApiService {
                     const poiName = el.tags.name || info.type.replace(/_/g, ' ') || "Lieu sans nom";
                     // Clé unique = nom (minuscule) + catégorie
                     // Évite de comparer une boulangerie et une pharmacie homonymes
-                    const uniqueKey = `${poiName.toLowerCase()}_${info.category}`;
+                    const uniqueKey = `${poiName.toLowerCase()}_${info.category}_${info.type}`;
 
                     // Logique de dédoublonnage géographique (seuil : 500 m)
                     let isTooClose = false;
+                    const elLat = el.lat || (el.center && el.center.lat) || (el.geometry && el.geometry.length > 0 ? el.geometry[0].lat : null);
+                    const elLon = el.lon || (el.center && el.center.lon) || (el.geometry && el.geometry.length > 0 ? el.geometry[0].lon : null);
                     if (seenPois[uniqueKey]) {
                         isTooClose = seenPois[uniqueKey].some(existingLoc => {
-                            const dist = this.calculateDistance(el.lat, el.lon, existingLoc.lat, existingLoc.lng);
+                            const dist = this.calculateDistance(elLat, elLon, existingLoc.lat, existingLoc.lng);
                             return dist < 500;
                         });
                     }
 
                     if (!isTooClose) {
                         if (!seenPois[uniqueKey]) seenPois[uniqueKey] = [];
-                        seenPois[uniqueKey].push({ lat: el.lat, lng: el.lon });
+                        seenPois[uniqueKey].push({ lat: elLat, lng: elLon });
 
                         // --- Extraction des données digitales OSM ---
                         const hasWebsite = !!(el.tags.website || el.tags['contact:website'] || el.tags.url);
@@ -605,8 +607,9 @@ export class ApiService {
 
                         pois.push({
                             id: el.id,
-                            lat: el.lat,
-                            lng: el.lon,
+                            lat: elLat,
+                            lng: elLon,
+                            center: el.center || null,
                             name: poiName,
                             category: info.category,
                             type: info.type,
@@ -626,9 +629,9 @@ export class ApiService {
                         });
                     }
                 }
-            } else if (el.type === 'way' && el.tags && el.geometry) {
+            } else if (el.type === 'way' && el.tags) {
                 // Extraire un centroïde pour les plans d'eau (lacs, étangs) et les afficher comme POIs
-                if (el.tags.natural === 'water' && el.geometry.length >= 4) {
+                if (el.tags.natural === 'water' && el.geometry && el.geometry.length >= 4) {
                     const lats = el.geometry.map(p => p.lat);
                     const lngs = el.geometry.map(p => p.lon);
                     const centerLat = lats.reduce((a, b) => a + b, 0) / lats.length;
@@ -645,13 +648,125 @@ export class ApiService {
                         tags: el.tags
                     });
                 }
-                networks.push({
-                    id: el.id,
-                    type: el.tags.highway || el.tags.railway || el.tags.aerialway || el.tags['piste:type'] || 'unknown',
-                    tags: el.tags,
-                    geometry: el.geometry
-                });
+
+                // Extraire les POIs depuis les ways (gares, aéroports, etc.)
+                // Utilise el.center calculé par Overpass (out center)
+                const wayCenter = el.center || (el.geometry && el.geometry.length > 0 ? { lat: el.geometry[0].lat, lon: el.geometry[0].lon } : null);
+                if (wayCenter) {
+                    const info = this.detectCategoryAndType(el.tags);
+                    if (info.category !== 'unknown' && info.category !== 'place') {
+                        const poiName = el.tags.name || info.type.replace(/_/g, ' ') || "Lieu sans nom";
+                        const uniqueKey = `${poiName.toLowerCase()}_${info.category}_${info.type}`;
+                        let isTooClose = false;
+                        if (seenPois[uniqueKey]) {
+                            isTooClose = seenPois[uniqueKey].some(existingLoc => {
+                                const dist = this.calculateDistance(wayCenter.lat, wayCenter.lon, existingLoc.lat, existingLoc.lng);
+                                return dist < 500;
+                            });
+                        }
+                        if (!isTooClose) {
+                            if (!seenPois[uniqueKey]) seenPois[uniqueKey] = [];
+                            seenPois[uniqueKey].push({ lat: wayCenter.lat, lng: wayCenter.lon });
+
+                            const hasWebsite = !!(el.tags.website || el.tags['contact:website'] || el.tags.url);
+                            const socialMediaKeys = ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok'];
+                            const hasSocialMedia = Object.keys(el.tags).some(key =>
+                                socialMediaKeys.some(sm => key.includes(sm) || (key.startsWith('contact:') && key.includes(sm)))
+                            );
+                            const hasWikivoyage = !!el.tags.wikivoyage;
+
+                            pois.push({
+                                id: el.id,
+                                lat: wayCenter.lat,
+                                lng: wayCenter.lon,
+                                center: el.center || null,
+                                name: poiName,
+                                category: info.category,
+                                type: info.type,
+                                tags: el.tags,
+                                osmMetadata: {
+                                    timestamp: el.timestamp,
+                                    version: el.version,
+                                    user: el.user
+                                },
+                                digital: {
+                                    hasWebsite,
+                                    hasSocialMedia,
+                                    hasWikivoyage,
+                                    wikidataLanguagesCount: null,
+                                    wikidataHasWikivoyage: false
+                                }
+                            });
+                        }
+                    }
+                }
+
+                if (el.geometry) {
+                    networks.push({
+                        id: el.id,
+                        type: el.tags.highway || el.tags.railway || el.tags.aerialway || el.tags['piste:type'] || 'unknown',
+                        tags: el.tags,
+                        geometry: el.geometry
+                    });
+                }
             } else if (el.type === 'relation' && el.tags && el.members) {
+                // Extraire les POIs depuis les relations (multipolygones : gares, aéroports, etc.)
+                let relCenter = el.center || null;
+                if (!relCenter) {
+                    for (const m of el.members) {
+                        if (m.lat && m.lon) { relCenter = { lat: m.lat, lon: m.lon }; break; }
+                        if (m.geometry && m.geometry.length > 0) { relCenter = { lat: m.geometry[0].lat, lon: m.geometry[0].lon }; break; }
+                    }
+                }
+                if (relCenter) {
+                    const info = this.detectCategoryAndType(el.tags);
+                    if (info.category !== 'unknown' && info.category !== 'place') {
+                        const poiName = el.tags.name || info.type.replace(/_/g, ' ') || "Lieu sans nom";
+                        const uniqueKey = `${poiName.toLowerCase()}_${info.category}_${info.type}`;
+                        let isTooClose = false;
+                        if (seenPois[uniqueKey]) {
+                            isTooClose = seenPois[uniqueKey].some(existingLoc => {
+                                const dist = this.calculateDistance(relCenter.lat, relCenter.lon, existingLoc.lat, existingLoc.lng);
+                                return dist < 500;
+                            });
+                        }
+                        if (!isTooClose) {
+                            if (!seenPois[uniqueKey]) seenPois[uniqueKey] = [];
+                            seenPois[uniqueKey].push({ lat: relCenter.lat, lng: relCenter.lon });
+
+                            const hasWebsite = !!(el.tags.website || el.tags['contact:website'] || el.tags.url);
+                            const socialMediaKeys = ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok'];
+                            const hasSocialMedia = Object.keys(el.tags).some(key =>
+                                socialMediaKeys.some(sm => key.includes(sm) || (key.startsWith('contact:') && key.includes(sm)))
+                            );
+                            const hasWikivoyage = !!el.tags.wikivoyage;
+
+                            pois.push({
+                                id: el.id,
+                                lat: relCenter.lat,
+                                lng: relCenter.lon,
+                                center: el.center || null,
+                                name: poiName,
+                                category: info.category,
+                                type: info.type,
+                                tags: el.tags,
+                                osmMetadata: {
+                                    timestamp: el.timestamp,
+                                    version: el.version,
+                                    user: el.user
+                                },
+                                digital: {
+                                    hasWebsite,
+                                    hasSocialMedia,
+                                    hasWikivoyage,
+                                    wikidataLanguagesCount: null,
+                                    wikidataHasWikivoyage: false
+                                }
+                            });
+                        }
+                    }
+                }
+
                 el.members.forEach(m => {
                     if (m.type === 'way' && m.geometry) {
                         networks.push({
@@ -696,7 +811,9 @@ export class ApiService {
         if (tags.waterway && ['waterfall', 'spring', 'dam'].includes(tags.waterway)) return { category: 'natural', type: tags.waterway };
         if (tags.mountain_pass) return { category: 'natural', type: 'mountain_pass' };
 
-        if (tags.public_transport || tags.railway) return { category: 'transport', type: tags.railway || tags.public_transport };
+        if (tags.public_transport || tags.railway || tags.aeroway) {
+            return { category: 'transport', type: tags.railway || tags.aeroway || tags.public_transport };
+        }
 
         if (tags.amenity) {
             const val = tags.amenity;

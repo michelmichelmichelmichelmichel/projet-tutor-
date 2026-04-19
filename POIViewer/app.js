@@ -233,10 +233,12 @@ class App {
             this.treemapHighlight = null;
             this.addMarkersToMap(this.getFilteredPOIs());
 
-            this.mapManager.zoomToLocation(poi.lat, poi.lng);
-            setTimeout(() => {
-                this.mapManager.showSelectionMarker(poi.lat, poi.lng, poi.name);
-            }, 1600);
+            if (poi.lat != null && poi.lng != null) {
+                this.mapManager.zoomToLocation(poi.lat, poi.lng);
+                setTimeout(() => {
+                    this.mapManager.showSelectionMarker(poi.lat, poi.lng, poi.name);
+                }, 1600);
+            }
         };
 
         // Bind transit filter change from micro detail view
@@ -549,59 +551,74 @@ class App {
                 // Pré-calcul de la distance à l'arrêt le plus proche pour chaque POI
                 // Pré-calcul des distances aux points de transport les plus proches pour chaque POI
                 const isBusStop = (p) => p.type === 'bus_stop' || p.type === 'bus_station' || p.type === 'platform' || (p.tags && (p.tags.highway === 'bus_stop' || p.tags.bus === 'yes')) || p.category === 'public_transport';
-                const isTrainStation = (p) => ['station', 'halt', 'tram_stop', 'subway_entrance'].includes(p.type) || (p.tags && (p.tags.railway === 'station' || p.tags.railway === 'halt'));
+                const isTrainStation = (p) => ['station', 'halt', 'tram_stop', 'subway_entrance', 'stop_area'].includes(p.type) || (p.tags && (p.tags.railway === 'station' || p.tags.railway === 'halt' || p.tags.train === 'yes'));
                 const isAirport = (p) => ['aerodrome', 'aeroway', 'airport'].includes(p.type) || (p.tags && p.tags.aeroway === 'aerodrome');
 
                 const busStops = pois.filter(isBusStop);
                 const trainStations = pois.filter(isTrainStation);
                 const airports = pois.filter(isAirport);
 
+                // Helper pour récupérer les coordonnées réelles (gère les points ET les polygones)
+                const getCoords = (p) => {
+                    const lat = p.lat || (p.center && p.center.lat);
+                    const lng = p.lon || p.lng || (p.center && p.center.lon);
+                    return (lat != null && lng != null) ? { lat, lng } : null;
+                };
+
                 pois.forEach(poi => {
-                    const poiLatLng = L.latLng(poi.lat, poi.lng);
+                    const poiCoords = getCoords(poi);
+                    if (!poiCoords) return;
+                    const poiLatLng = L.latLng(poiCoords.lat, poiCoords.lng);
 
                     // Distance Bus
                     if (!isBusStop(poi) && busStops.length > 0) {
-                        let minD = Infinity, nearest = null;
+                        let minD = Infinity, nearest = null, nearestCoords = null;
                         busStops.forEach(bs => {
-                            const d = poiLatLng.distanceTo(L.latLng(bs.lat, bs.lng));
-                            if (d < minD) { minD = d; nearest = bs; }
+                            const coords = getCoords(bs);
+                            if (!coords) return;
+                            const d = poiLatLng.distanceTo(L.latLng(coords.lat, coords.lng));
+                            if (d < minD) { minD = d; nearest = bs; nearestCoords = coords; }
                         });
                         if (minD !== Infinity && nearest) {
                             poi.nearestBusStopDist = minD;
                             poi.nearestBusStopName = nearest.name || nearest.tags?.name || 'Arrêt de bus';
-                            poi.nearestBusStopCoords = [nearest.lat, nearest.lng];
+                            poi.nearestBusStopCoords = [nearestCoords.lat, nearestCoords.lng];
                         }
                     }
 
                     // Distance Gare
                     if (!isTrainStation(poi) && trainStations.length > 0) {
-                        let minD = Infinity, nearest = null;
+                        let minD = Infinity, nearest = null, nearestCoords = null;
                         trainStations.forEach(ts => {
-                            const d = poiLatLng.distanceTo(L.latLng(ts.lat, ts.lng));
-                            if (d < minD) { minD = d; nearest = ts; }
+                            const coords = getCoords(ts);
+                            if (!coords) return;
+                            const d = poiLatLng.distanceTo(L.latLng(coords.lat, coords.lng));
+                            if (d < minD) { minD = d; nearest = ts; nearestCoords = coords; }
                         });
                         if (minD !== Infinity && nearest) {
                             poi.nearestTrainStationDist = minD;
                             poi.nearestTrainStationName = nearest.name || nearest.tags?.name || 'Gare';
-                            poi.nearestTrainStationCoords = [nearest.lat, nearest.lng];
+                            poi.nearestTrainStationCoords = [nearestCoords.lat, nearestCoords.lng];
                         }
                     }
 
                     // Distance Aéroport
                     if (!isAirport(poi) && airports.length > 0) {
-                        let minD = Infinity, nearest = null;
+                        let minD = Infinity, nearest = null, nearestCoords = null;
                         airports.forEach(ap => {
-                            const d = poiLatLng.distanceTo(L.latLng(ap.lat, ap.lng));
-                            if (d < minD) { minD = d; nearest = ap; }
+                            const coords = getCoords(ap);
+                            if (!coords) return;
+                            const d = poiLatLng.distanceTo(L.latLng(coords.lat, coords.lng));
+                            if (d < minD) { minD = d; nearest = ap; nearestCoords = coords; }
                         });
                         if (minD !== Infinity && nearest) {
                             poi.nearestAirportDist = minD;
                             poi.nearestAirportName = nearest.name || nearest.tags?.name || 'Aéroport';
-                            poi.nearestAirportCoords = [nearest.lat, nearest.lng];
+                            poi.nearestAirportCoords = [nearestCoords.lat, nearestCoords.lng];
                         }
                     }
 
-                    // ── Nearest accommodation (hotel, camping, refuge, guesthouse) ──
+                    // Nearest accommodation (hotel, camping, refuge, guesthouse)
                     const isAccom = (p) => p.category === 'accommodation' || ['hotel', 'guest_house', 'hostel', 'camp_site', 'chalet', 'alpine_hut', 'apartment', 'motel', 'caravan_site', 'shelter', 'wilderness_hut', 'bed_and_breakfast', 'holiday_flat'].includes(p.type);
                     const isHotel = (p) => p.type === 'hotel' || p.type === 'motel';
                     const isCamping = (p) => p.type === 'camp_site' || p.type === 'caravan_site';
@@ -618,15 +635,17 @@ class App {
                         accomTypes.forEach(({ key, filter }) => {
                             const candidates = pois.filter(filter);
                             if (candidates.length > 0) {
-                                let minD = Infinity, nearest = null;
+                                let minD = Infinity, nearest = null, nearestCoords = null;
                                 candidates.forEach(c => {
-                                    const d = poiLatLng.distanceTo(L.latLng(c.lat, c.lng));
-                                    if (d < minD) { minD = d; nearest = c; }
+                                    const coords = getCoords(c);
+                                    if (!coords) return;
+                                    const d = poiLatLng.distanceTo(L.latLng(coords.lat, coords.lng));
+                                    if (d < minD) { minD = d; nearest = c; nearestCoords = coords; }
                                 });
                                 if (minD !== Infinity && nearest) {
                                     poi[`nearestAccom${key}Dist`] = minD;
                                     poi[`nearestAccom${key}Name`] = nearest.name || nearest.tags?.name || key;
-                                    poi[`nearestAccom${key}Coords`] = [nearest.lat, nearest.lng];
+                                    poi[`nearestAccom${key}Coords`] = [nearestCoords.lat, nearestCoords.lng];
                                 }
                             }
                         });
@@ -672,6 +691,7 @@ class App {
                 const cyclingNets = networks.filter(n => n.geometry?.length > 0 && isCyclingNetwork(n));
 
                 pois.forEach(poi => {
+                    if (poi.lat == null || poi.lng == null) return;
                     const poiLL = L.latLng(poi.lat, poi.lng);
 
                     // Nearest road
