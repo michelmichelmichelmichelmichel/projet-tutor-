@@ -2555,6 +2555,44 @@ body {
     background: rgba(255, 255, 255, 0.02);
 }
 
+/* --- SURBRILLANCE MARKETING DIGITAL --- */
+
+/* Ligne entière cliquable pour le site web */
+.info-row.info-row--digital-link {
+    flex-direction: row; /* Force l'affichage horizontal au lieu de vertical */
+    justify-content: space-between;
+    padding: 8px 10px;
+    margin: 2px -10px;
+    border-radius: 6px;
+    border-bottom: none; /* Enlève la barre grise en bas */
+    transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.info-row.info-row--digital-link:hover {
+    background-color: rgba(255, 255, 255, 0.15); /* Plus visible */
+    transform: translateX(4px);
+    cursor: pointer;
+}
+
+/* Boutons individuels pour les réseaux sociaux */
+.digital-social-btn {
+    display: inline-block; /* Obligatoire pour que l'animation "levée" fonctionne */
+    padding: 4px 10px;
+    border: 1px solid;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 0.8rem;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.digital-social-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px); /* L'effet de soulèvement marchera maintenant ! */
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
 /* Gallery */
 .poi-gallery {
     margin: 12px 0 4px;

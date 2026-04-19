@@ -3625,28 +3625,37 @@ export class UiRenderer {
         const yesLabel = `<span style="color:#10b981;font-weight:bold;">Oui</span>`;
         const noLabel = `<span style="color:var(--color-text-muted);opacity:0.8;">Non</span>`;
 
-        // Website with link
+        // --- DÉBUT DES MODIFICATIONS : Site Web ---
         const website = t.website || t['contact:website'] || t.url;
         if (website) {
-            rows.push(this._infoRow('Site Web', `<a href="${website}" target="_blank" style="color:${color}">Ouvrir ↗</a>`));
+            // Ligne entière transformée en lien cliquable (balise <a> au lieu d'un div classique)
+            rows.push(`
+                <a href="${website}" target="_blank" class="info-row info-row--digital-link" style="text-decoration:none;">
+                    <span class="info-label" style="color:var(--color-text);">Site Web</span>
+                    <span class="info-value" style="color:${color}; font-weight:bold;">Ouvrir ↗</span>
+                </a>
+            `);
         } else {
             rows.push(this._infoRow('Site Web', d.hasWebsite ? yesLabel : noLabel));
         }
 
-        // Social media with links
+        // --- MODIFICATIONS : Réseaux sociaux ---
         const socialLinks = [];
         ['facebook', 'instagram', 'twitter', 'youtube', 'linkedin', 'tiktok'].forEach(sm => {
             const url = t[sm] || t[`contact:${sm}`];
             if (url) {
                 const validUrl = url.startsWith('http') ? url : `https://${url}`;
-                socialLinks.push(`<a href="${validUrl}" target="_blank" style="color:${color};margin-right:8px;">${sm.charAt(0).toUpperCase() + sm.slice(1)} ↗</a>`);
+                // Création de mini-boutons stylisés
+                socialLinks.push(`<a href="${validUrl}" target="_blank" class="digital-social-btn" style="color:${color}; border-color:${color}55;">${sm.charAt(0).toUpperCase() + sm.slice(1)} ↗</a>`);
             }
         });
+        
         if (socialLinks.length > 0) {
-            rows.push(this._infoRow('Réseaux Sociaux', socialLinks.join('')));
+            rows.push(`<div class="info-row"><span class="info-label">Réseaux Sociaux</span><span class="info-value" style="display:flex; flex-wrap:wrap; gap:6px;">${socialLinks.join('')}</span></div>`);
         } else {
             rows.push(this._infoRow('Réseaux Sociaux', d.hasSocialMedia ? yesLabel : noLabel));
         }
+        // --- FIN DES MODIFICATIONS ---
 
         rows.push(this._infoRow('Wikivoyage', d.hasWikivoyage ? yesLabel : noLabel));
 
