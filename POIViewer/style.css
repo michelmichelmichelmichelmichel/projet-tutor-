@@ -76,6 +76,37 @@ body {
     z-index: var(--z-map);
 }
 
+/* Espacement entre les groupes de contrôles Leaflet (zoom, dessin, fond de carte) */
+.leaflet-top.leaflet-left .leaflet-control {
+    margin-top: 6px;
+}
+.leaflet-top.leaflet-left .leaflet-control:first-child {
+    margin-top: 10px;
+}
+
+/* Empêcher les boutons Leaflet de changer de couleur après clic */
+.leaflet-bar a,
+.leaflet-bar a:visited,
+.leaflet-bar a:active,
+.leaflet-bar a:focus {
+    color: #333;
+}
+
+/* Bouton de changement de fond de carte */
+.layer-toggle-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #fff;
+    cursor: pointer;
+    border-radius: 4px;
+}
+.layer-toggle-btn:hover {
+    background: #f4f4f4;
+}
+
 /* ============================================
    GLASSMORPHISM BASE
    ============================================ */
