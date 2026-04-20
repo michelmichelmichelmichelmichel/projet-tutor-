@@ -93,16 +93,6 @@ export class MapManager {
             }
         });
 
-        // Initialize Geocoder Control
-        if (L.Control.Geocoder) {
-            L.Control.geocoder({
-                defaultMarkGeocode: true // Adds marker and zooms automatically
-            })
-                .on('markgeocode', function (e) {
-                    // e.geocode.center is the location
-                })
-                .addTo(this.map);
-        }
     }
 
     setLayer(index) {
