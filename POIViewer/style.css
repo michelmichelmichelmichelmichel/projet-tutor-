@@ -1378,6 +1378,15 @@ body {
     transform: translateX(0);
 }
 
+#micro-sidebar.minimized {
+    bottom: auto;
+}
+
+#micro-sidebar.minimized .filters-container,
+#micro-sidebar.minimized .poi-list {
+    display: none;
+}
+
 .sidebar-header {
     padding: 14px 16px;
     border-bottom: 1px solid var(--glass-border);

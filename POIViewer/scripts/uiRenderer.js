@@ -695,7 +695,9 @@ export class UiRenderer {
         }
         if (this.closeMicroBtn) {
             this.closeMicroBtn.addEventListener('click', () => {
-                this.toggleMicroSidebar(false);
+                const isMinimized = this.microSidebar.classList.toggle('minimized');
+                this.closeMicroBtn.textContent = isMinimized ? '+' : '−';
+                this.closeMicroBtn.title = isMinimized ? 'Agrandir' : 'Réduire';
             });
         }
 
@@ -1180,7 +1182,14 @@ export class UiRenderer {
     }
 
     toggleMicroSidebar(show) {
-        if (show) this.microSidebar.classList.add('visible');
+        if (show) {
+            this.microSidebar.classList.add('visible');
+            this.microSidebar.classList.remove('minimized');
+            if (this.closeMicroBtn) {
+                this.closeMicroBtn.textContent = '−';
+                this.closeMicroBtn.title = 'Réduire';
+            }
+        }
         else this.microSidebar.classList.remove('visible');
     }
 
