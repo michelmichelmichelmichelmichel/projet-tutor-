@@ -1196,32 +1196,33 @@ body {
 
 #settings-toggle-btn {
     position: absolute;
-    top: 255px;
+    top: 270px;
     left: 10px;
     z-index: 1001;
     width: 30px;
     height: 30px;
-    border-radius: var(--radius-sm);
+    border-radius: 4px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem;
-    transition: all 0.2s ease;
-    background: var(--glass-bg);
-    backdrop-filter: blur(12px);
-    border: 1px solid var(--glass-border);
-    box-shadow: var(--glass-shadow);
+    font-size: 0.95rem;
+    padding: 0;
+    transition: background 0.15s ease;
+    background: #fff;
+    border: 2px solid rgba(0, 0, 0, 0.2);
+    box-shadow: none;
     cursor: pointer;
+    color: #333;
+    line-height: 30px;
 }
 
 #settings-toggle-btn:hover {
-    background: rgba(255, 255, 255, 0.1);
-    border-color: rgba(255, 255, 255, 0.2);
+    background: #f4f4f4;
 }
 
 #appearance-settings-panel {
     position: absolute;
-    top: 255px;
+    top: 270px;
     left: 50px;
     width: 260px;
     padding: 16px;
