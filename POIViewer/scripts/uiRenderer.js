@@ -4088,18 +4088,31 @@ export class UiRenderer {
     }
 
     filterList() {
-        const searchQuery = this.poiSearchInput ? this.poiSearchInput.value.toLowerCase() : '';
+        const searchQuery = this.poiSearchInput ? this.poiSearchInput.value.toLowerCase().trim() : '';
         let filtered = this.lastPois;
 
-        // On ne filtre plus que par la recherche textuelle
+        // Filtrage textuel sur le nom et le type
         if (searchQuery.length > 0) {
             filtered = filtered.filter(p =>
-                p.name.toLowerCase().includes(searchQuery) ||
+                (p.name && p.name.toLowerCase().includes(searchQuery)) ||
                 (p.type && p.type.toLowerCase().includes(searchQuery))
             );
         }
 
-        this.renderMicroList(filtered);
+        // Filtrage par catégorie spotlight (sans écraser lastPois)
+        const spotlight = this.currentCatSpotlight || '';
+        if (spotlight) {
+            // On ne filtre pas ici, le spotlight est géré dans _renderSortedList
+        }
+
+        if (filtered.length === 0) {
+            this.poiList.innerHTML = searchQuery.length > 0
+                ? `<p class="empty-state">Aucun résultat pour « ${this.escapeHtml(searchQuery)} »</p>`
+                : '<p class="empty-state">Aucun point d\'intérêt trouvé dans cette zone.</p>';
+            return;
+        }
+
+        this._renderSortedList(filtered);
     }
     getCategoryEmoji(category) {
         return "";
