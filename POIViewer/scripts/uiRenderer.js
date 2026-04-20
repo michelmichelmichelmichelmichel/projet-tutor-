@@ -2940,15 +2940,18 @@ export class UiRenderer {
     /** Lie les barres "Site web" / "Réseaux sociaux" / header "Présence numérique" */
     _bindDigitalFilterClicks() {
         this.macroStats.querySelectorAll('[data-digital-filter]').forEach(el => {
-            el.addEventListener('click', (e) => {
+            // Clone-replace pour supprimer les anciens listeners (évite les doublons)
+            const fresh = el.cloneNode(true);
+            el.parentNode.replaceChild(fresh, el);
+            fresh.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const filterType = el.dataset.digitalFilter;
-                const isHeader = el.classList.contains('ind-block__header--clickable');
+                const filterType = fresh.dataset.digitalFilter;
+                const isHeader = fresh.classList.contains('ind-block__header--clickable');
                 const activeClass = isHeader ? 'ind-block__header--active' : 'ind-row--active';
-                const wasActive = el.classList.contains(activeClass);
+                const wasActive = fresh.classList.contains(activeClass);
                 this._clearAllHighlightFilters();
                 if (!wasActive) {
-                    el.classList.add(activeClass);
+                    fresh.classList.add(activeClass);
                     if (this.onDigitalFilterClick) this.onDigitalFilterClick(filterType);
                 } else {
                     if (this.onDigitalFilterClick) this.onDigitalFilterClick(null);
@@ -2960,18 +2963,20 @@ export class UiRenderer {
     /** Lie les items hébergement + header pour déclencher le highlight sur la carte */
     _bindAccomFilterClicks() {
         this.macroStats.querySelectorAll('[data-accom-filter]').forEach(el => {
-            el.addEventListener('click', (e) => {
+            const fresh = el.cloneNode(true);
+            el.parentNode.replaceChild(fresh, el);
+            fresh.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const filterType = el.dataset.accomFilter;
-                const isHeader = el.classList.contains('ind-block__header--clickable');
-                const isStar = el.classList.contains('kpi-star-badge');
+                const filterType = fresh.dataset.accomFilter;
+                const isHeader = fresh.classList.contains('ind-block__header--clickable');
+                const isStar = fresh.classList.contains('kpi-star-badge');
                 let activeClass = 'accom-detail-item--active';
                 if (isHeader) activeClass = 'ind-block__header--active';
                 else if (isStar) activeClass = 'kpi-star-badge--active';
-                const wasActive = el.classList.contains(activeClass);
+                const wasActive = fresh.classList.contains(activeClass);
                 this._clearAllHighlightFilters();
                 if (!wasActive) {
-                    el.classList.add(activeClass);
+                    fresh.classList.add(activeClass);
                     if (this.onAccomFilterClick) this.onAccomFilterClick(filterType);
                 } else {
                     if (this.onAccomFilterClick) this.onAccomFilterClick(null);
@@ -2983,15 +2988,17 @@ export class UiRenderer {
     /** Lie les barres infra (transport + services) + headers "Transports" / "Services" */
     _bindInfraFilterClicks() {
         this.macroStats.querySelectorAll('[data-infra-filter]').forEach(el => {
-            el.addEventListener('click', (e) => {
+            const fresh = el.cloneNode(true);
+            el.parentNode.replaceChild(fresh, el);
+            fresh.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const filterType = el.dataset.infraFilter;
-                const isHeader = el.classList.contains('ind-block__header--clickable');
+                const filterType = fresh.dataset.infraFilter;
+                const isHeader = fresh.classList.contains('ind-block__header--clickable');
                 const activeClass = isHeader ? 'ind-block__header--active' : 'ind-row--active';
-                const wasActive = el.classList.contains(activeClass);
+                const wasActive = fresh.classList.contains(activeClass);
                 this._clearAllHighlightFilters();
                 if (!wasActive) {
-                    el.classList.add(activeClass);
+                    fresh.classList.add(activeClass);
                     if (this.onInfraFilterClick) this.onInfraFilterClick(filterType);
                 } else {
                     if (this.onInfraFilterClick) this.onInfraFilterClick(null);
