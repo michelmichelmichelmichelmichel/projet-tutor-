@@ -391,7 +391,13 @@ class App {
         this.uiRenderer.onCountrySelected = (country) => {
             this.resetZoneSelection();
             if (country && country.bounds) {
-                this.mapManager.map.fitBounds(country.bounds);
+                // Pour la France, Nominatim renvoie un bbox incluant les DOM-TOM
+                // → on force les limites de la France métropolitaine
+                const cc = (country.countryCode || '').toLowerCase();
+                const bounds = cc === 'fr'
+                    ? [[41.3, -5.2], [51.1, 9.6]]  // France métropolitaine
+                    : country.bounds;
+                this.mapManager.map.fitBounds(bounds);
                 const presetsPanel = document.getElementById('presets-panel');
                 const presetsBtn = document.getElementById('minimize-presets-btn');
                 if (presetsPanel && presetsBtn) {
