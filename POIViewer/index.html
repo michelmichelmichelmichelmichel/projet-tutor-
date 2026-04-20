@@ -158,10 +158,15 @@
                 <select id="poi-sort-select" class="poi-sort-select">
                     <option value="default">Par défaut</option>
                     <option value="alpha">Alphabétique (A → Z)</option>
-                    <option value="cat_alpha">Catégorie + Alphabétique</option>
                     <option value="completeness_desc">Score de complétude (↓ 100% → 0%)</option>
                     <option value="completeness_asc">Score de complétude (↑ 0% → 100%)</option>
                 </select>
+            </div>
+            <div class="poi-sort-bar">
+                <label class="poi-group-toggle">
+                    <input type="checkbox" id="poi-group-by-cat" checked>
+                    <span class="poi-group-toggle__label">Grouper par catégorie</span>
+                </label>
             </div>
             <div class="poi-sort-bar">
                 <label class="poi-sort-bar__label" for="poi-cat-spotlight">Catégorie</label>

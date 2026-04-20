@@ -45,6 +45,7 @@ export class UiRenderer {
 
         this.lastPois = [];
         this.currentSort = 'default';
+        this.groupByCategory = true;
         this.currentCatSpotlight = '';
 
         // Definir les parcs nationaux (Coordonnées approximatives des bounding boxes + OSM Relation ID)
@@ -723,6 +724,14 @@ export class UiRenderer {
         if (catSpotlightSelect) {
             catSpotlightSelect.addEventListener('change', (e) => {
                 this.currentCatSpotlight = e.target.value;
+                this.filterList();
+            });
+        }
+
+        const groupByCatCheckbox = document.getElementById('poi-group-by-cat');
+        if (groupByCatCheckbox) {
+            groupByCatCheckbox.addEventListener('change', (e) => {
+                this.groupByCategory = e.target.checked;
                 this.filterList();
             });
         }
@@ -3062,8 +3071,18 @@ export class UiRenderer {
             return;
         }
 
+        const showScore = sort === 'completeness_desc' || sort === 'completeness_asc';
 
-        // ── Grouper par catégorie, puis appliquer le tri au sein de chaque groupe ──
+        // ── Mode non groupé : liste plate avec le tri global ──
+        if (!this.groupByCategory) {
+            const sorted = this._applySortToPois(pois, sort);
+            let html = sorted.map(p => this.createPoiCard(p, showScore)).join('');
+            this.poiList.innerHTML = html;
+            this._bindPoiCardClicks();
+            return;
+        }
+
+        // ── Mode groupé : grouper par catégorie, puis appliquer le tri au sein de chaque groupe ──
         const groups = {};
         pois.forEach(p => {
             const cat = p.category || 'other';
@@ -3074,8 +3093,6 @@ export class UiRenderer {
         const sortedCats = Object.keys(groups).sort((a, b) =>
             (catLabels[a] || a).localeCompare(catLabels[b] || b, 'fr')
         );
-
-        const showScore = sort === 'completeness_desc' || sort === 'completeness_asc';
 
         let html = '';
         sortedCats.forEach(cat => {
