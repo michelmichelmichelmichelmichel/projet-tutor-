@@ -3645,15 +3645,37 @@ export class UiRenderer {
         // --- DÉBUT DES MODIFICATIONS : Site Web ---
         const website = t.website || t['contact:website'] || t.url;
         if (website) {
-            // Ligne entière transformée en lien cliquable (balise <a> au lieu d'un div classique)
+            // Normaliser l'URL (ajouter https:// si absent)
+            const fullUrl = website.startsWith('http') ? website : `https://${website}`;
+            // Extraire le nom de domaine pour l'affichage
+            let displayUrl = website;
+            try {
+                const urlObj = new URL(fullUrl);
+                displayUrl = urlObj.hostname.replace(/^www\./, '');
+                // Ajouter le path s'il est significatif (pas juste "/")
+                if (urlObj.pathname && urlObj.pathname !== '/') {
+                    const path = urlObj.pathname.replace(/\/$/, '');
+                    if (path.length > 0 && path.length <= 25) {
+                        displayUrl += path;
+                    } else if (path.length > 25) {
+                        displayUrl += path.substring(0, 22) + '…';
+                    }
+                }
+            } catch (e) {
+                // URL invalide, afficher telle quelle mais tronquer si trop long
+                displayUrl = website.replace(/^https?:\/\/(www\.)?/, '');
+                if (displayUrl.length > 40) displayUrl = displayUrl.substring(0, 37) + '…';
+            }
             rows.push(`
-                <a href="${website}" target="_blank" class="info-row info-row--digital-link" style="text-decoration:none;">
-                    <span class="info-label" style="color:var(--color-text);">Site Web</span>
-                    <span class="info-value" style="color:${color}; font-weight:bold;">Ouvrir ↗</span>
-                </a>
+                <div class="info-row info-row--website">
+                    <span class="info-label">🌐 Site Web</span>
+                    <a href="${this.escapeHtml(fullUrl)}" target="_blank" rel="noopener" class="info-value info-website-link" style="color:${color};" title="${this.escapeHtml(fullUrl)}">
+                        ${this.escapeHtml(displayUrl)} ↗
+                    </a>
+                </div>
             `);
         } else {
-            rows.push(this._infoRow('Site Web', d.hasWebsite ? yesLabel : noLabel));
+            rows.push(this._infoRow('🌐 Site Web', d.hasWebsite ? yesLabel : noLabel));
         }
 
         // --- MODIFICATIONS : Réseaux sociaux ---
