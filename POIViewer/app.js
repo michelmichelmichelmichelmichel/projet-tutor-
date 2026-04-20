@@ -1533,14 +1533,19 @@ class App {
                 let overIntensity = 0;
                 if (this.heatmapVisibility.overtourism_pois) {
                     const overData = this.apiService.getOvertourismData();
-                    const overPoi = overData.pois.find(ovp => ovp.name === poi.name);
+                    // Match par OSM ID d'abord (fiable), puis fallback par nom
+                    const overPoi = overData.pois.find(ovp =>
+                        (ovp.osm_id && ovp.osm_id === poi.id) || ovp.name === poi.name
+                    );
                     if (overPoi) {
                         overOpaque = true;
                         overIntensity = overPoi.intensity;
                         // Utiliser le même algorithme de couleur que mapManager._getPoiPinColor
                         // en calculant le rang relatif à partir de l'intensité
                         const sortedPois = [...overData.pois].sort((a, b) => b.intensity - a.intensity);
-                        const rank = sortedPois.findIndex(sp => sp.name === poi.name);
+                        const rank = sortedPois.findIndex(sp =>
+                            (sp.osm_id && sp.osm_id === poi.id) || sp.name === poi.name
+                        );
                         const total = sortedPois.length;
                         const t = total > 1 ? rank / (total - 1) : 0;
                         const stops = [

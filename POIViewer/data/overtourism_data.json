@@ -1,211 +1,1778 @@
 {
   "description": "Base de données complète de sur-fréquentation - Pyrénées-Atlantiques (64) et Hautes-Pyrénées (65)",
   "municipalities_64": [
-    { "code_insee": "64006", "wikidata": "Q236531", "name": "Ainhoa", "intensity": 0.80, "lat": 43.3039, "lng": -1.4989 },
-    { "code_insee": "64024", "wikidata": "Q209121", "name": "Anglet", "intensity": 0.85, "lat": 43.4814, "lng": -1.5146 },
-    { "code_insee": "64035", "wikidata": "Q276014", "name": "Arbonne", "intensity": 0.65, "lat": 43.4322, "lng": -1.5511 },
-    { "code_insee": "64038", "wikidata": "Q322964", "name": "Arcangues", "intensity": 0.70, "lat": 43.4358, "lng": -1.5194 },
-    { "code_insee": "64040", "wikidata": "Q197576", "name": "Arén", "intensity": 0.60, "lat": 43.2611, "lng": -0.6878 },
-    { "code_insee": "64044", "wikidata": "Q197368", "name": "Arget", "intensity": 0.60, "lat": 43.5417, "lng": -0.5292 },
-    { "code_insee": "64065", "wikidata": "Q232532", "name": "Ascain", "intensity": 0.80, "lat": 43.3444, "lng": -1.6214 },
-    { "code_insee": "64091", "wikidata": "Q197268", "name": "Bardos", "intensity": 0.60, "lat": 43.4750, "lng": -1.2031 },
-    { "code_insee": "64102", "wikidata": "Q134674", "name": "Bayonne", "intensity": 0.85, "lat": 43.4929, "lng": -1.4748 },
-    { "code_insee": "64122", "wikidata": "Q132798", "name": "Biarritz", "intensity": 0.98, "lat": 43.4831, "lng": -1.5586 },
-    { "code_insee": "64125", "wikidata": "Q635028", "name": "Bidart", "intensity": 0.82, "lat": 43.4376, "lng": -1.5891 },
-    { "code_insee": "64132", "wikidata": "Q271923", "name": "Biriatou", "intensity": 0.70, "lat": 43.3331, "lng": -1.7458 },
-    { "code_insee": "64140", "wikidata": "Q236521", "name": "Boukau", "intensity": 0.65, "lat": 43.5236, "lng": -1.4864 },
-    { "code_insee": "64147", "wikidata": "Q839798", "name": "Briscous", "intensity": 0.65, "lat": 43.4600, "lng": -1.2333 },
-    { "code_insee": "64150", "wikidata": "Q197303", "name": "Bunus", "intensity": 0.60, "lat": 43.2094, "lng": -1.0664 },
-    { "code_insee": "64154", "wikidata": "Q839446", "name": "Bussunarits-Sarrasquette", "intensity": 0.60, "lat": 43.1617, "lng": -1.1731 },
-    { "code_insee": "64157", "wikidata": "Q236526", "name": "Cambo-les-Bains", "intensity": 0.80, "lat": 43.3597, "lng": -1.4014 },
-    { "code_insee": "64189", "wikidata": "Q236520", "name": "Ciboure", "intensity": 0.78, "lat": 43.3858, "lng": -1.6766 },
-    { "code_insee": "64213", "wikidata": "Q236528", "name": "Espelette", "intensity": 0.92, "lat": 43.3408, "lng": -1.4472 },
-    { "code_insee": "64222", "wikidata": "Q839420", "name": "Estérençuby", "intensity": 0.65, "lat": 43.1058, "lng": -1.1819 },
-    { "code_insee": "64230", "wikidata": "Q197549", "name": "Garindein", "intensity": 0.60, "lat": 43.2089, "lng": -0.9083 },
-    { "code_insee": "64249", "wikidata": "Q635036", "name": "Guéthary", "intensity": 0.90, "lat": 43.4228, "lng": -1.6083 },
-    { "code_insee": "64250", "wikidata": "Q839472", "name": "Guiche", "intensity": 0.60, "lat": 43.5117, "lng": -1.2033 },
-    { "code_insee": "64255", "wikidata": "Q236484", "name": "Hasparren", "intensity": 0.75, "lat": 43.3833, "lng": -1.3044 },
-    { "code_insee": "64260", "wikidata": "Q191754", "name": "Hendaye", "intensity": 0.80, "lat": 43.3717, "lng": -1.7738 },
-    { "code_insee": "64275", "wikidata": "Q236535", "name": "Itxassou", "intensity": 0.75, "lat": 43.3300, "lng": -1.4050 },
-    { "code_insee": "64282", "wikidata": "Q733189", "name": "Jatxou", "intensity": 0.65, "lat": 43.3886, "lng": -1.4294 },
-    { "code_insee": "64283", "wikidata": "Q839426", "name": "Jaxu", "intensity": 0.60, "lat": 43.1975, "lng": -1.1925 },
-    { "code_insee": "64299", "wikidata": "Q236814", "name": "La Bastide-Clairence", "intensity": 0.80, "lat": 43.4292, "lng": -1.2558 },
-    { "code_insee": "64303", "wikidata": "Q839933", "name": "Lahonce", "intensity": 0.65, "lat": 43.4831, "lng": -1.3914 },
-    { "code_insee": "64312", "wikidata": "Q236525", "name": "Laruns", "intensity": 0.85, "lat": 42.9880, "lng": -0.4260 },
-    { "code_insee": "64317", "wikidata": "Q839454", "name": "Lasse", "intensity": 0.60, "lat": 43.1594, "lng": -1.2589 },
-    { "code_insee": "64335", "wikidata": "Q839434", "name": "Lecumberry", "intensity": 0.65, "lat": 43.1383, "lng": -1.1394 },
-    { "code_insee": "64348", "wikidata": "Q839942", "name": "Louhossoa", "intensity": 0.70, "lat": 43.3158, "lng": -1.3533 },
-    { "code_insee": "64368", "wikidata": "Q839462", "name": "Macaye", "intensity": 0.65, "lat": 43.3344, "lng": -1.3131 },
-    { "code_insee": "64377", "wikidata": "Q208537", "name": "Mauléon-Licharre", "intensity": 0.65, "lat": 43.2228, "lng": -0.8878 },
-    { "code_insee": "64391", "wikidata": "Q197542", "name": "Mendionde", "intensity": 0.65, "lat": 43.3408, "lng": -1.2981 },
-    { "code_insee": "64407", "wikidata": "Q839922", "name": "Mouguere", "intensity": 0.70, "lat": 43.4686, "lng": -1.4158 },
-    { "code_insee": "64445", "wikidata": "Q132671", "name": "Pau", "intensity": 0.70, "lat": 43.2951, "lng": -0.3708 },
-    { "code_insee": "64483", "wikidata": "Q232101", "name": "Saint-Jean-de-Luz", "intensity": 0.95, "lat": 43.3875, "lng": -1.6624 },
-    { "code_insee": "64489", "wikidata": "Q235122", "name": "Saint-Jean-Pied-de-Port", "intensity": 0.88, "lat": 43.1636, "lng": -1.2373 },
-    { "code_insee": "64495", "wikidata": "Q276022", "name": "Saint-Pée-sur-Nivelle", "intensity": 0.75, "lat": 43.3556, "lng": -1.5503 },
-    { "code_insee": "64496", "wikidata": "Q272492", "name": "Saint-Pierre-d'Irube", "intensity": 0.70, "lat": 43.4631, "lng": -1.4556 },
-    { "code_insee": "64504", "wikidata": "Q321516", "name": "Sare", "intensity": 0.85, "lat": 43.3128, "lng": -1.5800 },
-    { "code_insee": "64523", "wikidata": "Q839953", "name": "Souraïde", "intensity": 0.70, "lat": 43.3422, "lng": -1.4514 },
-    { "code_insee": "64545", "wikidata": "Q272497", "name": "Urrugne", "intensity": 0.78, "lat": 43.3636, "lng": -1.7000 },
-    { "code_insee": "64546", "wikidata": "Q186718", "name": "Urt", "intensity": 0.65, "lat": 43.4939, "lng": -1.2906 },
-    { "code_insee": "64547", "wikidata": "Q605663", "name": "Ustaritz", "intensity": 0.75, "lat": 43.3997, "lng": -1.4564 },
-    { "code_insee": "64558", "wikidata": "Q839912", "name": "Villefranque", "intensity": 0.60, "lat": 43.4394, "lng": -1.4517 },
-    { "code_insee": "64560", "wikidata": "Q197554", "name": "Viodos-Abense-de-Bas", "intensity": 0.60, "lat": 43.2389, "lng": -0.8753 }
+    {
+      "code_insee": "64006",
+      "wikidata": "Q236531",
+      "name": "Ainhoa",
+      "intensity": 0.8,
+      "lat": 43.3039,
+      "lng": -1.4989
+    },
+    {
+      "code_insee": "64024",
+      "wikidata": "Q209121",
+      "name": "Anglet",
+      "intensity": 0.85,
+      "lat": 43.4814,
+      "lng": -1.5146
+    },
+    {
+      "code_insee": "64035",
+      "wikidata": "Q276014",
+      "name": "Arbonne",
+      "intensity": 0.65,
+      "lat": 43.4322,
+      "lng": -1.5511
+    },
+    {
+      "code_insee": "64038",
+      "wikidata": "Q322964",
+      "name": "Arcangues",
+      "intensity": 0.7,
+      "lat": 43.4358,
+      "lng": -1.5194
+    },
+    {
+      "code_insee": "64040",
+      "wikidata": "Q197576",
+      "name": "Arén",
+      "intensity": 0.6,
+      "lat": 43.2611,
+      "lng": -0.6878
+    },
+    {
+      "code_insee": "64044",
+      "wikidata": "Q197368",
+      "name": "Arget",
+      "intensity": 0.6,
+      "lat": 43.5417,
+      "lng": -0.5292
+    },
+    {
+      "code_insee": "64065",
+      "wikidata": "Q232532",
+      "name": "Ascain",
+      "intensity": 0.8,
+      "lat": 43.3444,
+      "lng": -1.6214
+    },
+    {
+      "code_insee": "64091",
+      "wikidata": "Q197268",
+      "name": "Bardos",
+      "intensity": 0.6,
+      "lat": 43.475,
+      "lng": -1.2031
+    },
+    {
+      "code_insee": "64102",
+      "wikidata": "Q134674",
+      "name": "Bayonne",
+      "intensity": 0.85,
+      "lat": 43.4929,
+      "lng": -1.4748
+    },
+    {
+      "code_insee": "64122",
+      "wikidata": "Q132798",
+      "name": "Biarritz",
+      "intensity": 0.98,
+      "lat": 43.4831,
+      "lng": -1.5586
+    },
+    {
+      "code_insee": "64125",
+      "wikidata": "Q635028",
+      "name": "Bidart",
+      "intensity": 0.82,
+      "lat": 43.4376,
+      "lng": -1.5891
+    },
+    {
+      "code_insee": "64132",
+      "wikidata": "Q271923",
+      "name": "Biriatou",
+      "intensity": 0.7,
+      "lat": 43.3331,
+      "lng": -1.7458
+    },
+    {
+      "code_insee": "64140",
+      "wikidata": "Q236521",
+      "name": "Boukau",
+      "intensity": 0.65,
+      "lat": 43.5236,
+      "lng": -1.4864
+    },
+    {
+      "code_insee": "64147",
+      "wikidata": "Q839798",
+      "name": "Briscous",
+      "intensity": 0.65,
+      "lat": 43.46,
+      "lng": -1.2333
+    },
+    {
+      "code_insee": "64150",
+      "wikidata": "Q197303",
+      "name": "Bunus",
+      "intensity": 0.6,
+      "lat": 43.2094,
+      "lng": -1.0664
+    },
+    {
+      "code_insee": "64154",
+      "wikidata": "Q839446",
+      "name": "Bussunarits-Sarrasquette",
+      "intensity": 0.6,
+      "lat": 43.1617,
+      "lng": -1.1731
+    },
+    {
+      "code_insee": "64157",
+      "wikidata": "Q236526",
+      "name": "Cambo-les-Bains",
+      "intensity": 0.8,
+      "lat": 43.3597,
+      "lng": -1.4014
+    },
+    {
+      "code_insee": "64189",
+      "wikidata": "Q236520",
+      "name": "Ciboure",
+      "intensity": 0.78,
+      "lat": 43.3858,
+      "lng": -1.6766
+    },
+    {
+      "code_insee": "64213",
+      "wikidata": "Q236528",
+      "name": "Espelette",
+      "intensity": 0.92,
+      "lat": 43.3408,
+      "lng": -1.4472
+    },
+    {
+      "code_insee": "64222",
+      "wikidata": "Q839420",
+      "name": "Estérençuby",
+      "intensity": 0.65,
+      "lat": 43.1058,
+      "lng": -1.1819
+    },
+    {
+      "code_insee": "64230",
+      "wikidata": "Q197549",
+      "name": "Garindein",
+      "intensity": 0.6,
+      "lat": 43.2089,
+      "lng": -0.9083
+    },
+    {
+      "code_insee": "64249",
+      "wikidata": "Q635036",
+      "name": "Guéthary",
+      "intensity": 0.9,
+      "lat": 43.4228,
+      "lng": -1.6083
+    },
+    {
+      "code_insee": "64250",
+      "wikidata": "Q839472",
+      "name": "Guiche",
+      "intensity": 0.6,
+      "lat": 43.5117,
+      "lng": -1.2033
+    },
+    {
+      "code_insee": "64255",
+      "wikidata": "Q236484",
+      "name": "Hasparren",
+      "intensity": 0.75,
+      "lat": 43.3833,
+      "lng": -1.3044
+    },
+    {
+      "code_insee": "64260",
+      "wikidata": "Q191754",
+      "name": "Hendaye",
+      "intensity": 0.8,
+      "lat": 43.3717,
+      "lng": -1.7738
+    },
+    {
+      "code_insee": "64275",
+      "wikidata": "Q236535",
+      "name": "Itxassou",
+      "intensity": 0.75,
+      "lat": 43.33,
+      "lng": -1.405
+    },
+    {
+      "code_insee": "64282",
+      "wikidata": "Q733189",
+      "name": "Jatxou",
+      "intensity": 0.65,
+      "lat": 43.3886,
+      "lng": -1.4294
+    },
+    {
+      "code_insee": "64283",
+      "wikidata": "Q839426",
+      "name": "Jaxu",
+      "intensity": 0.6,
+      "lat": 43.1975,
+      "lng": -1.1925
+    },
+    {
+      "code_insee": "64299",
+      "wikidata": "Q236814",
+      "name": "La Bastide-Clairence",
+      "intensity": 0.8,
+      "lat": 43.4292,
+      "lng": -1.2558
+    },
+    {
+      "code_insee": "64303",
+      "wikidata": "Q839933",
+      "name": "Lahonce",
+      "intensity": 0.65,
+      "lat": 43.4831,
+      "lng": -1.3914
+    },
+    {
+      "code_insee": "64312",
+      "wikidata": "Q236525",
+      "name": "Laruns",
+      "intensity": 0.85,
+      "lat": 42.988,
+      "lng": -0.426
+    },
+    {
+      "code_insee": "64317",
+      "wikidata": "Q839454",
+      "name": "Lasse",
+      "intensity": 0.6,
+      "lat": 43.1594,
+      "lng": -1.2589
+    },
+    {
+      "code_insee": "64335",
+      "wikidata": "Q839434",
+      "name": "Lecumberry",
+      "intensity": 0.65,
+      "lat": 43.1383,
+      "lng": -1.1394
+    },
+    {
+      "code_insee": "64348",
+      "wikidata": "Q839942",
+      "name": "Louhossoa",
+      "intensity": 0.7,
+      "lat": 43.3158,
+      "lng": -1.3533
+    },
+    {
+      "code_insee": "64368",
+      "wikidata": "Q839462",
+      "name": "Macaye",
+      "intensity": 0.65,
+      "lat": 43.3344,
+      "lng": -1.3131
+    },
+    {
+      "code_insee": "64377",
+      "wikidata": "Q208537",
+      "name": "Mauléon-Licharre",
+      "intensity": 0.65,
+      "lat": 43.2228,
+      "lng": -0.8878
+    },
+    {
+      "code_insee": "64391",
+      "wikidata": "Q197542",
+      "name": "Mendionde",
+      "intensity": 0.65,
+      "lat": 43.3408,
+      "lng": -1.2981
+    },
+    {
+      "code_insee": "64407",
+      "wikidata": "Q839922",
+      "name": "Mouguere",
+      "intensity": 0.7,
+      "lat": 43.4686,
+      "lng": -1.4158
+    },
+    {
+      "code_insee": "64445",
+      "wikidata": "Q132671",
+      "name": "Pau",
+      "intensity": 0.7,
+      "lat": 43.2951,
+      "lng": -0.3708
+    },
+    {
+      "code_insee": "64483",
+      "wikidata": "Q232101",
+      "name": "Saint-Jean-de-Luz",
+      "intensity": 0.95,
+      "lat": 43.3875,
+      "lng": -1.6624
+    },
+    {
+      "code_insee": "64489",
+      "wikidata": "Q235122",
+      "name": "Saint-Jean-Pied-de-Port",
+      "intensity": 0.88,
+      "lat": 43.1636,
+      "lng": -1.2373
+    },
+    {
+      "code_insee": "64495",
+      "wikidata": "Q276022",
+      "name": "Saint-Pée-sur-Nivelle",
+      "intensity": 0.75,
+      "lat": 43.3556,
+      "lng": -1.5503
+    },
+    {
+      "code_insee": "64496",
+      "wikidata": "Q272492",
+      "name": "Saint-Pierre-d'Irube",
+      "intensity": 0.7,
+      "lat": 43.4631,
+      "lng": -1.4556
+    },
+    {
+      "code_insee": "64504",
+      "wikidata": "Q321516",
+      "name": "Sare",
+      "intensity": 0.85,
+      "lat": 43.3128,
+      "lng": -1.58
+    },
+    {
+      "code_insee": "64523",
+      "wikidata": "Q839953",
+      "name": "Souraïde",
+      "intensity": 0.7,
+      "lat": 43.3422,
+      "lng": -1.4514
+    },
+    {
+      "code_insee": "64545",
+      "wikidata": "Q272497",
+      "name": "Urrugne",
+      "intensity": 0.78,
+      "lat": 43.3636,
+      "lng": -1.7
+    },
+    {
+      "code_insee": "64546",
+      "wikidata": "Q186718",
+      "name": "Urt",
+      "intensity": 0.65,
+      "lat": 43.4939,
+      "lng": -1.2906
+    },
+    {
+      "code_insee": "64547",
+      "wikidata": "Q605663",
+      "name": "Ustaritz",
+      "intensity": 0.75,
+      "lat": 43.3997,
+      "lng": -1.4564
+    },
+    {
+      "code_insee": "64558",
+      "wikidata": "Q839912",
+      "name": "Villefranque",
+      "intensity": 0.6,
+      "lat": 43.4394,
+      "lng": -1.4517
+    },
+    {
+      "code_insee": "64560",
+      "wikidata": "Q197554",
+      "name": "Viodos-Abense-de-Bas",
+      "intensity": 0.6,
+      "lat": 43.2389,
+      "lng": -0.8753
+    }
   ],
   "municipalities_65": [
-    { "code_insee": "65286", "wikidata": "Q10103", "name": "Lourdes", "intensity": 1.00, "lat": 43.0941, "lng": -0.0461 },
-    { "code_insee": "65138", "wikidata": "Q499427", "name": "Cauterets", "intensity": 0.94, "lat": 42.8894, "lng": -0.1133 },
-    { "code_insee": "65417", "wikidata": "Q333334", "name": "Saint-Lary-Soulan", "intensity": 0.92, "lat": 42.8167, "lng": 0.3167 },
-    { "code_insee": "65258", "wikidata": "Q126922", "name": "La Mongie (Campan)", "intensity": 0.90, "lat": 42.9106, "lng": 0.1792 },
-    { "code_insee": "65017", "wikidata": "Q1092770", "name": "Aragnouet", "intensity": 0.88, "lat": 42.7840, "lng": 0.2540 },
-    { "code_insee": "65059", "wikidata": "Q208466", "name": "Bagnères-de-Bigorre", "intensity": 0.85, "lat": 43.0658, "lng": 0.1491 },
-    { "code_insee": "65281", "wikidata": "Q385557", "name": "Luz-Saint-Sauveur", "intensity": 0.85, "lat": 42.8722, "lng": -0.0028 },
-    { "code_insee": "65063", "wikidata": "Q811568", "name": "Barèges", "intensity": 0.82, "lat": 42.8969, "lng": 0.0658 },
-    { "code_insee": "65191", "wikidata": "Q18342137", "name": "Gavarnie-Gèdre", "intensity": 0.97, "lat": 42.7867, "lng": -0.0200 },
-    { "code_insee": "65045", "wikidata": "Q499435", "name": "Argelès-Gazost", "intensity": 0.78, "lat": 43.0031, "lng": -0.0983 },
-    { "code_insee": "65202", "wikidata": "Q1017838", "name": "Génos", "intensity": 0.78, "lat": 42.8094, "lng": 0.4033 },
-    { "code_insee": "65024", "wikidata": "Q635010", "name": "Arreau", "intensity": 0.72, "lat": 42.9056, "lng": 0.3597 },
-    { "code_insee": "65025", "wikidata": "Q1017822", "name": "Arrens-Marsous", "intensity": 0.70, "lat": 42.9710, "lng": -0.2131 },
-    { "code_insee": "65123", "wikidata": "Q1110587", "name": "Capvern", "intensity": 0.70, "lat": 43.1022, "lng": 0.3164 },
-    { "code_insee": "65113", "wikidata": "Q632070", "name": "Campan", "intensity": 0.75, "lat": 43.0169, "lng": 0.1772 },
-    { "code_insee": "65011", "wikidata": "Q1017805", "name": "Ancizan", "intensity": 0.68, "lat": 42.9114, "lng": 0.3392 },
-    { "code_insee": "65176", "wikidata": "Q1323223", "name": "Esparros", "intensity": 0.68, "lat": 43.0331, "lng": 0.3225 },
-    { "code_insee": "65091", "wikidata": "Q1017809", "name": "Bordères-Louron", "intensity": 0.65, "lat": 42.8711, "lng": 0.3956 },
-    { "code_insee": "65247", "wikidata": "Q1323207", "name": "Labarthe-de-Neste", "intensity": 0.65, "lat": 43.0819, "lng": 0.3839 },
-    { "code_insee": "65440", "wikidata": "Q134044", "name": "Tarbes", "intensity": 0.38, "lat": 43.2320, "lng": 0.0780 },
-    { "code_insee": "65215", "wikidata": "Q1340448", "name": "Horgues", "intensity": 0.62, "lat": 43.1883, "lng": 0.0886 },
-    { "code_insee": "65282", "wikidata": "Q1017849", "name": "Maubourguet", "intensity": 0.35, "lat": 43.4680, "lng": 0.0370 },
-    { "code_insee": "65001", "wikidata": "Q1323247", "name": "Adast", "intensity": 0.60, "lat": 42.9733, "lng": -0.0783 },
-    { "code_insee": "65009", "wikidata": "Q1323239", "name": "Allier", "intensity": 0.60, "lat": 43.1758, "lng": 0.1231 },
-    { "code_insee": "65013", "wikidata": "Q1323235", "name": "Andrest", "intensity": 0.60, "lat": 43.3164, "lng": 0.0614 },
-    { "code_insee": "65018", "wikidata": "Q1323230", "name": "Arbéost", "intensity": 0.65, "lat": 42.9831, "lng": -0.2831 },
-    { "code_insee": "65022", "wikidata": "Q1323226", "name": "Arcizac-Adour", "intensity": 0.60, "lat": 43.1558, "lng": 0.0989 },
-    { "code_insee": "65028", "wikidata": "Q1323214", "name": "Artigues", "intensity": 0.60, "lat": 43.0725, "lng": 0.0011 },
-    { "code_insee": "65034", "wikidata": "Q1323211", "name": "Aucun", "intensity": 0.65, "lat": 42.9725, "lng": -0.1925 },
-    { "code_insee": "65051", "wikidata": "Q1323199", "name": "Aspin-Aure", "intensity": 0.65, "lat": 42.9322, "lng": 0.3475 },
-    { "code_insee": "65057", "wikidata": "Q1323195", "name": "Azereix", "intensity": 0.60, "lat": 43.2089, "lng": -0.0078 },
-    { "code_insee": "65074", "wikidata": "Q1323178", "name": "Bazillac", "intensity": 0.60, "lat": 43.3547, "lng": 0.0989 },
-    { "code_insee": "65084", "wikidata": "Q1323168", "name": "Bernac-Debat", "intensity": 0.60, "lat": 43.1611, "lng": 0.1233 },
-    { "code_insee": "65095", "wikidata": "Q1323158", "name": "Bordères-sur-l'Échez", "intensity": 0.65, "lat": 43.2594, "lng": 0.0506 },
-    { "code_insee": "65111", "wikidata": "Q1323142", "name": "Cadéac", "intensity": 0.65, "lat": 42.8889, "lng": 0.3503 },
-    { "code_insee": "65145", "wikidata": "Q1323108", "name": "Cizos", "intensity": 0.60, "lat": 43.0114, "lng": 0.5019 },
-    { "code_insee": "65171", "wikidata": "Q1323228", "name": "Esbareich", "intensity": 0.60, "lat": 42.8931, "lng": 0.5658 },
-    { "code_insee": "65210", "wikidata": "Q1323221", "name": "Grust", "intensity": 0.60, "lat": 42.8906, "lng": -0.0322 },
-    { "code_insee": "65222", "wikidata": "Q1110594", "name": "Ibos", "intensity": 0.65, "lat": 43.2333, "lng": 0.0014 },
-    { "code_insee": "65240", "wikidata": "Q1323215", "name": "Juillan", "intensity": 0.65, "lat": 43.2014, "lng": 0.0233 },
-    { "code_insee": "65252", "wikidata": "Q1323204", "name": "Laborde", "intensity": 0.60, "lat": 43.0314, "lng": 0.2975 },
-    { "code_insee": "65261", "wikidata": "Q1323193", "name": "Laloubère", "intensity": 0.60, "lat": 43.2067, "lng": 0.0733 },
-    { "code_insee": "65284", "wikidata": "Q1323171", "name": "Mauléon-Barousse", "intensity": 0.65, "lat": 42.9592, "lng": 0.5678 },
-    { "code_insee": "65302", "wikidata": "Q1323218", "name": "Mérilheu", "intensity": 0.60, "lat": 43.0989, "lng": 0.1856 },
-    { "code_insee": "65321", "wikidata": "Q1323202", "name": "Montgaillard", "intensity": 0.60, "lat": 43.1250, "lng": 0.1089 },
-    { "code_insee": "65331", "wikidata": "Q1323192", "name": "Nestier", "intensity": 0.60, "lat": 43.0639, "lng": 0.4789 },
-    { "code_insee": "65345", "wikidata": "Q1323180", "name": "Odos", "intensity": 0.65, "lat": 43.1969, "lng": 0.0583 },
-    { "code_insee": "65364", "wikidata": "Q1323161", "name": "Pierrefitte-Nestalas", "intensity": 0.72, "lat": 42.9600, "lng": -0.0733 },
-    { "code_insee": "65383", "wikidata": "Q1323141", "name": "Sainte-Marie", "intensity": 0.60, "lat": 42.9753, "lng": 0.6156 },
-    { "code_insee": "65439", "wikidata": "Q1323101", "name": "Soublecause", "intensity": 0.60, "lat": 43.5317, "lng": 0.0194 }
+    {
+      "code_insee": "65286",
+      "wikidata": "Q10103",
+      "name": "Lourdes",
+      "intensity": 1.0,
+      "lat": 43.0941,
+      "lng": -0.0461
+    },
+    {
+      "code_insee": "65138",
+      "wikidata": "Q499427",
+      "name": "Cauterets",
+      "intensity": 0.94,
+      "lat": 42.8894,
+      "lng": -0.1133
+    },
+    {
+      "code_insee": "65417",
+      "wikidata": "Q333334",
+      "name": "Saint-Lary-Soulan",
+      "intensity": 0.92,
+      "lat": 42.8167,
+      "lng": 0.3167
+    },
+    {
+      "code_insee": "65258",
+      "wikidata": "Q126922",
+      "name": "La Mongie (Campan)",
+      "intensity": 0.9,
+      "lat": 42.9106,
+      "lng": 0.1792
+    },
+    {
+      "code_insee": "65017",
+      "wikidata": "Q1092770",
+      "name": "Aragnouet",
+      "intensity": 0.88,
+      "lat": 42.784,
+      "lng": 0.254
+    },
+    {
+      "code_insee": "65059",
+      "wikidata": "Q208466",
+      "name": "Bagnères-de-Bigorre",
+      "intensity": 0.85,
+      "lat": 43.0658,
+      "lng": 0.1491
+    },
+    {
+      "code_insee": "65281",
+      "wikidata": "Q385557",
+      "name": "Luz-Saint-Sauveur",
+      "intensity": 0.85,
+      "lat": 42.8722,
+      "lng": -0.0028
+    },
+    {
+      "code_insee": "65063",
+      "wikidata": "Q811568",
+      "name": "Barèges",
+      "intensity": 0.82,
+      "lat": 42.8969,
+      "lng": 0.0658
+    },
+    {
+      "code_insee": "65191",
+      "wikidata": "Q18342137",
+      "name": "Gavarnie-Gèdre",
+      "intensity": 0.97,
+      "lat": 42.7867,
+      "lng": -0.02
+    },
+    {
+      "code_insee": "65045",
+      "wikidata": "Q499435",
+      "name": "Argelès-Gazost",
+      "intensity": 0.78,
+      "lat": 43.0031,
+      "lng": -0.0983
+    },
+    {
+      "code_insee": "65202",
+      "wikidata": "Q1017838",
+      "name": "Génos",
+      "intensity": 0.78,
+      "lat": 42.8094,
+      "lng": 0.4033
+    },
+    {
+      "code_insee": "65024",
+      "wikidata": "Q635010",
+      "name": "Arreau",
+      "intensity": 0.72,
+      "lat": 42.9056,
+      "lng": 0.3597
+    },
+    {
+      "code_insee": "65025",
+      "wikidata": "Q1017822",
+      "name": "Arrens-Marsous",
+      "intensity": 0.7,
+      "lat": 42.971,
+      "lng": -0.2131
+    },
+    {
+      "code_insee": "65123",
+      "wikidata": "Q1110587",
+      "name": "Capvern",
+      "intensity": 0.7,
+      "lat": 43.1022,
+      "lng": 0.3164
+    },
+    {
+      "code_insee": "65113",
+      "wikidata": "Q632070",
+      "name": "Campan",
+      "intensity": 0.75,
+      "lat": 43.0169,
+      "lng": 0.1772
+    },
+    {
+      "code_insee": "65011",
+      "wikidata": "Q1017805",
+      "name": "Ancizan",
+      "intensity": 0.68,
+      "lat": 42.9114,
+      "lng": 0.3392
+    },
+    {
+      "code_insee": "65176",
+      "wikidata": "Q1323223",
+      "name": "Esparros",
+      "intensity": 0.68,
+      "lat": 43.0331,
+      "lng": 0.3225
+    },
+    {
+      "code_insee": "65091",
+      "wikidata": "Q1017809",
+      "name": "Bordères-Louron",
+      "intensity": 0.65,
+      "lat": 42.8711,
+      "lng": 0.3956
+    },
+    {
+      "code_insee": "65247",
+      "wikidata": "Q1323207",
+      "name": "Labarthe-de-Neste",
+      "intensity": 0.65,
+      "lat": 43.0819,
+      "lng": 0.3839
+    },
+    {
+      "code_insee": "65440",
+      "wikidata": "Q134044",
+      "name": "Tarbes",
+      "intensity": 0.38,
+      "lat": 43.232,
+      "lng": 0.078
+    },
+    {
+      "code_insee": "65215",
+      "wikidata": "Q1340448",
+      "name": "Horgues",
+      "intensity": 0.62,
+      "lat": 43.1883,
+      "lng": 0.0886
+    },
+    {
+      "code_insee": "65282",
+      "wikidata": "Q1017849",
+      "name": "Maubourguet",
+      "intensity": 0.35,
+      "lat": 43.468,
+      "lng": 0.037
+    },
+    {
+      "code_insee": "65001",
+      "wikidata": "Q1323247",
+      "name": "Adast",
+      "intensity": 0.6,
+      "lat": 42.9733,
+      "lng": -0.0783
+    },
+    {
+      "code_insee": "65009",
+      "wikidata": "Q1323239",
+      "name": "Allier",
+      "intensity": 0.6,
+      "lat": 43.1758,
+      "lng": 0.1231
+    },
+    {
+      "code_insee": "65013",
+      "wikidata": "Q1323235",
+      "name": "Andrest",
+      "intensity": 0.6,
+      "lat": 43.3164,
+      "lng": 0.0614
+    },
+    {
+      "code_insee": "65018",
+      "wikidata": "Q1323230",
+      "name": "Arbéost",
+      "intensity": 0.65,
+      "lat": 42.9831,
+      "lng": -0.2831
+    },
+    {
+      "code_insee": "65022",
+      "wikidata": "Q1323226",
+      "name": "Arcizac-Adour",
+      "intensity": 0.6,
+      "lat": 43.1558,
+      "lng": 0.0989
+    },
+    {
+      "code_insee": "65028",
+      "wikidata": "Q1323214",
+      "name": "Artigues",
+      "intensity": 0.6,
+      "lat": 43.0725,
+      "lng": 0.0011
+    },
+    {
+      "code_insee": "65034",
+      "wikidata": "Q1323211",
+      "name": "Aucun",
+      "intensity": 0.65,
+      "lat": 42.9725,
+      "lng": -0.1925
+    },
+    {
+      "code_insee": "65051",
+      "wikidata": "Q1323199",
+      "name": "Aspin-Aure",
+      "intensity": 0.65,
+      "lat": 42.9322,
+      "lng": 0.3475
+    },
+    {
+      "code_insee": "65057",
+      "wikidata": "Q1323195",
+      "name": "Azereix",
+      "intensity": 0.6,
+      "lat": 43.2089,
+      "lng": -0.0078
+    },
+    {
+      "code_insee": "65074",
+      "wikidata": "Q1323178",
+      "name": "Bazillac",
+      "intensity": 0.6,
+      "lat": 43.3547,
+      "lng": 0.0989
+    },
+    {
+      "code_insee": "65084",
+      "wikidata": "Q1323168",
+      "name": "Bernac-Debat",
+      "intensity": 0.6,
+      "lat": 43.1611,
+      "lng": 0.1233
+    },
+    {
+      "code_insee": "65095",
+      "wikidata": "Q1323158",
+      "name": "Bordères-sur-l'Échez",
+      "intensity": 0.65,
+      "lat": 43.2594,
+      "lng": 0.0506
+    },
+    {
+      "code_insee": "65111",
+      "wikidata": "Q1323142",
+      "name": "Cadéac",
+      "intensity": 0.65,
+      "lat": 42.8889,
+      "lng": 0.3503
+    },
+    {
+      "code_insee": "65145",
+      "wikidata": "Q1323108",
+      "name": "Cizos",
+      "intensity": 0.6,
+      "lat": 43.0114,
+      "lng": 0.5019
+    },
+    {
+      "code_insee": "65171",
+      "wikidata": "Q1323228",
+      "name": "Esbareich",
+      "intensity": 0.6,
+      "lat": 42.8931,
+      "lng": 0.5658
+    },
+    {
+      "code_insee": "65210",
+      "wikidata": "Q1323221",
+      "name": "Grust",
+      "intensity": 0.6,
+      "lat": 42.8906,
+      "lng": -0.0322
+    },
+    {
+      "code_insee": "65222",
+      "wikidata": "Q1110594",
+      "name": "Ibos",
+      "intensity": 0.65,
+      "lat": 43.2333,
+      "lng": 0.0014
+    },
+    {
+      "code_insee": "65240",
+      "wikidata": "Q1323215",
+      "name": "Juillan",
+      "intensity": 0.65,
+      "lat": 43.2014,
+      "lng": 0.0233
+    },
+    {
+      "code_insee": "65252",
+      "wikidata": "Q1323204",
+      "name": "Laborde",
+      "intensity": 0.6,
+      "lat": 43.0314,
+      "lng": 0.2975
+    },
+    {
+      "code_insee": "65261",
+      "wikidata": "Q1323193",
+      "name": "Laloubère",
+      "intensity": 0.6,
+      "lat": 43.2067,
+      "lng": 0.0733
+    },
+    {
+      "code_insee": "65284",
+      "wikidata": "Q1323171",
+      "name": "Mauléon-Barousse",
+      "intensity": 0.65,
+      "lat": 42.9592,
+      "lng": 0.5678
+    },
+    {
+      "code_insee": "65302",
+      "wikidata": "Q1323218",
+      "name": "Mérilheu",
+      "intensity": 0.6,
+      "lat": 43.0989,
+      "lng": 0.1856
+    },
+    {
+      "code_insee": "65321",
+      "wikidata": "Q1323202",
+      "name": "Montgaillard",
+      "intensity": 0.6,
+      "lat": 43.125,
+      "lng": 0.1089
+    },
+    {
+      "code_insee": "65331",
+      "wikidata": "Q1323192",
+      "name": "Nestier",
+      "intensity": 0.6,
+      "lat": 43.0639,
+      "lng": 0.4789
+    },
+    {
+      "code_insee": "65345",
+      "wikidata": "Q1323180",
+      "name": "Odos",
+      "intensity": 0.65,
+      "lat": 43.1969,
+      "lng": 0.0583
+    },
+    {
+      "code_insee": "65364",
+      "wikidata": "Q1323161",
+      "name": "Pierrefitte-Nestalas",
+      "intensity": 0.72,
+      "lat": 42.96,
+      "lng": -0.0733
+    },
+    {
+      "code_insee": "65383",
+      "wikidata": "Q1323141",
+      "name": "Sainte-Marie",
+      "intensity": 0.6,
+      "lat": 42.9753,
+      "lng": 0.6156
+    },
+    {
+      "code_insee": "65439",
+      "wikidata": "Q1323101",
+      "name": "Soublecause",
+      "intensity": 0.6,
+      "lat": 43.5317,
+      "lng": 0.0194
+    }
   ],
   "pois_64": [
-    { "name": "Grande Plage", "wikidata": "Q3114979", "municipality": "Biarritz", "intensity": 1.0, "lat": 43.4833, "lng": -1.5586, "peak": "July–August" },
-    { "name": "La Rhune (Little Train)", "wikidata": "Q1230103", "municipality": "Sare", "intensity": 1.0, "lat": 43.3095, "lng": -1.6075, "peak": "July–August" },
-    { "name": "Old Town (Grand Bayonne)", "wikidata": "Q3113504", "municipality": "Bayonne", "intensity": 0.90, "lat": 43.4925, "lng": -1.4748, "peak": "Late July (Fêtes)" },
-    { "name": "Place Louis XIV", "wikidata": "Q3390196", "municipality": "Saint-Jean-de-Luz", "intensity": 0.90, "lat": 43.3887, "lng": -1.6627, "peak": "Summer / Weekends" },
-    { "name": "Rue de la Citadelle", "wikidata": "Q3465134", "municipality": "Saint-Jean-Pied-de-Port", "intensity": 0.90, "lat": 43.1633, "lng": -1.2353, "peak": "May–September" },
-    { "name": "Lac d’Ayous (Ossau Valley)", "wikidata": "Q3210724", "municipality": "Laruns", "intensity": 0.90, "lat": 42.8580, "lng": -0.4365, "peak": "July–August" },
-    { "name": "Rocher de la Vierge", "wikidata": "Q3437583", "municipality": "Biarritz", "intensity": 0.90, "lat": 43.4832, "lng": -1.5694, "peak": "Summer" },
-    { "name": "Côte des Basques", "wikidata": "Q2998632", "municipality": "Biarritz", "intensity": 0.95, "lat": 43.4777, "lng": -1.5663, "peak": "Summer / Surf Events" },
-    { "name": "Espelette Market", "wikidata": "Q3062017", "municipality": "Espelette", "intensity": 0.85, "lat": 43.3411, "lng": -1.4475, "peak": "October (Pepper Fest)" },
-    { "name": "Port de Guéthary", "wikidata": "Q236528", "municipality": "Guéthary", "intensity": 0.85, "lat": 43.4244, "lng": -1.6106, "peak": "July–August" },
-    { "name": "Phare de Biarritz", "wikidata": "Q3378158", "municipality": "Biarritz", "intensity": 0.80, "lat": 43.4933, "lng": -1.5530, "peak": "Summer" },
-    { "name": "Aquarium de Biarritz", "wikidata": "Q2859196", "municipality": "Biarritz", "intensity": 0.85, "lat": 43.4835, "lng": -1.5678, "peak": "School holidays" },
-    { "name": "Nive Gorges", "wikidata": "Q3111024", "municipality": "Bidarray", "intensity": 0.70, "lat": 43.2653, "lng": -1.3515, "peak": "Summer" },
-    { "name": "Fort de Socoa", "wikidata": "Q3093226", "municipality": "Ciboure", "intensity": 0.75, "lat": 43.3956, "lng": -1.6853, "peak": "Summer" },
-    { "name": "Corniche Basque", "wikidata": "Q2997500", "municipality": "Hendaye / Urrugne", "intensity": 0.80, "lat": 43.3850, "lng": -1.7340, "peak": "Weekends / Summer" },
-    { "name": "Petit Train d'Artouste", "wikidata": "Q3393910", "municipality": "Laruns", "intensity": 0.88, "lat": 42.8797, "lng": -0.3958, "peak": "July–August" },
-    { "name": "Grottes de Sare", "wikidata": "Q3117149", "municipality": "Sare", "intensity": 0.75, "lat": 43.2750, "lng": -1.5720, "peak": "Summer" },
-    { "name": "Château d'Abbadia", "wikidata": "Q1094334", "municipality": "Hendaye", "intensity": 0.72, "lat": 43.3775, "lng": -1.7497, "peak": "Summer" },
-    { "name": "Halles de Biarritz", "wikidata": "Q132798", "municipality": "Biarritz", "intensity": 0.70, "lat": 43.4808, "lng": -1.5589, "peak": "Mornings" },
-    { "name": "Cathédrale Sainte-Marie", "wikidata": "Q2631525", "municipality": "Bayonne", "intensity": 0.65, "lat": 43.4908, "lng": -1.4772, "peak": "Summer" },
-    { "name": "Port Vieux Beach", "wikidata": "Q132798", "municipality": "Biarritz", "intensity": 0.80, "lat": 43.4825, "lng": -1.5658, "peak": "Summer" },
-    { "name": "Villa Arnaga", "wikidata": "Q1150035", "municipality": "Cambo-les-Bains", "intensity": 0.75, "lat": 43.3667, "lng": -1.4167, "peak": "Spring / Summer" },
-    { "name": "Passerelle d'Holzarte", "wikidata": "Q1117491", "municipality": "Larrau", "intensity": 0.82, "lat": 43.0205, "lng": -0.9344, "peak": "Summer" },
-    { "name": "Gorges de Kakuetta", "wikidata": "Q3111019", "municipality": "Sainte-Engrâce", "intensity": 0.88, "lat": 42.9972, "lng": -0.8406, "peak": "July–August" },
-    { "name": "Castle of Pau", "wikidata": "Q1474946", "municipality": "Pau", "intensity": 0.70, "lat": 43.2948, "lng": -0.3751, "peak": "Year-round" },
-    { "name": "Boulevard des Pyrénées", "wikidata": "Q2922055", "municipality": "Pau", "intensity": 0.65, "lat": 43.2936, "lng": -0.3686, "peak": "Weekends" },
-    { "name": "Hendaye Plage", "wikidata": "Q191754", "municipality": "Hendaye", "intensity": 0.85, "lat": 43.3739, "lng": -1.7744, "peak": "July–August" },
-    { "name": "Plage de Cenitz", "wikidata": "Q635036", "municipality": "Guéthary", "intensity": 0.70, "lat": 43.4183, "lng": -1.6167, "peak": "Summer" },
-    { "name": "Ustaritz Halage", "wikidata": "Q605663", "municipality": "Ustaritz", "intensity": 0.50, "lat": 43.4017, "lng": -1.4562, "peak": "Weekends" },
-    { "name": "Abbey of Belloc", "wikidata": "Q334335", "municipality": "Urt", "intensity": 0.45, "lat": 43.4683, "lng": -1.2464, "peak": "Summer" },
-    { "name": "Artisan Streets", "wikidata": "Q236814", "municipality": "Labastide-Clairence", "intensity": 0.50, "lat": 43.4282, "lng": -1.2578, "peak": "Summer" },
-    { "name": "Eaux-Bonnes Forest", "wikidata": "Q442385", "municipality": "Eaux-Bonnes", "intensity": 0.40, "lat": 42.9712, "lng": -0.3956, "peak": "Summer" },
-    { "name": "Thermal District", "wikidata": "Q2715003", "municipality": "Salies-de-Béarn", "intensity": 0.50, "lat": 43.4737, "lng": -0.9255, "peak": "Summer / Autumn" },
-    { "name": "Château Fort de Mauléon", "wikidata": "Q2969874", "municipality": "Mauleon-Licharre", "intensity": 0.40, "lat": 43.2268, "lng": -0.8853, "peak": "Summer" },
-    { "name": "GR10 Start Point", "wikidata": "Q191754", "municipality": "Hendaye", "intensity": 0.40, "lat": 43.3710, "lng": -1.7760, "peak": "June–July" },
-    { "name": "Zoo d'Asson", "wikidata": "Q3576016", "municipality": "Asson", "intensity": 0.75, "lat": 43.1416, "lng": -0.2588, "peak": "School holidays" },
-    { "name": "Grottes de Bétharram", "wikidata": "Q2884964", "municipality": "Asson", "intensity": 0.85, "lat": 43.1011, "lng": -0.1983, "peak": "Summer" },
-    { "name": "Col d'Aubisque", "wikidata": "Q1107567", "municipality": "Laruns", "intensity": 0.80, "lat": 42.9769, "lng": -0.3400, "peak": "Summer" },
-    { "name": "Lindt Factory Shop", "wikidata": "Q208535", "municipality": "Oloron-Sainte-Marie", "intensity": 0.80, "lat": 43.1950, "lng": -0.6183, "peak": "Weekends / Holidays" },
-    { "name": "Cathédrale Sainte-Marie", "wikidata": "Q2424874", "municipality": "Oloron", "intensity": 0.60, "lat": 43.1872, "lng": -0.6122, "peak": "Summer" },
-    { "name": "Château de Laàs", "wikidata": "Q2969562", "municipality": "Laàs", "intensity": 0.60, "lat": 43.3802, "lng": -0.8505, "peak": "Summer" },
-    { "name": "Pont de la Légende", "wikidata": "Q3396827", "municipality": "Sauveterre-de-Béarn", "intensity": 0.65, "lat": 43.3977, "lng": -0.9397, "peak": "Summer" },
-    { "name": "Citadel Walls", "wikidata": "Q208632", "municipality": "Navarrenx", "intensity": 0.70, "lat": 43.3222, "lng": -0.7588, "peak": "Summer" },
-    { "name": "Socoa Beach", "wikidata": "Q3093226", "municipality": "Ciboure", "intensity": 0.75, "lat": 43.3939, "lng": -1.6817, "peak": "July–August" },
-    { "name": "Milady Beach", "wikidata": "Q132798", "municipality": "Biarritz", "intensity": 0.72, "lat": 43.4658, "lng": -1.5739, "peak": "Summer" },
-    { "name": "Bidart Center", "wikidata": "Q635028", "municipality": "Bidart", "intensity": 0.68, "lat": 43.4386, "lng": -1.5892, "peak": "Summer" },
-    { "name": "Plage d'Erretegia", "wikidata": "Q635028", "municipality": "Bidart", "intensity": 0.75, "lat": 43.4478, "lng": -1.5833, "peak": "Summer" },
-    { "name": "Pas de Roland", "wikidata": "Q236535", "municipality": "Itxassou", "intensity": 0.65, "lat": 43.3167, "lng": -1.3917, "peak": "Summer" },
-    { "name": "Saint-Ignace Station", "wikidata": "Q321516", "municipality": "Sare", "intensity": 0.60, "lat": 43.3268, "lng": -1.5976, "peak": "Summer" },
-    { "name": "Maison Louis XIV", "wikidata": "Q232101", "municipality": "Saint-Jean-de-Luz", "intensity": 0.62, "lat": 43.3881, "lng": -1.6631, "peak": "Summer" }
+    {
+      "name": "Grande Plage",
+      "wikidata": "Q3114979",
+      "municipality": "Biarritz",
+      "intensity": 1.0,
+      "lat": 43.4833,
+      "lng": -1.5586,
+      "peak": "July–August",
+      "osm_id": 156866423
+    },
+    {
+      "name": "La Rhune (Little Train)",
+      "wikidata": "Q1230103",
+      "municipality": "Sare",
+      "intensity": 1.0,
+      "lat": 43.3095,
+      "lng": -1.6075,
+      "peak": "July–August",
+      "osm_id": 23553348
+    },
+    {
+      "name": "Old Town (Grand Bayonne)",
+      "wikidata": "Q3113504",
+      "municipality": "Bayonne",
+      "intensity": 0.9,
+      "lat": 43.4925,
+      "lng": -1.4748,
+      "peak": "Late July (Fêtes)",
+      "osm_id": 6128124965
+    },
+    {
+      "name": "Place Louis XIV",
+      "wikidata": "Q3390196",
+      "municipality": "Saint-Jean-de-Luz",
+      "intensity": 0.9,
+      "lat": 43.3887,
+      "lng": -1.6627,
+      "peak": "Summer / Weekends",
+      "osm_id": 23584974
+    },
+    {
+      "name": "Rue de la Citadelle",
+      "wikidata": "Q3465134",
+      "municipality": "Saint-Jean-Pied-de-Port",
+      "intensity": 0.9,
+      "lat": 43.1633,
+      "lng": -1.2353,
+      "peak": "May–September",
+      "osm_id": 67255165
+    },
+    {
+      "name": "Lac d’Ayous (Ossau Valley)",
+      "wikidata": "Q3210724",
+      "municipality": "Laruns",
+      "intensity": 0.9,
+      "lat": 42.858,
+      "lng": -0.4365,
+      "peak": "July–August",
+      "osm_id": 37370640
+    },
+    {
+      "name": "Rocher de la Vierge",
+      "wikidata": "Q3437583",
+      "municipality": "Biarritz",
+      "intensity": 0.9,
+      "lat": 43.4832,
+      "lng": -1.5694,
+      "peak": "Summer",
+      "osm_id": 133076428
+    },
+    {
+      "name": "Côte des Basques",
+      "wikidata": "Q2998632",
+      "municipality": "Biarritz",
+      "intensity": 0.95,
+      "lat": 43.4777,
+      "lng": -1.5663,
+      "peak": "Summer / Surf Events",
+      "osm_id": 517323084
+    },
+    {
+      "name": "Espelette Market",
+      "wikidata": "Q3062017",
+      "municipality": "Espelette",
+      "intensity": 0.85,
+      "lat": 43.3411,
+      "lng": -1.4475,
+      "peak": "October (Pepper Fest)",
+      "osm_id": 166904
+    },
+    {
+      "name": "Port de Guéthary",
+      "wikidata": "Q236528",
+      "municipality": "Guéthary",
+      "intensity": 0.85,
+      "lat": 43.4244,
+      "lng": -1.6106,
+      "peak": "July–August",
+      "osm_id": 59575771
+    },
+    {
+      "name": "Phare de Biarritz",
+      "wikidata": "Q3378158",
+      "municipality": "Biarritz",
+      "intensity": 0.8,
+      "lat": 43.4933,
+      "lng": -1.553,
+      "peak": "Summer",
+      "osm_id": 71996554
+    },
+    {
+      "name": "Aquarium de Biarritz",
+      "wikidata": "Q2859196",
+      "municipality": "Biarritz",
+      "intensity": 0.85,
+      "lat": 43.4835,
+      "lng": -1.5678,
+      "peak": "School holidays",
+      "osm_id": 133076428
+    },
+    {
+      "name": "Nive Gorges",
+      "wikidata": "Q3111024",
+      "municipality": "Bidarray",
+      "intensity": 0.7,
+      "lat": 43.2653,
+      "lng": -1.3515,
+      "peak": "Summer",
+      "osm_id": 229786
+    },
+    {
+      "name": "Fort de Socoa",
+      "wikidata": "Q3093226",
+      "municipality": "Ciboure",
+      "intensity": 0.75,
+      "lat": 43.3956,
+      "lng": -1.6853,
+      "peak": "Summer",
+      "osm_id": 72602868
+    },
+    {
+      "name": "Corniche Basque",
+      "wikidata": "Q2997500",
+      "municipality": "Hendaye / Urrugne",
+      "intensity": 0.8,
+      "lat": 43.385,
+      "lng": -1.734,
+      "peak": "Weekends / Summer"
+    },
+    {
+      "name": "Petit Train d'Artouste",
+      "wikidata": "Q3393910",
+      "municipality": "Laruns",
+      "intensity": 0.88,
+      "lat": 42.8797,
+      "lng": -0.3958,
+      "peak": "July–August"
+    },
+    {
+      "name": "Grottes de Sare",
+      "wikidata": "Q3117149",
+      "municipality": "Sare",
+      "intensity": 0.75,
+      "lat": 43.275,
+      "lng": -1.572,
+      "peak": "Summer",
+      "osm_id": 1428327144
+    },
+    {
+      "name": "Château d'Abbadia",
+      "wikidata": "Q1094334",
+      "municipality": "Hendaye",
+      "intensity": 0.72,
+      "lat": 43.3775,
+      "lng": -1.7497,
+      "peak": "Summer"
+    },
+    {
+      "name": "Halles de Biarritz",
+      "wikidata": "Q132798",
+      "municipality": "Biarritz",
+      "intensity": 0.7,
+      "lat": 43.4808,
+      "lng": -1.5589,
+      "peak": "Mornings",
+      "osm_id": 156866423
+    },
+    {
+      "name": "Cathédrale Sainte-Marie",
+      "wikidata": "Q2631525",
+      "municipality": "Bayonne",
+      "intensity": 0.65,
+      "lat": 43.4908,
+      "lng": -1.4772,
+      "peak": "Summer",
+      "osm_id": 6128124965
+    },
+    {
+      "name": "Port Vieux Beach",
+      "wikidata": "Q132798",
+      "municipality": "Biarritz",
+      "intensity": 0.8,
+      "lat": 43.4825,
+      "lng": -1.5658,
+      "peak": "Summer",
+      "osm_id": 133076428
+    },
+    {
+      "name": "Villa Arnaga",
+      "wikidata": "Q1150035",
+      "municipality": "Cambo-les-Bains",
+      "intensity": 0.75,
+      "lat": 43.3667,
+      "lng": -1.4167,
+      "peak": "Spring / Summer",
+      "osm_id": 209763123
+    },
+    {
+      "name": "Passerelle d'Holzarte",
+      "wikidata": "Q1117491",
+      "municipality": "Larrau",
+      "intensity": 0.82,
+      "lat": 43.0205,
+      "lng": -0.9344,
+      "peak": "Summer"
+    },
+    {
+      "name": "Gorges de Kakuetta",
+      "wikidata": "Q3111019",
+      "municipality": "Sainte-Engrâce",
+      "intensity": 0.88,
+      "lat": 42.9972,
+      "lng": -0.8406,
+      "peak": "July–August"
+    },
+    {
+      "name": "Castle of Pau",
+      "wikidata": "Q1474946",
+      "municipality": "Pau",
+      "intensity": 0.7,
+      "lat": 43.2948,
+      "lng": -0.3751,
+      "peak": "Year-round",
+      "osm_id": 630197738
+    },
+    {
+      "name": "Boulevard des Pyrénées",
+      "wikidata": "Q2922055",
+      "municipality": "Pau",
+      "intensity": 0.65,
+      "lat": 43.2936,
+      "lng": -0.3686,
+      "peak": "Weekends",
+      "osm_id": 630197738
+    },
+    {
+      "name": "Hendaye Plage",
+      "wikidata": "Q191754",
+      "municipality": "Hendaye",
+      "intensity": 0.85,
+      "lat": 43.3739,
+      "lng": -1.7744,
+      "peak": "July–August",
+      "osm_id": 234073850
+    },
+    {
+      "name": "Plage de Cenitz",
+      "wikidata": "Q635036",
+      "municipality": "Guéthary",
+      "intensity": 0.7,
+      "lat": 43.4183,
+      "lng": -1.6167,
+      "peak": "Summer"
+    },
+    {
+      "name": "Ustaritz Halage",
+      "wikidata": "Q605663",
+      "municipality": "Ustaritz",
+      "intensity": 0.5,
+      "lat": 43.4017,
+      "lng": -1.4562,
+      "peak": "Weekends",
+      "osm_id": 166896
+    },
+    {
+      "name": "Abbey of Belloc",
+      "wikidata": "Q334335",
+      "municipality": "Urt",
+      "intensity": 0.45,
+      "lat": 43.4683,
+      "lng": -1.2464,
+      "peak": "Summer"
+    },
+    {
+      "name": "Artisan Streets",
+      "wikidata": "Q236814",
+      "municipality": "Labastide-Clairence",
+      "intensity": 0.5,
+      "lat": 43.4282,
+      "lng": -1.2578,
+      "peak": "Summer",
+      "osm_id": 425829747
+    },
+    {
+      "name": "Eaux-Bonnes Forest",
+      "wikidata": "Q442385",
+      "municipality": "Eaux-Bonnes",
+      "intensity": 0.4,
+      "lat": 42.9712,
+      "lng": -0.3956,
+      "peak": "Summer",
+      "osm_id": 2092350
+    },
+    {
+      "name": "Thermal District",
+      "wikidata": "Q2715003",
+      "municipality": "Salies-de-Béarn",
+      "intensity": 0.5,
+      "lat": 43.4737,
+      "lng": -0.9255,
+      "peak": "Summer / Autumn",
+      "osm_id": 1640588078
+    },
+    {
+      "name": "Château Fort de Mauléon",
+      "wikidata": "Q2969874",
+      "municipality": "Mauleon-Licharre",
+      "intensity": 0.4,
+      "lat": 43.2268,
+      "lng": -0.8853,
+      "peak": "Summer",
+      "osm_id": 63512831
+    },
+    {
+      "name": "GR10 Start Point",
+      "wikidata": "Q191754",
+      "municipality": "Hendaye",
+      "intensity": 0.4,
+      "lat": 43.371,
+      "lng": -1.776,
+      "peak": "June–July",
+      "osm_id": 166739
+    },
+    {
+      "name": "Zoo d'Asson",
+      "wikidata": "Q3576016",
+      "municipality": "Asson",
+      "intensity": 0.75,
+      "lat": 43.1416,
+      "lng": -0.2588,
+      "peak": "School holidays"
+    },
+    {
+      "name": "Grottes de Bétharram",
+      "wikidata": "Q2884964",
+      "municipality": "Asson",
+      "intensity": 0.85,
+      "lat": 43.1011,
+      "lng": -0.1983,
+      "peak": "Summer"
+    },
+    {
+      "name": "Col d'Aubisque",
+      "wikidata": "Q1107567",
+      "municipality": "Laruns",
+      "intensity": 0.8,
+      "lat": 42.9769,
+      "lng": -0.34,
+      "peak": "Summer",
+      "osm_id": 308005311
+    },
+    {
+      "name": "Lindt Factory Shop",
+      "wikidata": "Q208535",
+      "municipality": "Oloron-Sainte-Marie",
+      "intensity": 0.8,
+      "lat": 43.195,
+      "lng": -0.6183,
+      "peak": "Weekends / Holidays"
+    },
+    {
+      "name": "Cathédrale Sainte-Marie",
+      "wikidata": "Q2424874",
+      "municipality": "Oloron",
+      "intensity": 0.6,
+      "lat": 43.1872,
+      "lng": -0.6122,
+      "peak": "Summer"
+    },
+    {
+      "name": "Château de Laàs",
+      "wikidata": "Q2969562",
+      "municipality": "Laàs",
+      "intensity": 0.6,
+      "lat": 43.3802,
+      "lng": -0.8505,
+      "peak": "Summer"
+    },
+    {
+      "name": "Pont de la Légende",
+      "wikidata": "Q3396827",
+      "municipality": "Sauveterre-de-Béarn",
+      "intensity": 0.65,
+      "lat": 43.3977,
+      "lng": -0.9397,
+      "peak": "Summer"
+    },
+    {
+      "name": "Citadel Walls",
+      "wikidata": "Q208632",
+      "municipality": "Navarrenx",
+      "intensity": 0.7,
+      "lat": 43.3222,
+      "lng": -0.7588,
+      "peak": "Summer",
+      "osm_id": 1959492
+    },
+    {
+      "name": "Socoa Beach",
+      "wikidata": "Q3093226",
+      "municipality": "Ciboure",
+      "intensity": 0.75,
+      "lat": 43.3939,
+      "lng": -1.6817,
+      "peak": "July–August"
+    },
+    {
+      "name": "Milady Beach",
+      "wikidata": "Q132798",
+      "municipality": "Biarritz",
+      "intensity": 0.72,
+      "lat": 43.4658,
+      "lng": -1.5739,
+      "peak": "Summer"
+    },
+    {
+      "name": "Bidart Center",
+      "wikidata": "Q635028",
+      "municipality": "Bidart",
+      "intensity": 0.68,
+      "lat": 43.4386,
+      "lng": -1.5892,
+      "peak": "Summer",
+      "osm_id": 166718
+    },
+    {
+      "name": "Plage d'Erretegia",
+      "wikidata": "Q635028",
+      "municipality": "Bidart",
+      "intensity": 0.75,
+      "lat": 43.4478,
+      "lng": -1.5833,
+      "peak": "Summer"
+    },
+    {
+      "name": "Pas de Roland",
+      "wikidata": "Q236535",
+      "municipality": "Itxassou",
+      "intensity": 0.65,
+      "lat": 43.3167,
+      "lng": -1.3917,
+      "peak": "Summer"
+    },
+    {
+      "name": "Saint-Ignace Station",
+      "wikidata": "Q321516",
+      "municipality": "Sare",
+      "intensity": 0.6,
+      "lat": 43.3268,
+      "lng": -1.5976,
+      "peak": "Summer"
+    },
+    {
+      "name": "Maison Louis XIV",
+      "wikidata": "Q232101",
+      "municipality": "Saint-Jean-de-Luz",
+      "intensity": 0.62,
+      "lat": 43.3881,
+      "lng": -1.6631,
+      "peak": "Summer",
+      "osm_id": 23584974
+    }
   ],
   "pois_65": [
-    { "name": "Sanctuary of Our Lady of Lourdes", "wikidata": "Q1060195", "municipality": "Lourdes", "intensity": 1.0, "lat": 43.0975, "lng": -0.0583, "peak": "April–October" },
-    { "name": "Cirque de Gavarnie (Main Trail)", "wikidata": "Q1093111", "municipality": "Gavarnie-Gèdre", "intensity": 1.0, "lat": 42.6953, "lng": -0.0075, "peak": "July–August" },
-    { "name": "Pic du Midi de Bigorre (Summit)", "wikidata": "Q1139414", "municipality": "Sers/La Mongie", "intensity": 1.0, "lat": 42.9364, "lng": 0.1411, "peak": "Year-round" },
-    { "name": "Pont d'Espagne", "wikidata": "Q3396495", "municipality": "Cauterets", "intensity": 0.95, "lat": 42.8522, "lng": -0.1389, "peak": "July–August" },
-    { "name": "Col du Tourmalet", "wikidata": "Q912239", "municipality": "Barèges/Sers", "intensity": 0.95, "lat": 42.9083, "lng": 0.1451, "peak": "June–September" },
-    { "name": "Lac de Gaube", "wikidata": "Q3210884", "municipality": "Cauterets", "intensity": 0.92, "lat": 42.8361, "lng": -0.1389, "peak": "July–August" },
-    { "name": "Cirque de Troumouse", "wikidata": "Q1093117", "municipality": "Gavarnie-Gèdre", "intensity": 0.88, "lat": 42.7236, "lng": 0.1328, "peak": "July–August" },
-    { "name": "Grottes de Médous", "wikidata": "Q3117161", "municipality": "Bagnères-de-Bigorre", "intensity": 0.85, "lat": 43.0531, "lng": 0.1558, "peak": "Summer" },
-    { "name": "Parc Animalier des Pyrénées", "wikidata": "Q3363777", "municipality": "Argelès-Gazost", "intensity": 0.85, "lat": 43.0089, "lng": -0.1039, "peak": "School holidays" },
-    { "name": "Lac de Payolle", "wikidata": "Q3211132", "municipality": "Campan/Arreau", "intensity": 0.82, "lat": 42.9403, "lng": 0.2925, "peak": "Year-round" },
-    { "name": "Donjon des Aigles", "wikidata": "Q3036224", "municipality": "Beaucens", "intensity": 0.80, "lat": 42.9725, "lng": -0.0608, "peak": "Summer" },
-    { "name": "Château Fort de Lourdes", "wikidata": "Q2967936", "municipality": "Lourdes", "intensity": 0.80, "lat": 43.0972, "lng": -0.0483, "peak": "Summer" },
-    { "name": "Gouffre d'Esparros", "wikidata": "Q3111586", "municipality": "Esparros", "intensity": 0.78, "lat": 43.0306, "lng": 0.3236, "peak": "Summer" },
-    { "name": "Telepherique du Pic du Midi", "wikidata": "Q3517409", "municipality": "La Mongie", "intensity": 0.82, "lat": 42.9092, "lng": 0.1775, "peak": "Year-round" },
-    { "name": "Sanctuary Grotto (Massabielle)", "wikidata": "Q3117142", "municipality": "Lourdes", "intensity": 0.95, "lat": 43.0975, "lng": -0.0594, "peak": "April–October" },
-    { "name": "Col d'Aspin (Summit)", "wikidata": "Q1107563", "municipality": "Arreau/Campan", "intensity": 0.75, "lat": 42.9422, "lng": 0.3283, "peak": "Summer" },
-    { "name": "Lac d'Estaing", "wikidata": "Q3210853", "municipality": "Estaing", "intensity": 0.75, "lat": 42.9083, "lng": -0.2103, "peak": "July–August" },
-    { "name": "Le Pic du Jer (Funicular)", "wikidata": "Q3090950", "municipality": "Lourdes", "intensity": 0.72, "lat": 43.0825, "lng": -0.0406, "peak": "Summer" },
-    { "name": "Grand Tourmalet Ski Resort", "wikidata": "Q3114614", "municipality": "La Mongie/Barèges", "intensity": 0.90, "lat": 42.9103, "lng": 0.1806, "peak": "Winter" },
-    { "name": "Saint-Lary Village Center", "wikidata": "Q333334", "municipality": "Saint-Lary-Soulan", "intensity": 0.85, "lat": 42.8175, "lng": 0.3225, "peak": "Feb / Aug" },
-    { "name": "Arrens-Marsous Church", "wikidata": "Q2373030", "municipality": "Arrens-Marsous", "intensity": 0.62, "lat": 42.9708, "lng": -0.2128, "peak": "Summer" },
-    { "name": "Maison du Parc National", "wikidata": "Q385557", "municipality": "Luz-Saint-Sauveur", "intensity": 0.65, "lat": 42.8719, "lng": -0.0025, "peak": "Summer" },
-    { "name": "Néouvielle Nature Reserve", "wikidata": "Q3457493", "municipality": "Saint-Lary/Aragnouet", "intensity": 0.88, "lat": 42.8333, "lng": 0.1833, "peak": "July–August" },
-    { "name": "Lac d'Oredon", "wikidata": "Q3211099", "municipality": "Aragnouet", "intensity": 0.80, "lat": 42.8256, "lng": 0.1658, "peak": "Summer" },
-    { "name": "Lac de Cap-de-Long", "wikidata": "Q3210776", "municipality": "Aragnouet", "intensity": 0.78, "lat": 42.8217, "lng": 0.1331, "peak": "Summer" },
-    { "name": "Gabas Waterfall", "wikidata": "Q10103", "municipality": "Lourdes", "intensity": 0.60, "lat": 43.1258, "lng": -0.0522, "peak": "Spring" },
-    { "name": "Luz-Ardiden Ski Area", "wikidata": "Q3269417", "municipality": "Grust/Luz", "intensity": 0.80, "lat": 42.8803, "lng": -0.0406, "peak": "Winter" },
-    { "name": "Cité scolaire (Climatique)", "wikidata": "Q499435", "municipality": "Argelès-Gazost", "intensity": 0.60, "lat": 43.0053, "lng": -0.0989, "peak": "September" },
-    { "name": "Market Square", "wikidata": "Q208466", "municipality": "Bagnères-de-Bigorre", "intensity": 0.72, "lat": 43.0658, "lng": 0.1492, "peak": "Saturday Morning" },
-    { "name": "Thermes de Saint-Lary", "wikidata": "Q333334", "municipality": "Saint-Lary-Soulan", "intensity": 0.70, "lat": 42.8161, "lng": 0.3203, "peak": "Winter / Summer" },
-    { "name": "Val d'Azun Nordic Center", "wikidata": "Q1017822", "municipality": "Arrens-Marsous", "intensity": 0.68, "lat": 42.9606, "lng": -0.2589, "peak": "Winter" },
-    { "name": "Hautacam (Leisure Park)", "wikidata": "Q1589146", "municipality": "Beaucens", "intensity": 0.75, "lat": 42.9706, "lng": -0.0097, "peak": "Year-round" },
-    { "name": "Piau-Engaly Ski Resort", "wikidata": "Q3387799", "municipality": "Aragnouet", "intensity": 0.85, "lat": 42.7828, "lng": 0.1583, "peak": "Winter" },
-    { "name": "Chemin de Croix", "wikidata": "Q1060195", "municipality": "Lourdes", "intensity": 0.75, "lat": 43.0964, "lng": -0.0617, "peak": "Easter / Summer" },
-    { "name": "Grands Thermes", "wikidata": "Q208466", "municipality": "Bagnères-de-Bigorre", "intensity": 0.70, "lat": 43.0644, "lng": 0.1494, "peak": "Autumn" },
-    { "name": "Peyragudes", "wikidata": "Q1531705", "municipality": "Germ", "intensity": 0.85, "lat": 42.7933, "lng": 0.4431, "peak": "Winter" },
-    { "name": "Val Louron", "wikidata": "Q3553416", "municipality": "Adervielle", "intensity": 0.72, "lat": 42.8089, "lng": 0.4014, "peak": "Winter / Summer" },
-    { "name": "Balnéa (Spa)", "wikidata": "Q1017838", "municipality": "Loudenvielle", "intensity": 0.88, "lat": 42.7981, "lng": 0.4136, "peak": "Year-round" },
-    { "name": "Lac de Loudenvielle", "wikidata": "Q3210967", "municipality": "Loudenvielle", "intensity": 0.85, "lat": 42.8017, "lng": 0.4103, "peak": "Summer" },
-    { "name": "Skyvall Gondola", "wikidata": "Q1017838", "municipality": "Loudenvielle", "intensity": 0.82, "lat": 42.7978, "lng": 0.4142, "peak": "Winter / Summer" },
-    { "name": "Les Thermes de Capvern", "wikidata": "Q1110587", "municipality": "Capvern", "intensity": 0.60, "lat": 43.1025, "lng": 0.3161, "peak": "Spring / Autumn" },
-    { "name": "Abbey of Saint-Savin", "wikidata": "Q2820719", "municipality": "Saint-Savin", "intensity": 0.60, "lat": 42.9814, "lng": -0.1206, "peak": "Summer" },
-    { "name": "Village Center (Halles)", "wikidata": "Q499427", "municipality": "Cauterets", "intensity": 0.60, "lat": 42.8885, "lng": -0.1145, "peak": "Mornings" },
-    { "name": "Wax Museum", "wikidata": "Q3329978", "municipality": "Lourdes", "intensity": 0.60, "lat": 43.0950, "lng": -0.0515, "peak": "Summer" },
-    { "name": "Barrage du Tech", "wikidata": "Q2884849", "municipality": "Arrens-Marsous", "intensity": 0.55, "lat": 42.9231, "lng": -0.2183, "peak": "Summer" },
-    { "name": "Thursday Market Arreau", "wikidata": "Q635010", "municipality": "Arreau", "intensity": 0.55, "lat": 42.9056, "lng": 0.3585, "peak": "Year-round" },
-    { "name": "Church of the Templars", "wikidata": "Q3585507", "municipality": "Luz-Saint-Sauveur", "intensity": 0.55, "lat": 42.8711, "lng": -0.0014, "peak": "Summer" },
-    { "name": "Jardin Massey", "wikidata": "Q3162331", "municipality": "Tarbes", "intensity": 0.50, "lat": 43.2389, "lng": 0.0767, "peak": "Spring / Summer" },
-    { "name": "Haras National", "wikidata": "Q3127233", "municipality": "Tarbes", "intensity": 0.45, "lat": 43.2356, "lng": 0.0717, "peak": "Summer" },
-    { "name": "Museum of Salies", "wikidata": "Q208466", "municipality": "Bagnères-de-Bigorre", "intensity": 0.40, "lat": 43.0647, "lng": 0.1472, "peak": "Rainy Days" }
+    {
+      "name": "Sanctuary of Our Lady of Lourdes",
+      "wikidata": "Q1060195",
+      "municipality": "Lourdes",
+      "intensity": 1.0,
+      "lat": 43.0975,
+      "lng": -0.0583,
+      "peak": "April–October",
+      "osm_id": 14380523
+    },
+    {
+      "name": "Cirque de Gavarnie (Main Trail)",
+      "wikidata": "Q1093111",
+      "municipality": "Gavarnie-Gèdre",
+      "intensity": 1.0,
+      "lat": 42.6953,
+      "lng": -0.0075,
+      "peak": "July–August",
+      "osm_id": 326228282
+    },
+    {
+      "name": "Pic du Midi de Bigorre (Summit)",
+      "wikidata": "Q1139414",
+      "municipality": "Sers/La Mongie",
+      "intensity": 1.0,
+      "lat": 42.9364,
+      "lng": 0.1411,
+      "peak": "Year-round",
+      "osm_id": 26864245
+    },
+    {
+      "name": "Pont d'Espagne",
+      "wikidata": "Q3396495",
+      "municipality": "Cauterets",
+      "intensity": 0.95,
+      "lat": 42.8522,
+      "lng": -0.1389,
+      "peak": "July–August",
+      "osm_id": 648128818
+    },
+    {
+      "name": "Col du Tourmalet",
+      "wikidata": "Q912239",
+      "municipality": "Barèges/Sers",
+      "intensity": 0.95,
+      "lat": 42.9083,
+      "lng": 0.1451,
+      "peak": "June–September",
+      "osm_id": 261767485
+    },
+    {
+      "name": "Lac de Gaube",
+      "wikidata": "Q3210884",
+      "municipality": "Cauterets",
+      "intensity": 0.92,
+      "lat": 42.8361,
+      "lng": -0.1389,
+      "peak": "July–August",
+      "osm_id": 216687511
+    },
+    {
+      "name": "Cirque de Troumouse",
+      "wikidata": "Q1093117",
+      "municipality": "Gavarnie-Gèdre",
+      "intensity": 0.88,
+      "lat": 42.7236,
+      "lng": 0.1328,
+      "peak": "July–August",
+      "osm_id": 1426480074
+    },
+    {
+      "name": "Grottes de Médous",
+      "wikidata": "Q3117161",
+      "municipality": "Bagnères-de-Bigorre",
+      "intensity": 0.85,
+      "lat": 43.0531,
+      "lng": 0.1558,
+      "peak": "Summer",
+      "osm_id": 7256266092
+    },
+    {
+      "name": "Parc Animalier des Pyrénées",
+      "wikidata": "Q3363777",
+      "municipality": "Argelès-Gazost",
+      "intensity": 0.85,
+      "lat": 43.0089,
+      "lng": -0.1039,
+      "peak": "School holidays",
+      "osm_id": 122591503
+    },
+    {
+      "name": "Lac de Payolle",
+      "wikidata": "Q3211132",
+      "municipality": "Campan/Arreau",
+      "intensity": 0.82,
+      "lat": 42.9403,
+      "lng": 0.2925,
+      "peak": "Year-round",
+      "osm_id": 97074886
+    },
+    {
+      "name": "Donjon des Aigles",
+      "wikidata": "Q3036224",
+      "municipality": "Beaucens",
+      "intensity": 0.8,
+      "lat": 42.9725,
+      "lng": -0.0608,
+      "peak": "Summer",
+      "osm_id": 534675166
+    },
+    {
+      "name": "Château Fort de Lourdes",
+      "wikidata": "Q2967936",
+      "municipality": "Lourdes",
+      "intensity": 0.8,
+      "lat": 43.0972,
+      "lng": -0.0483,
+      "peak": "Summer",
+      "osm_id": 53014685
+    },
+    {
+      "name": "Gouffre d'Esparros",
+      "wikidata": "Q3111586",
+      "municipality": "Esparros",
+      "intensity": 0.78,
+      "lat": 43.0306,
+      "lng": 0.3236,
+      "peak": "Summer",
+      "osm_id": 2671097852
+    },
+    {
+      "name": "Telepherique du Pic du Midi",
+      "wikidata": "Q3517409",
+      "municipality": "La Mongie",
+      "intensity": 0.82,
+      "lat": 42.9092,
+      "lng": 0.1775,
+      "peak": "Year-round"
+    },
+    {
+      "name": "Sanctuary Grotto (Massabielle)",
+      "wikidata": "Q3117142",
+      "municipality": "Lourdes",
+      "intensity": 0.95,
+      "lat": 43.0975,
+      "lng": -0.0594,
+      "peak": "April–October",
+      "osm_id": 14380523
+    },
+    {
+      "name": "Col d'Aspin (Summit)",
+      "wikidata": "Q1107563",
+      "municipality": "Arreau/Campan",
+      "intensity": 0.75,
+      "lat": 42.9422,
+      "lng": 0.3283,
+      "peak": "Summer",
+      "osm_id": 285398742
+    },
+    {
+      "name": "Lac d'Estaing",
+      "wikidata": "Q3210853",
+      "municipality": "Estaing",
+      "intensity": 0.75,
+      "lat": 42.9083,
+      "lng": -0.2103,
+      "peak": "July–August"
+    },
+    {
+      "name": "Le Pic du Jer (Funicular)",
+      "wikidata": "Q3090950",
+      "municipality": "Lourdes",
+      "intensity": 0.72,
+      "lat": 43.0825,
+      "lng": -0.0406,
+      "peak": "Summer",
+      "osm_id": 52493561
+    },
+    {
+      "name": "Grand Tourmalet Ski Resort",
+      "wikidata": "Q3114614",
+      "municipality": "La Mongie/Barèges",
+      "intensity": 0.9,
+      "lat": 42.9103,
+      "lng": 0.1806,
+      "peak": "Winter",
+      "osm_id": 1254206235
+    },
+    {
+      "name": "Saint-Lary Village Center",
+      "wikidata": "Q333334",
+      "municipality": "Saint-Lary-Soulan",
+      "intensity": 0.85,
+      "lat": 42.8175,
+      "lng": 0.3225,
+      "peak": "Feb / Aug",
+      "osm_id": 2303265
+    },
+    {
+      "name": "Arrens-Marsous Church",
+      "wikidata": "Q2373030",
+      "municipality": "Arrens-Marsous",
+      "intensity": 0.62,
+      "lat": 42.9708,
+      "lng": -0.2128,
+      "peak": "Summer"
+    },
+    {
+      "name": "Maison du Parc National",
+      "wikidata": "Q385557",
+      "municipality": "Luz-Saint-Sauveur",
+      "intensity": 0.65,
+      "lat": 42.8719,
+      "lng": -0.0025,
+      "peak": "Summer",
+      "osm_id": 470203213
+    },
+    {
+      "name": "Néouvielle Nature Reserve",
+      "wikidata": "Q3457493",
+      "municipality": "Saint-Lary/Aragnouet",
+      "intensity": 0.88,
+      "lat": 42.8333,
+      "lng": 0.1833,
+      "peak": "July–August"
+    },
+    {
+      "name": "Lac d'Oredon",
+      "wikidata": "Q3211099",
+      "municipality": "Aragnouet",
+      "intensity": 0.8,
+      "lat": 42.8256,
+      "lng": 0.1658,
+      "peak": "Summer",
+      "osm_id": 42418867
+    },
+    {
+      "name": "Lac de Cap-de-Long",
+      "wikidata": "Q3210776",
+      "municipality": "Aragnouet",
+      "intensity": 0.78,
+      "lat": 42.8217,
+      "lng": 0.1331,
+      "peak": "Summer",
+      "osm_id": 42418866
+    },
+    {
+      "name": "Gabas Waterfall",
+      "wikidata": "Q10103",
+      "municipality": "Lourdes",
+      "intensity": 0.6,
+      "lat": 43.1258,
+      "lng": -0.0522,
+      "peak": "Spring"
+    },
+    {
+      "name": "Luz-Ardiden Ski Area",
+      "wikidata": "Q3269417",
+      "municipality": "Grust/Luz",
+      "intensity": 0.8,
+      "lat": 42.8803,
+      "lng": -0.0406,
+      "peak": "Winter"
+    },
+    {
+      "name": "Cité scolaire (Climatique)",
+      "wikidata": "Q499435",
+      "municipality": "Argelès-Gazost",
+      "intensity": 0.6,
+      "lat": 43.0053,
+      "lng": -0.0989,
+      "peak": "September",
+      "osm_id": 122591503
+    },
+    {
+      "name": "Market Square",
+      "wikidata": "Q208466",
+      "municipality": "Bagnères-de-Bigorre",
+      "intensity": 0.72,
+      "lat": 43.0658,
+      "lng": 0.1492,
+      "peak": "Saturday Morning"
+    },
+    {
+      "name": "Thermes de Saint-Lary",
+      "wikidata": "Q333334",
+      "municipality": "Saint-Lary-Soulan",
+      "intensity": 0.7,
+      "lat": 42.8161,
+      "lng": 0.3203,
+      "peak": "Winter / Summer",
+      "osm_id": 2303265
+    },
+    {
+      "name": "Val d'Azun Nordic Center",
+      "wikidata": "Q1017822",
+      "municipality": "Arrens-Marsous",
+      "intensity": 0.68,
+      "lat": 42.9606,
+      "lng": -0.2589,
+      "peak": "Winter"
+    },
+    {
+      "name": "Hautacam (Leisure Park)",
+      "wikidata": "Q1589146",
+      "municipality": "Beaucens",
+      "intensity": 0.75,
+      "lat": 42.9706,
+      "lng": -0.0097,
+      "peak": "Year-round"
+    },
+    {
+      "name": "Piau-Engaly Ski Resort",
+      "wikidata": "Q3387799",
+      "municipality": "Aragnouet",
+      "intensity": 0.85,
+      "lat": 42.7828,
+      "lng": 0.1583,
+      "peak": "Winter"
+    },
+    {
+      "name": "Chemin de Croix",
+      "wikidata": "Q1060195",
+      "municipality": "Lourdes",
+      "intensity": 0.75,
+      "lat": 43.0964,
+      "lng": -0.0617,
+      "peak": "Easter / Summer",
+      "osm_id": 52406640
+    },
+    {
+      "name": "Grands Thermes",
+      "wikidata": "Q208466",
+      "municipality": "Bagnères-de-Bigorre",
+      "intensity": 0.7,
+      "lat": 43.0644,
+      "lng": 0.1494,
+      "peak": "Autumn"
+    },
+    {
+      "name": "Peyragudes",
+      "wikidata": "Q1531705",
+      "municipality": "Germ",
+      "intensity": 0.85,
+      "lat": 42.7933,
+      "lng": 0.4431,
+      "peak": "Winter",
+      "osm_id": 758112360
+    },
+    {
+      "name": "Val Louron",
+      "wikidata": "Q3553416",
+      "municipality": "Adervielle",
+      "intensity": 0.72,
+      "lat": 42.8089,
+      "lng": 0.4014,
+      "peak": "Winter / Summer"
+    },
+    {
+      "name": "Balnéa (Spa)",
+      "wikidata": "Q1017838",
+      "municipality": "Loudenvielle",
+      "intensity": 0.88,
+      "lat": 42.7981,
+      "lng": 0.4136,
+      "peak": "Year-round",
+      "osm_id": 315805716
+    },
+    {
+      "name": "Lac de Loudenvielle",
+      "wikidata": "Q3210967",
+      "municipality": "Loudenvielle",
+      "intensity": 0.85,
+      "lat": 42.8017,
+      "lng": 0.4103,
+      "peak": "Summer"
+    },
+    {
+      "name": "Skyvall Gondola",
+      "wikidata": "Q1017838",
+      "municipality": "Loudenvielle",
+      "intensity": 0.82,
+      "lat": 42.7978,
+      "lng": 0.4142,
+      "peak": "Winter / Summer",
+      "osm_id": 315805716
+    },
+    {
+      "name": "Les Thermes de Capvern",
+      "wikidata": "Q1110587",
+      "municipality": "Capvern",
+      "intensity": 0.6,
+      "lat": 43.1025,
+      "lng": 0.3161,
+      "peak": "Spring / Autumn",
+      "osm_id": 263390688
+    },
+    {
+      "name": "Abbey of Saint-Savin",
+      "wikidata": "Q2820719",
+      "municipality": "Saint-Savin",
+      "intensity": 0.6,
+      "lat": 42.9814,
+      "lng": -0.1206,
+      "peak": "Summer",
+      "osm_id": 87957141
+    },
+    {
+      "name": "Village Center (Halles)",
+      "wikidata": "Q499427",
+      "municipality": "Cauterets",
+      "intensity": 0.6,
+      "lat": 42.8885,
+      "lng": -0.1145,
+      "peak": "Mornings",
+      "osm_id": 399968
+    },
+    {
+      "name": "Wax Museum",
+      "wikidata": "Q3329978",
+      "municipality": "Lourdes",
+      "intensity": 0.6,
+      "lat": 43.095,
+      "lng": -0.0515,
+      "peak": "Summer",
+      "osm_id": 53014685
+    },
+    {
+      "name": "Barrage du Tech",
+      "wikidata": "Q2884849",
+      "municipality": "Arrens-Marsous",
+      "intensity": 0.55,
+      "lat": 42.9231,
+      "lng": -0.2183,
+      "peak": "Summer",
+      "osm_id": 117531524
+    },
+    {
+      "name": "Thursday Market Arreau",
+      "wikidata": "Q635010",
+      "municipality": "Arreau",
+      "intensity": 0.55,
+      "lat": 42.9056,
+      "lng": 0.3585,
+      "peak": "Year-round",
+      "osm_id": 159039
+    },
+    {
+      "name": "Church of the Templars",
+      "wikidata": "Q3585507",
+      "municipality": "Luz-Saint-Sauveur",
+      "intensity": 0.55,
+      "lat": 42.8711,
+      "lng": -0.0014,
+      "peak": "Summer",
+      "osm_id": 399965
+    },
+    {
+      "name": "Jardin Massey",
+      "wikidata": "Q3162331",
+      "municipality": "Tarbes",
+      "intensity": 0.5,
+      "lat": 43.2389,
+      "lng": 0.0767,
+      "peak": "Spring / Summer",
+      "osm_id": 35823606
+    },
+    {
+      "name": "Haras National",
+      "wikidata": "Q3127233",
+      "municipality": "Tarbes",
+      "intensity": 0.45,
+      "lat": 43.2356,
+      "lng": 0.0717,
+      "peak": "Summer"
+    },
+    {
+      "name": "Museum of Salies",
+      "wikidata": "Q208466",
+      "municipality": "Bagnères-de-Bigorre",
+      "intensity": 0.4,
+      "lat": 43.0647,
+      "lng": 0.1472,
+      "peak": "Rainy Days"
+    }
   ]
 }
