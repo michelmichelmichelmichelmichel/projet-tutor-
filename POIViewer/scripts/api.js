@@ -1122,7 +1122,7 @@ export class ApiService {
                     return {
                         name: props.nom,
                         fullName: `${props.nom} (${props.codesPostaux ? props.codesPostaux[0] : props.code})`,
-                        type: 'city',
+                        type: 'commune',
                         code: props.code,
                         ref: props.code,
                         codeDepartement: props.codeDepartement || null,
@@ -1160,6 +1160,8 @@ export class ApiService {
                         type: 'city',
                         code: d.osm_id,
                         ref: d.osm_id,
+                        osmType: d.osm_type,
+                        adminLevel: d.extratags ? d.extratags.admin_level : null,
                         wikidata: d.extratags ? d.extratags.wikidata : null, // Capture le wikidata
                         hierarchy: {
                             country: addr.country || this.currentCountryName || null,
@@ -1400,6 +1402,82 @@ export class ApiService {
                 }));
         } catch (error) {
             console.error('Erreur fetchNeighbors:', error);
+            return [];
+        }
+    }
+
+    /**
+     * Récupère les voisins internationaux (hors France) via Overpass API.
+     * Cherche les relations partageant des frontières (ways) avec la zone active.
+     */
+    async fetchInternationalNeighbors(osmId, osmType, adminLevel, screenBounds) {
+        if (!osmId || !osmType) return [];
+        
+        let query = '';
+        const adminLevelFilter = adminLevel ? `[admin_level="${adminLevel}"]` : '';
+
+        if (osmType === 'relation') {
+            query = `[out:json][timeout:25];
+rel(${osmId})->.base;
+way(r.base)->.w;
+rel(bw.w)[boundary=administrative]${adminLevelFilter};
+(._; - .base;);
+out geom;`;
+        } else if (osmType === 'way') {
+            query = `[out:json][timeout:25];
+way(${osmId})->.base;
+rel(bw.base)[boundary=administrative]${adminLevelFilter};
+out geom;`;
+        } else {
+            return [];
+        }
+
+        const url = `https://overpass-api.de/api/interpreter`;
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                body: `data=${encodeURIComponent(query)}`,
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
+            });
+            if (!response.ok) throw new Error("Overpass API error");
+            const data = await response.json();
+            const geojson = osmtogeojson(data);
+
+            if (!geojson.features) return [];
+
+            return geojson.features
+                .filter(feature => {
+                    // Test d'intersection grossière avec l'écran
+                    if (!feature.geometry || (feature.geometry.type !== 'Polygon' && feature.geometry.type !== 'MultiPolygon')) return false;
+                    const coords = this._extractAllCoords(feature.geometry);
+                    if (coords.length === 0) return false;
+
+                    let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+                    coords.forEach(([lng, lat]) => {
+                        if (lat < minLat) minLat = lat;
+                        if (lat > maxLat) maxLat = lat;
+                        if (lng < minLng) minLng = lng;
+                        if (lng > maxLng) maxLng = lng;
+                    });
+
+                    return !(maxLat < screenBounds.minLat ||
+                        minLat > screenBounds.maxLat ||
+                        maxLng < screenBounds.minLng ||
+                        minLng > screenBounds.maxLng);
+                })
+                .map(feature => {
+                    const props = feature.properties;
+                    let code = feature.id.replace('relation/', '').replace('way/', '').replace('node/', '');
+                    return {
+                        name: props.name || props['name:en'] || 'Zone voisine',
+                        code: code,
+                        type: 'city',
+                        adminLevel: props.admin_level,
+                        geometry: feature.geometry
+                    };
+                });
+        } catch (error) {
+            console.error("Erreur fetchInternationalNeighbors:", error);
             return [];
         }
     }

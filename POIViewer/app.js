@@ -414,12 +414,14 @@ class App {
             if (park.geometry) {
                 // Commune (via GéoAPI)
                 this.activeZone = {
-                    type: 'commune',
+                    type: park.type || 'commune',
                     code: park.code,
                     codeDepartement: park.codeDepartement || (park.code ? String(park.code).substring(0, 2) : null),
                     codeRegion: park.codeRegion || null,
                     hierarchy: park.hierarchy || null,
                     name: park.name,
+                    osmType: park.osmType || null,
+                    adminLevel: park.adminLevel || null,
                     wikidata: park.wikidata || null,
                     population: park.population || null
                 };
@@ -485,9 +487,7 @@ class App {
 
     canLoadNeighborsForActiveZone() {
         if (!this.activeZone) return false;
-        if (this.apiService.currentCountryCode !== 'fr') return false;
-
-        return ['commune', 'dept', 'region'].includes(this.activeZone.type);
+        return ['commune', 'dept', 'region', 'city'].includes(this.activeZone.type);
     }
 
     _getInseeStats() {
@@ -1291,6 +1291,9 @@ class App {
                 neighbors = await this.apiService.fetchNeighborDepts(screenBounds, zoneCode);
             } else if (type === 'region') {
                 neighbors = await this.apiService.fetchNeighborRegions(screenBounds, zoneCode);
+            } else if (type === 'city') {
+                // International neighbors using Overpass
+                neighbors = await this.apiService.fetchInternationalNeighbors(zoneCode, this.activeZone.osmType, this.activeZone.adminLevel, screenBounds);
             }
 
             if (neighbors.length === 0) return;
@@ -1301,8 +1304,11 @@ class App {
                     name: neighbor.name,
                     code: neighbor.code,
                     codeDepartement: neighbor.codeDepartement,
-                    geometry: neighbor.geometry,
-                    adminType: neighbor.type === 'commune' ? undefined : neighbor.type
+                    type: neighbor.type,
+                    adminType: neighbor.type === 'commune' ? undefined : neighbor.type,
+                    osmType: neighbor.type === 'city' ? 'relation' : undefined,
+                    adminLevel: neighbor.adminLevel,
+                    geometry: neighbor.geometry
                 };
                 this.uiRenderer.onPresetSelected(neighborAsPreset);
             });
