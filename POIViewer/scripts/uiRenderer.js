@@ -2280,66 +2280,73 @@ export class UiRenderer {
             Plotly.newPlot(slopeDiv, slopeData, slopeLayout, miniConfig);
         }
 
-        const offerMetrics = [
-            { label: 'Sentiers piétons', raw: pedestrianTrailCount, color: '#34d399' },
-            { label: 'Offre cyclable', raw: cyclingTrailCount, color: '#60a5fa' },
-            { label: 'Hébergements', raw: accommodationCount, color: '#a78bfa' },
-            { label: 'Accès transport', raw: transportTotal, color: '#fbbf24' },
-            { label: 'Services visiteurs', raw: servicesTotal, color: '#06b6d4' }
-        ]
-            .filter(item => item.raw > 0)
-            .map(item => ({
-                ...item,
-                metric: areaKm2 > 0 ? (item.raw / areaKm2) : item.raw
-            }))
-            .sort((a, b) => b.metric - a.metric);
+        // ── Km total des sentiers (Text Display) ──
+        const totalTrailKm = pedestrianTrailLength + cyclingTrailLength;
+        const trailTotalDiv = document.createElement('div');
+        trailTotalDiv.innerHTML = `
+            <div class="ind-block" style="margin:10px 0;">
+                <div class="ind-block__header">
+                    <span class="ind-block__title">Km total des sentiers</span>
+                    <span class="ind-block__big">${totalTrailKm.toFixed(1)} <span class="ind-block__unit">km</span></span>
+                </div>
+                <div style="display:flex;gap:12px;padding:2px 0 0;">
+                    <span style="font-size:0.75rem;color:#34d399;">🥾 Piétons : ${pedestrianTrailLength.toFixed(1)} km</span>
+                    <span style="font-size:0.75rem;color:#60a5fa;">🚴 Vélo : ${cyclingTrailLength.toFixed(1)} km</span>
+                </div>
+            </div>`;
+        infraContainer.appendChild(trailTotalDiv);
 
-        if (offerMetrics.length > 1) {
-            const offerSection = document.createElement('div');
-            offerSection.className = 'mini-treemap-section';
+        // ── Helper to add a Plotly horizontal bar chart ──
+        const addBarChart = (title, metricsData, containerElement) => {
+            if (metricsData.length === 0) return;
 
-            const offerHeaderRow = document.createElement('div');
-            offerHeaderRow.className = 'mini-treemap-header';
+            const section = document.createElement('div');
+            section.className = 'mini-treemap-section';
 
-            const offerHeaderGroup = document.createElement('div');
-            offerHeaderGroup.className = 'mini-treemap-title-group';
+            const headerRow = document.createElement('div');
+            headerRow.className = 'mini-treemap-header';
 
-            const offerHeader = document.createElement('span');
-            offerHeader.className = 'mini-treemap-title';
-            offerHeader.textContent = areaKm2 > 0 ? 'Densité' : 'Volume de l\'offre';
-            offerHeaderGroup.appendChild(offerHeader);
+            const headerGroup = document.createElement('div');
+            headerGroup.className = 'mini-treemap-title-group';
 
-            const offerMeta = document.createElement('span');
-            offerMeta.className = 'mini-treemap-meta';
-            offerMeta.textContent = areaKm2 > 0 ? 'normalise par km2' : 'comparaison brute';
-            offerHeaderGroup.appendChild(offerMeta);
+            const header = document.createElement('span');
+            header.className = 'mini-treemap-title';
+            header.textContent = title;
+            headerGroup.appendChild(header);
 
-            const offerDiv = document.createElement('div');
-            offerDiv.id = 'offer-chart-' + Math.random().toString(36).substring(2, 9);
-            offerDiv.style.height = '220px';
-            offerDiv.className = 'mini-chart-canvas';
+            const meta = document.createElement('span');
+            meta.className = 'mini-treemap-meta';
+            meta.textContent = areaKm2 > 0 ? 'normalisé par km²' : 'comparaison brute';
+            headerGroup.appendChild(meta);
 
-            const offerData = [{
+            const div = document.createElement('div');
+            div.id = 'chart-' + Math.random().toString(36).substring(2, 9);
+            // Height dynamic based on items count
+            const chartHeight = Math.max(120, metricsData.length * 28 + 55);
+            div.style.height = `${chartHeight}px`;
+            div.className = 'mini-chart-canvas';
+
+            const data = [{
                 type: 'bar',
                 orientation: 'h',
-                x: offerMetrics.map(item => item.metric),
-                y: offerMetrics.map(item => item.label),
+                x: metricsData.map(item => item.metric),
+                y: metricsData.map(item => item.label),
                 marker: {
-                    color: offerMetrics.map(item => item.color),
+                    color: metricsData.map(item => item.color),
                     line: { color: 'rgba(255,255,255,0.18)', width: 1.2 }
                 },
-                text: offerMetrics.map(item => areaKm2 > 0
-                    ? `${formatChartMetric(item.metric)}/km2`
+                text: metricsData.map(item => areaKm2 > 0
+                    ? `${formatChartMetric(item.metric)}${item.unit === 'km' ? ' km/km²' : '/km²'}`
                     : item.raw.toLocaleString('fr-FR')),
                 textposition: 'outside',
                 cliponaxis: false,
                 hovertemplate: areaKm2 > 0
-                    ? '<b>%{y}</b><br>%{x:.2f} / km2<br>%{customdata[0]} elements recenses<extra></extra>'
-                    : '<b>%{y}</b><br>%{x} elements recenses<extra></extra>',
-                customdata: offerMetrics.map(item => [item.raw.toLocaleString('fr-FR')])
+                    ? '<b>%{y}</b><br>%{x:.2f} ' + (metricsData[0].unit === 'km' ? 'km / km²' : '/ km²') + '<br>%{customdata[0]} %{customdata[1]} recensés<extra></extra>'
+                    : '<b>%{y}</b><br>%{x} %{customdata[1]} recensés<extra></extra>',
+                customdata: metricsData.map(item => [item.raw.toLocaleString('fr-FR'), item.unit])
             }];
 
-            const offerLayout = {
+            const layout = {
                 margin: { t: 6, l: 108, r: 34, b: 28 },
                 paper_bgcolor: 'rgba(0,0,0,0)',
                 plot_bgcolor: 'rgba(0,0,0,0)',
@@ -2350,7 +2357,7 @@ export class UiRenderer {
                     zeroline: false,
                     tickfont: { size: 10, color: 'rgba(255,255,255,0.55)' },
                     title: areaKm2 > 0
-                        ? { text: 'elements / km2', font: { size: 10, color: 'rgba(255,255,255,0.5)' } }
+                        ? { text: metricsData[0].unit === 'km' ? 'km / km²' : 'éléments / km²', font: { size: 10, color: 'rgba(255,255,255,0.5)' } }
                         : undefined
                 },
                 yaxis: {
@@ -2367,45 +2374,88 @@ export class UiRenderer {
                 }
             };
 
-            const offerMaxBtn = document.createElement('button');
-            offerMaxBtn.className = 'maximize-btn';
-            offerMaxBtn.innerHTML = '⤢ Agrandir';
-            offerMaxBtn.title = 'Voir en plein écran';
-            offerMaxBtn.addEventListener('click', () => this._toggleFullScreenChart(offerData, offerLayout));
-            offerHeaderRow.appendChild(offerHeaderGroup);
-            offerHeaderRow.appendChild(offerMaxBtn);
+            const maxBtn = document.createElement('button');
+            maxBtn.className = 'maximize-btn';
+            maxBtn.innerHTML = '⤢ Agrandir';
+            maxBtn.title = 'Voir en plein écran';
+            maxBtn.addEventListener('click', () => this._toggleFullScreenChart(data, layout));
+            
+            headerRow.appendChild(headerGroup);
+            headerRow.appendChild(maxBtn);
 
-            const offerCaption = document.createElement('div');
-            offerCaption.className = 'mini-chart-caption';
-            offerCaption.textContent = areaKm2 > 0
-                ? 'Lecture normalisée pour comparer des zones de tailles différentes.'
-                : 'Comparaison directe des volumes recensés dans la zone active.';
+            section.appendChild(headerRow);
+            section.appendChild(div);
+            containerElement.appendChild(section);
 
-            offerSection.appendChild(offerHeaderRow);
-            offerSection.appendChild(offerDiv);
-            offerSection.appendChild(offerCaption);
-            infraContainer.appendChild(offerSection);
-
-            Plotly.newPlot(offerDiv, offerData, offerLayout, miniConfig);
-
-            offerDiv.on('plotly_click', (data) => {
+            Plotly.newPlot(div, data, layout, miniConfig);
+            
+            div.on('plotly_click', (data) => {
                 if (data.points && data.points.length > 0) {
                     const label = data.points[0].label || data.points[0].y;
-
                     if (label === 'Sentiers piétons' && this.onTreemapItemClick) {
                         this.onTreemapItemClick('SacRoot', 'SacRoot', 'mini');
-                    } else if (label === 'Offre cyclable' && this.onTreemapItemClick) {
+                    } else if (label === 'Pistes cyclables' && this.onTreemapItemClick) {
                         this.onTreemapItemClick('CycleRoot', 'CycleRoot', 'mini');
                     } else if (label === 'Hébergements' && this.onTreemapItemClick) {
                         this.onTreemapItemClick('AccomRoot', 'AccomRoot', 'mini');
-                    } else if (label === 'Accès transport' && this.onInfraFilterClick) {
+                    } else if (label === 'Transports' && this.onInfraFilterClick) {
                         this.onInfraFilterClick('transport');
-                    } else if (label === 'Services visiteurs' && this.onInfraFilterClick) {
+                    } else if (label === 'Services' && this.onInfraFilterClick) {
                         this.onInfraFilterClick('services');
                     }
                 }
             });
-        }
+        };
+
+        // ── Densité linéaire de réseau ──
+        const networkMetrics = [
+            { label: 'Sentiers piétons', raw: pedestrianTrailLength, color: '#34d399', unit: 'km' },
+            { label: 'Pistes cyclables', raw: cyclingTrailLength, color: '#60a5fa', unit: 'km' }
+        ]
+            .filter(item => item.raw > 0)
+            .map(item => ({
+                ...item,
+                metric: areaKm2 > 0 ? (item.raw / areaKm2) : item.raw
+            }))
+            .sort((a, b) => b.metric - a.metric);
+
+        addBarChart('Densité linéaire de réseau', networkMetrics, infraContainer);
+
+        // ── Densité de services ──
+        const serviceCats = [
+            { id: 'amenity',    label: 'Services',     colorHex: '#60a5fa' },
+            { id: 'transport',  label: 'Transports',   colorHex: '#9ca3af' },
+            { id: 'tourism',    label: 'Tourisme',     colorHex: '#fbbf24' },
+            { id: 'sustenance', label: 'Restauration', colorHex: '#f87171' },
+            { id: 'shop',       label: 'Commerces',    colorHex: '#c084fc' },
+            { id: 'natural',    label: 'Nature',       colorHex: '#34d399' },
+            { id: 'craft',      label: 'Artisanat',    colorHex: '#e879f9' },
+            { id: 'historic',   label: 'Histoire',     colorHex: '#d97706' },
+            { id: 'sport',      label: 'Sport',        colorHex: '#14b8a6' }
+        ];
+
+        const catCountsForDensity = {};
+        pois.forEach(p => {
+            if (!catCountsForDensity[p.category]) catCountsForDensity[p.category] = 0;
+            catCountsForDensity[p.category]++;
+        });
+
+        const serviceMetrics = serviceCats
+            .map(sc => ({
+                label: sc.label,
+                raw: catCountsForDensity[sc.id] || 0,
+                color: sc.colorHex,
+                unit: 'POIs'
+            }))
+            .filter(item => item.raw > 0)
+            .map(item => ({
+                ...item,
+                metric: areaKm2 > 0 ? (item.raw / areaKm2) : item.raw
+            }))
+            .sort((a, b) => b.metric - a.metric);
+
+        addBarChart('Densité de services', serviceMetrics, infraContainer);
+
 
         // ── ROMANIA TOURISM CHARTS (INSSE) ─────────────────────────────────
         if (romaniaStats) {
