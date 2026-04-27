@@ -3793,13 +3793,13 @@ export class UiRenderer {
     /**
      * Met à jour le panneau Wikivoyage dans la section Marketing Digital
      * avec les données retournées par l'API Wikivoyage.
-     * @param {{fr: Array, en: Array, totalUnique: number}|null} data
+     * @param {{byLang: Object, allArticles: Array, totalUnique: number}|null} data
      */
     updateWikivoyagePanel(data) {
         const panel = document.getElementById('wikivoyage-panel');
         if (!panel) return;
 
-        if (!data || (data.fr.length === 0 && data.en.length === 0)) {
+        if (!data || data.totalUnique === 0) {
             panel.innerHTML = `
                 <div class="ind-block" style="margin-top:6px;opacity:0.6;">
                     <div class="ind-block__header">
@@ -3812,11 +3812,15 @@ export class UiRenderer {
             return;
         }
 
-        const frCount = data.fr.length;
-        const enCount = data.en.length;
-        const maxCount = Math.max(frCount, enCount, 1);
+        const langsArray = Object.entries(data.byLang)
+            .map(([lang, articles]) => ({ lang, count: articles.length }))
+            .filter(l => l.count > 0)
+            .sort((a, b) => b.count - a.count);
 
-        // Barres de progression FR / EN
+        const topLangs = langsArray.slice(0, 5); // display up to 5 language bars
+        const maxCount = langsArray.length > 0 ? langsArray[0].count : 1;
+
+        // Barres de progression
         const langBar = (label, count, max, color, flag) => {
             const pct = max > 0 ? Math.min((count / max) * 100, 100) : 0;
             return `<div class="ind-row">
@@ -3828,9 +3832,33 @@ export class UiRenderer {
             </div>`;
         };
 
+        const langInfo = {
+            'fr': { name: 'Français', flag: '🇫🇷', color: '#3b82f6' },
+            'en': { name: 'English', flag: '🇬🇧', color: '#f59e0b' },
+            'de': { name: 'Deutsch', flag: '🇩🇪', color: '#10b981' },
+            'it': { name: 'Italiano', flag: '🇮🇹', color: '#ef4444' },
+            'es': { name: 'Español', flag: '🇪🇸', color: '#eab308' },
+            'nl': { name: 'Nederlands', flag: '🇳🇱', color: '#f97316' },
+            'pt': { name: 'Português', flag: '🇵🇹', color: '#8b5cf6' },
+            'ru': { name: 'Русский', flag: '🇷🇺', color: '#06b6d4' },
+            'zh': { name: '中文', flag: '🇨🇳', color: '#ec4899' },
+            'ja': { name: '日本語', flag: '🇯🇵', color: '#f43f5e' },
+            'pl': { name: 'Polski', flag: '🇵🇱', color: '#dc2626' },
+            'sv': { name: 'Svenska', flag: '🇸🇪', color: '#3b82f6' },
+            'vi': { name: 'Tiếng Việt', flag: '🇻🇳', color: '#ef4444' },
+            'ro': { name: 'Română', flag: '🇷🇴', color: '#3b82f6' },
+            'el': { name: 'Ελληνικά', flag: '🇬🇷', color: '#0ea5e9' }
+        };
+
+        const getLangInfo = (code) => langInfo[code] || { name: code.toUpperCase(), flag: '🌐', color: '#94a3b8' };
+
+        const langBarsHtml = topLangs.map(l => {
+            const info = getLangInfo(l.lang);
+            return langBar(info.name, l.count, maxCount, info.color, info.flag);
+        }).join('');
+
         // Liste des articles les plus proches (top 5)
-        const allArticles = [...data.fr.map(a => ({ ...a, lang: 'fr' })), ...data.en.map(a => ({ ...a, lang: 'en' }))]
-            .sort((a, b) => a.dist - b.dist);
+        const allArticles = [...data.allArticles].sort((a, b) => a.dist - b.dist);
 
         // Dédupliquer par titre (garder la version la plus proche)
         const seen = new Set();
@@ -3851,7 +3879,7 @@ export class UiRenderer {
                     <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">Articles les plus proches :</div>
                     ${top5.map(a => {
                 const distKm = (a.dist / 1000).toFixed(1);
-                const flag = a.lang === 'fr' ? '🇫🇷' : '🇬🇧';
+                const flag = getLangInfo(a.lang).flag;
                 const url = `https://${a.lang}.wikivoyage.org/wiki/${encodeURIComponent(a.title)}`;
                 return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:0.8rem;">
                             <span>${flag}</span>
@@ -3868,8 +3896,7 @@ export class UiRenderer {
                     <span class="ind-block__title">🌍 Wikivoyage</span>
                     <span class="ind-block__big">${data.totalUnique} <span class="ind-block__unit">article${data.totalUnique > 1 ? 's' : ''} unique${data.totalUnique > 1 ? 's' : ''}</span></span>
                 </div>
-                ${langBar('Français', frCount, maxCount, '#3b82f6', '🇫🇷')}
-                ${langBar('English', enCount, maxCount, '#f59e0b', '🇬🇧')}
+                ${langBarsHtml}
                 ${articleListHtml}
             </div>`;
     }
@@ -3905,10 +3932,29 @@ export class UiRenderer {
         const maxViews = results[0].views;
         const totalViews = results.reduce((s, d) => s + d.views, 0);
 
+        const langInfo = {
+            'fr': { name: 'Français', flag: '🇫🇷', color: '#3b82f6' },
+            'en': { name: 'English', flag: '🇬🇧', color: '#f59e0b' },
+            'de': { name: 'Deutsch', flag: '🇩🇪', color: '#10b981' },
+            'it': { name: 'Italiano', flag: '🇮🇹', color: '#ef4444' },
+            'es': { name: 'Español', flag: '🇪🇸', color: '#eab308' },
+            'nl': { name: 'Nederlands', flag: '🇳🇱', color: '#f97316' },
+            'pt': { name: 'Português', flag: '🇵🇹', color: '#8b5cf6' },
+            'ru': { name: 'Русский', flag: '🇷🇺', color: '#06b6d4' },
+            'zh': { name: '中文', flag: '🇨🇳', color: '#ec4899' },
+            'ja': { name: '日本語', flag: '🇯🇵', color: '#f43f5e' },
+            'pl': { name: 'Polski', flag: '🇵🇱', color: '#dc2626' },
+            'sv': { name: 'Svenska', flag: '🇸🇪', color: '#3b82f6' },
+            'vi': { name: 'Tiếng Việt', flag: '🇻🇳', color: '#ef4444' },
+            'ro': { name: 'Română', flag: '🇷🇴', color: '#3b82f6' },
+            'el': { name: 'Ελληνικά', flag: '🇬🇷', color: '#0ea5e9' }
+        };
+        const getLangInfo = (code) => langInfo[code] || { name: code.toUpperCase(), flag: '🌐', color: '#94a3b8' };
+
         const rows = results.slice(0, 5).map((item, idx) => {
             const pct = maxViews > 0 ? Math.min((item.views / maxViews) * 100, 100) : 0;
             const formattedViews = item.views.toLocaleString('fr-FR');
-            const flag = item.lang === 'fr' ? '🇫🇷' : '🇬🇧';
+            const flag = getLangInfo(item.lang).flag;
             const url = `https://${item.lang}.wikipedia.org/wiki/${encodeURIComponent(item.articleTitle.replace(/ /g, '_'))}`;
             const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
             return `

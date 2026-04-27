@@ -1676,47 +1676,53 @@ export class ApiService {
      */
     async fetchWikivoyageArticles(lat, lng, radiusMeters = 10000) {
         const radius = Math.min(Math.max(radiusMeters, 10), 10000); // API limit: 10-10000m
+        const langs = ['en', 'fr', 'de', 'it', 'es', 'nl', 'pt', 'ru', 'zh', 'ja', 'pl', 'sv', 'vi', 'ro', 'el', 'uk', 'fa', 'fi', 'ar', 'he', 'eo', 'tr', 'hi', 'bn', 'ps'];
 
         const fetchLang = async (lang) => {
             const url = `https://${lang}.wikivoyage.org/w/api.php?action=query&list=geosearch&gscoord=${lat}|${lng}&gsradius=${radius}&gslimit=500&format=json&origin=*`;
             try {
                 const response = await fetch(url);
-                if (!response.ok) {
-                    console.warn(`Wikivoyage ${lang} API error:`, response.status);
-                    return [];
-                }
+                if (!response.ok) return { lang, articles: [] };
                 const data = await response.json();
                 if (data.query && data.query.geosearch) {
-                    return data.query.geosearch.map(a => ({
-                        title: a.title,
-                        lat: a.lat,
-                        lng: a.lon,
-                        dist: a.dist,
-                        pageid: a.pageid
-                    }));
+                    return {
+                        lang,
+                        articles: data.query.geosearch.map(a => ({
+                            title: a.title,
+                            lat: a.lat,
+                            lng: a.lon,
+                            dist: a.dist,
+                            pageid: a.pageid,
+                            lang: lang
+                        }))
+                    };
                 }
-                return [];
+                return { lang, articles: [] };
             } catch (error) {
-                console.warn(`Wikivoyage ${lang} fetch error:`, error);
-                return [];
+                return { lang, articles: [] };
             }
         };
 
-        const [fr, en] = await Promise.all([
-            fetchLang('fr'),
-            fetchLang('en')
-        ]);
+        const results = await Promise.all(langs.map(l => fetchLang(l)));
+        
+        const byLang = {};
+        const totalUnique = new Set();
+        let allArticles = [];
 
-        // Compter les articles uniques par titre (un même lieu peut avoir un article dans les deux langues)
-        const allTitles = new Set([
-            ...fr.map(a => a.title.toLowerCase()),
-            ...en.map(a => a.title.toLowerCase())
-        ]);
+        results.forEach(res => {
+            if (res.articles.length > 0) {
+                byLang[res.lang] = res.articles;
+                res.articles.forEach(a => {
+                    totalUnique.add(a.title.toLowerCase());
+                    allArticles.push(a);
+                });
+            }
+        });
 
         return {
-            fr,
-            en,
-            totalUnique: allTitles.size
+            byLang,
+            allArticles,
+            totalUnique: totalUnique.size
         };
     }
 
