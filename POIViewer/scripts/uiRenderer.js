@@ -1379,6 +1379,7 @@ export class UiRenderer {
         let totalRooms = 0;
         let websiteCount = 0;
         let socialMediaCount = 0;
+        let digitalPresenceCount = 0;
         let wikivoyageCount = 0;
         // Infrastructures KPIs
         let busStopCount = 0;
@@ -1401,6 +1402,7 @@ export class UiRenderer {
             if (p.digital) {
                 if (p.digital.hasWebsite) websiteCount++;
                 if (p.digital.hasSocialMedia) socialMediaCount++;
+                if (p.digital.hasWebsite || p.digital.hasSocialMedia) digitalPresenceCount++;
                 if (p.digital.hasWikivoyage) wikivoyageCount++;
             }
             // Transport
@@ -1612,7 +1614,7 @@ export class UiRenderer {
             <div class="ind-block">
                 <div class="ind-block__header ind-block__header--clickable" data-digital-filter="all" title="Mettre tous les POIs avec présence numérique en surbrillance">
                     <span class="ind-block__title">Présence numérique</span>
-                    <span class="ind-block__big">${total.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs analysés</span></span>
+                    <span class="ind-block__big">${digitalPresenceCount.toLocaleString('fr-FR')} <span style="font-size:0.8em;opacity:0.8;">/ ${total.toLocaleString('fr-FR')}</span> <span class="ind-block__unit">POIs</span></span>
                 </div>
                 <div class="ind-row ind-row--clickable" data-digital-filter="website" title="Cliquer pour mettre en surbrillance sur la carte">
                     <div class="ind-row__head">
@@ -1627,9 +1629,6 @@ export class UiRenderer {
                         <span class="ind-row__val" style="color:#ec4899;">${typeof socPct === 'number' ? (Number.isInteger(socPct) ? socPct.toLocaleString('fr-FR') : socPct.toFixed(2)) : socPct}%</span>
                     </div>
                     <div class="ind-row__track"><div class="ind-row__fill" style="width:${Math.min(socPct, 100)}%;background:#ec4899;"></div></div>
-                </div>
-                <div class="ind-row__head" style="margin-top:4px;opacity:0.6;">
-                    <span class="ind-row__label">${websiteCount + socialMediaCount} POIs avec au moins 1 présence</span>
                 </div>
             </div>
             <div id="wikivoyage-panel">
