@@ -1142,8 +1142,8 @@ export class ApiService {
                 });
             } catch (error) { console.error(error); return []; }
         } else {
-            // Nominatim OSM pour l'international avec polygones
-            const url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(query)}&country=${encodeURIComponent(this.currentCountryName)}&format=json&polygon_geojson=1&extratags=1&limit=10&accept-language=fr,en`;
+            // Nominatim OSM pour l'international avec polygones + addressdetails pour la hiérarchie
+            const url = `https://nominatim.openstreetmap.org/search?city=${encodeURIComponent(query)}&country=${encodeURIComponent(this.currentCountryName)}&format=json&polygon_geojson=1&extratags=1&addressdetails=1&limit=10&accept-language=fr,en`;
             try {
                 const response = await fetch(url);
                 const data = await response.json();
@@ -1153,6 +1153,7 @@ export class ApiService {
                     const maxLat = parseFloat(bbox[1]);
                     const minLon = parseFloat(bbox[2]);
                     const maxLon = parseFloat(bbox[3]);
+                    const addr = d.address || {};
                     return {
                         name: d.name || d.display_name.split(',')[0],
                         fullName: d.display_name,
@@ -1160,6 +1161,12 @@ export class ApiService {
                         code: d.osm_id,
                         ref: d.osm_id,
                         wikidata: d.extratags ? d.extratags.wikidata : null, // Capture le wikidata
+                        hierarchy: {
+                            country: addr.country || this.currentCountryName || null,
+                            region: addr.state || addr.region || null,
+                            dept: addr.county || addr.state_district || null,
+                            city: d.name || addr.city || addr.town || addr.village || null
+                        },
                         geometry: d.geojson,
                         bounds: [[minLat, minLon], [maxLat, maxLon]],
                         lat: parseFloat(d.lat),

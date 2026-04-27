@@ -1672,7 +1672,16 @@ export class UiRenderer {
         // ── Densité Heatmap ────────────────────────────────────────────────
         let densityHtml = '';
         if (areaKm2 > 0) {
-            const bestTotalBeds = inseeStats ? (inseeStats.hotel_beds + inseeStats.camping_beds + inseeStats.collective_beds) : totalBeds;
+            let bestTotalBeds = totalBeds; // fallback: OSM beds count
+            if (inseeStats) {
+                bestTotalBeds = inseeStats.hotel_beds + inseeStats.camping_beds + inseeStats.collective_beds;
+            } else if (romaniaStats?.data?.annual_capacity?.total) {
+                // Utiliser la dernière année disponible dans les données INSSE Roumanie
+                const years = Object.keys(romaniaStats.data.annual_capacity.total).sort();
+                if (years.length > 0) {
+                    bestTotalBeds = romaniaStats.data.annual_capacity.total[years[years.length - 1]];
+                }
+            }
             const touristCapacity = (population && population > 0) ? (bestTotalBeds / population) * 100 : null;
 
             const pedDensity = (pedestrianTrailLength / areaKm2);
