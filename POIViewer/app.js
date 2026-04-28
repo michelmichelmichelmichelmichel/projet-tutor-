@@ -585,6 +585,15 @@ class App {
                 const trainStations = pois.filter(isTrainStation);
                 const airports = pois.filter(isAirport);
 
+                // Services filters
+                const isParking = (p) => p.type === 'parking' || p.type === 'parking_space' || p.type === 'bicycle_parking' || (p.tags && p.tags.amenity === 'parking');
+                const isToilets = (p) => p.type === 'toilets' || (p.tags && p.tags.amenity === 'toilets');
+                const isCharging = (p) => p.type === 'charging_station' || (p.tags && p.tags.amenity === 'charging_station');
+
+                const parkings = pois.filter(isParking);
+                const toilets = pois.filter(isToilets);
+                const chargingStations = pois.filter(isCharging);
+
                 // Helper pour récupérer les coordonnées réelles (gère les points ET les polygones)
                 const getCoords = (p) => {
                     const lat = p.lat || (p.center && p.center.lat);
@@ -677,6 +686,29 @@ class App {
                             }
                         });
                     }
+
+                    // Nearest services (parking, toilets, charging)
+                    const serviceTypes = [
+                        { key: 'Parking', filter: isParking, candidates: parkings, emoji: '🅿️' },
+                        { key: 'Toilets', filter: isToilets, candidates: toilets, emoji: '🚻' },
+                        { key: 'Charging', filter: isCharging, candidates: chargingStations, emoji: '⚡' }
+                    ];
+                    serviceTypes.forEach(({ key, filter, candidates }) => {
+                        if (!filter(poi) && candidates.length > 0) {
+                            let minD = Infinity, nearest = null, nearestCoords = null;
+                            candidates.forEach(c => {
+                                const coords = getCoords(c);
+                                if (!coords) return;
+                                const d = poiLatLng.distanceTo(L.latLng(coords.lat, coords.lng));
+                                if (d < minD) { minD = d; nearest = c; nearestCoords = coords; }
+                            });
+                            if (minD !== Infinity && nearest) {
+                                poi[`nearestService${key}Dist`] = minD;
+                                poi[`nearestService${key}Name`] = nearest.name || nearest.tags?.name || key;
+                                poi[`nearestService${key}Coords`] = [nearestCoords.lat, nearestCoords.lng];
+                            }
+                        }
+                    });
                 });
 
                 this.currentNetworks = networks;
@@ -1737,6 +1769,17 @@ class App {
         }
         if (activeFilters.includes('accom_gite') && poi.nearestAccomGiteCoords) {
             lines.push({ from, to: poi.nearestAccomGiteCoords, type: 'accom_gite', name: poi.nearestAccomGiteName || "Maison d'hôtes" });
+        }
+
+        // ── Services ──
+        if (activeFilters.includes('service_parking') && poi.nearestServiceParkingCoords) {
+            lines.push({ from, to: poi.nearestServiceParkingCoords, type: 'service_parking', name: poi.nearestServiceParkingName || 'Parking' });
+        }
+        if (activeFilters.includes('service_toilets') && poi.nearestServiceToiletsCoords) {
+            lines.push({ from, to: poi.nearestServiceToiletsCoords, type: 'service_toilets', name: poi.nearestServiceToiletsName || 'Toilettes' });
+        }
+        if (activeFilters.includes('service_charging') && poi.nearestServiceChargingCoords) {
+            lines.push({ from, to: poi.nearestServiceChargingCoords, type: 'service_charging', name: poi.nearestServiceChargingName || 'Borne de recharge' });
         }
 
         if (lines.length > 0) {

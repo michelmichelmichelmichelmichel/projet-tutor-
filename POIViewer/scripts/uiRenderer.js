@@ -3471,6 +3471,29 @@ export class UiRenderer {
                             </div>
                             ${this._buildAccessRows(poi, color)}
                         </div>
+
+                        <!-- Services filter toggles -->
+                        <div class="poi-transport-filter">
+                            <div class="poi-transport-filter__title">🔧 Services — le plus proche :</div>
+                            <div class="poi-transport-filter__toggles">
+                                <label class="poi-transport-toggle ${poi.nearestServiceParkingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="service_parking" class="poi-transit-cb" ${poi.nearestServiceParkingDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🅿️</span>
+                                    <span class="poi-transport-toggle__label">Parking</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestServiceToiletsDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="service_toilets" class="poi-transit-cb" ${poi.nearestServiceToiletsDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🚻</span>
+                                    <span class="poi-transport-toggle__label">Toilettes</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestServiceChargingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="service_charging" class="poi-transit-cb" ${poi.nearestServiceChargingDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">⚡</span>
+                                    <span class="poi-transport-toggle__label">Recharge</span>
+                                </label>
+                            </div>
+                            ${this._buildServiceRows(poi, color)}
+                        </div>
                     </div>
                 </div>
 
@@ -4096,6 +4119,27 @@ export class UiRenderer {
         if (poi.nearestCyclingDist !== undefined) {
             rows.push(this._infoRow('🚴 Piste cyclable',
                 `<span style="color:${color};font-weight:600">${poi.nearestCyclingName || 'Piste cyclable'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestCyclingDist)}</span>`));
+        }
+
+        return rows.length > 0 ? `<div class="detail-info" style="padding:4px 0;">${rows.join('')}</div>` : '';
+    }
+
+    /** Build nearest services distance rows (parking, toilets, charging) */
+    _buildServiceRows(poi, color) {
+        const rows = [];
+        const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+
+        if (poi.nearestServiceParkingDist !== undefined) {
+            rows.push(this._infoRow('🅿️ Parking le plus proche',
+                `<span style="color:${color};font-weight:600">${poi.nearestServiceParkingName || 'Parking'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestServiceParkingDist)}</span>`));
+        }
+        if (poi.nearestServiceToiletsDist !== undefined) {
+            rows.push(this._infoRow('🚻 Toilettes les plus proches',
+                `<span style="color:${color};font-weight:600">${poi.nearestServiceToiletsName || 'Toilettes'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestServiceToiletsDist)}</span>`));
+        }
+        if (poi.nearestServiceChargingDist !== undefined) {
+            rows.push(this._infoRow('⚡ Borne de recharge la plus proche',
+                `<span style="color:${color};font-weight:600">${poi.nearestServiceChargingName || 'Borne de recharge'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestServiceChargingDist)}</span>`));
         }
 
         return rows.length > 0 ? `<div class="detail-info" style="padding:4px 0;">${rows.join('')}</div>` : '';
