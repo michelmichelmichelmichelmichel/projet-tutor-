@@ -53,9 +53,11 @@ class App {
             });
         };
 
-        // Load INSEE Data on app start
+        // Load external data on app start
         this.apiService.loadInseeData();
         this.apiService.loadOvertourismData();
+        this.apiService.loadWhcData();
+        this.apiService.loadNatura2000Data();
 
         // Bind Force Refresh Button (zone-specific)
         const forceRefreshBtn = document.getElementById('force-refresh-btn');
@@ -131,7 +133,7 @@ class App {
             this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats());
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0);
                 if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
@@ -216,7 +218,7 @@ class App {
             this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats());
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0);
                 if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
@@ -542,9 +544,28 @@ class App {
                 areaM2 = L.GeometryUtil.geodesicArea(latLngs);
             }
             this.currentAreaKm2 = areaM2 / 1e6;
+            
+            // Calcul du nombre de sites du Patrimoine Mondial dans la zone
+            this.currentWhcCount = 0;
+            this.currentNaturaCount = 0;
+            if (layer && layer.getBounds) {
+                const bounds = layer.getBounds();
+                if (this.apiService.whcData) {
+                    this.currentWhcCount = this.apiService.whcData.filter(site => 
+                        bounds.contains(L.latLng(site.lat, site.lon))
+                    ).length;
+                }
+                if (this.apiService.natura2000Data) {
+                    this.currentNaturaCount = this.apiService.natura2000Data.filter(site => 
+                        bounds.contains(L.latLng(site.lat, site.lon))
+                    ).length;
+                }
+            }
         } catch (e) {
             console.warn("Calcul de surface échoué:", e);
             this.currentAreaKm2 = 0;
+            this.currentWhcCount = 0;
+            this.currentNaturaCount = 0;
         }
 
         if (latLngs) {
@@ -782,7 +803,7 @@ class App {
                 }
 
                 // Update UI (Macro Stats) - Affiche les POIs, chemins, et soit la démo en cache, soit le spinner
-                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats());
+                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0);
 
                 // Construire et afficher les heatmaps
                 this.updateHeatmaps();
@@ -862,7 +883,7 @@ class App {
                                         </div>
                                     `;
 
-                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null, currentZone.population || null, this._getRomaniaStats());
+                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null, currentZone.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0);
                                     if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                                     if (this.currentPageviewsData !== undefined) this.uiRenderer.updatePageviewsPanel(this.currentPageviewsData);
                                     this.uiRenderer.renderSparkline();

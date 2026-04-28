@@ -175,6 +175,35 @@ export class ApiService {
     }
 
     /**
+     * Charge les sites du patrimoine mondial de l'UNESCO
+     */
+    async loadWhcData() {
+        if (this.whcData) return this.whcData;
+        try {
+            const response = await fetch('./data/whc-sites.json');
+            if (response.ok) {
+                this.whcData = await response.json();
+            }
+        } catch (error) {
+            console.error("Error loading WHC data:", error);
+        }
+        return this.whcData;
+    }
+
+    async loadNatura2000Data() {
+        if (this.natura2000Data) return this.natura2000Data;
+        try {
+            const response = await fetch('./data/natura2000.json');
+            if (response.ok) {
+                this.natura2000Data = await response.json();
+            }
+        } catch (error) {
+            console.error("Error loading Natura 2000 data:", error);
+        }
+        return this.natura2000Data;
+    }
+
+    /**
      * Récupère les stats INSEE pour une ou plusieurs zones (si on passe un tableau de codes INSEE)
      * Actuellement, on suppose un seul code INSEE (ex: "06088" pour Nice)
      */

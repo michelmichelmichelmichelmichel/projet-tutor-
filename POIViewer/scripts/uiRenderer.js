@@ -1366,7 +1366,7 @@ export class UiRenderer {
             });
         }
     }
-    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null, population = null, romaniaStats = null) {
+    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null, population = null, romaniaStats = null, whcCount = 0, naturaCount = 0) {
         const total = pois.length;
 
         // ── Calcul des KPI hébergement & sentiers (toujours, même si pois filtrés = 0) ──
@@ -1829,7 +1829,9 @@ export class UiRenderer {
         if (total === 0) {
             const totalPoisHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">NB POIs</span><span class="ind-block__big">${totalRaw.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs trouvés</span></span></div></div>`;
             const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
-            const section1Html = totalPoisHtml + areaHtml + demoHtml + densityHtml;
+            const whcHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Number of World Heritage Sites in the area:</span><span class="ind-block__big" style="color:var(--color-primary);">${whcCount}</span></div></div>`;
+            const naturaHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Number of Natura 2000 Sites in the area:</span><span class="ind-block__big" style="color:var(--color-primary);">${naturaCount}</span></div></div>`;
+            const section1Html = totalPoisHtml + areaHtml + whcHtml + naturaHtml + demoHtml + densityHtml;
             const infraKpisHtml = buildInfraKpis() + trailsHtml + '<div id="section-infra-content"></div>';
             const countLabel = totalRaw > 0
                 ? `${totalRaw.toLocaleString('fr-FR')} POIs trouvés`
@@ -1962,7 +1964,9 @@ export class UiRenderer {
             }
         }
 
-        const section1Html = totalPoisHtml + areaHtml + localisationHtml + demoHtml + densityHtml;
+        const whcHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Number of World Heritage Sites in the area:</span><span class="ind-block__big" style="color:var(--color-primary);">${whcCount}</span></div></div>`;
+        const naturaHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Number of Natura 2000 Sites in the area:</span><span class="ind-block__big" style="color:var(--color-primary);">${naturaCount}</span></div></div>`;
+        const section1Html = totalPoisHtml + areaHtml + whcHtml + naturaHtml + localisationHtml + demoHtml + densityHtml;
         const infraKpisHtml = buildInfraKpis() + trailsHtml + `<div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
             buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
