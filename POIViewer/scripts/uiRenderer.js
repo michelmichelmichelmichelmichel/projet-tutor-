@@ -3535,14 +3535,6 @@ export class UiRenderer {
                     </div>
                 </div>
 
-                <!-- OSM Metadata -->
-                ${poi.osmMetadata && poi.osmMetadata.timestamp ? `
-                    <div class="osm-meta-row">
-                        <span class="osm-meta-icon">🕒</span>
-                        <span>Dernière modification OSM : <span class="osm-meta-value">${this._formatOsmDate(poi.osmMetadata.timestamp)}</span></span>
-                    </div>
-                ` : ''}
-
                 <!-- Source Links -->
                 <div style="margin-top:16px;text-align:center;display:flex;justify-content:center;gap:15px;">
                     <a href="https://www.openstreetmap.org/node/${poi.id}" target="_blank"
@@ -4023,6 +4015,10 @@ export class UiRenderer {
         if (poi.lat != null && poi.lng != null) {
             rows.push(this._infoRow('Coordonnées',
                 `${poi.lat.toFixed(5)}, ${poi.lng.toFixed(5)}`));
+        }
+
+        if (poi.osmMetadata && poi.osmMetadata.timestamp) {
+            rows.push(this._infoRow('Dernière modification OSM', this._formatOsmDate(poi.osmMetadata.timestamp)));
         }
 
         return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée disponible.</p>';
