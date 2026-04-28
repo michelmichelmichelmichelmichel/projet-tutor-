@@ -4021,6 +4021,33 @@ export class UiRenderer {
             rows.push(this._infoRow('Dernière modification OSM', this._formatOsmDate(poi.osmMetadata.timestamp)));
         }
 
+        // ── UNESCO & Natura 2000 indicators ──
+        const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+
+        if (poi.isInWhcSite !== undefined) {
+            rows.push(this._infoRow('🏛️ World Heritage Site',
+                poi.isInWhcSite
+                    ? `<span style="color:#22c55e;font-weight:600;">✔ Oui</span> <span style="color:var(--color-text-muted);font-size:0.8em;">(${poi.nearestWhcName})</span>`
+                    : `<span style="color:#ef4444;font-weight:600;">✘ Non</span>`));
+        }
+
+        if (poi.nearestWhcDist !== undefined) {
+            rows.push(this._infoRow('🏛️ Site UNESCO le plus proche',
+                `<span style="color:${color};font-weight:600;">${poi.nearestWhcName}</span><br><span style="color:var(--color-text-muted);">${formatDist(poi.nearestWhcDist)}</span>`));
+        }
+
+        if (poi.isInNaturaSite !== undefined) {
+            rows.push(this._infoRow('🌿 Natura 2000',
+                poi.isInNaturaSite
+                    ? `<span style="color:#22c55e;font-weight:600;">✔ Oui</span> <span style="color:var(--color-text-muted);font-size:0.8em;">(${poi.nearestNaturaName})</span>`
+                    : `<span style="color:#ef4444;font-weight:600;">✘ Non</span>`));
+        }
+
+        if (poi.nearestNaturaDist !== undefined) {
+            rows.push(this._infoRow('🌿 Site Natura 2000 le plus proche',
+                `<span style="color:${color};font-weight:600;">${poi.nearestNaturaName}</span><br><span style="color:var(--color-text-muted);">${formatDist(poi.nearestNaturaDist)}</span>`));
+        }
+
         return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée disponible.</p>';
     }
 

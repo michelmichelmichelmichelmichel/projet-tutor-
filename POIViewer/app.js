@@ -770,6 +770,43 @@ class App {
                     }
                 });
 
+                // ── Nearest UNESCO World Heritage Site & Natura 2000 per POI ──
+                const whcSites = this.apiService.whcData || [];
+                const naturaSites = this.apiService.natura2000Data || [];
+
+                pois.forEach(poi => {
+                    if (poi.lat == null || poi.lng == null) return;
+                    const poiLL = L.latLng(poi.lat, poi.lng);
+
+                    // UNESCO
+                    if (whcSites.length > 0) {
+                        let minD = Infinity, nearestName = '';
+                        whcSites.forEach(site => {
+                            const d = poiLL.distanceTo(L.latLng(site.lat, site.lon));
+                            if (d < minD) { minD = d; nearestName = site.name; }
+                        });
+                        if (minD !== Infinity) {
+                            poi.nearestWhcDist = minD;
+                            poi.nearestWhcName = nearestName;
+                            poi.isInWhcSite = minD <= 1000; // within 1 km
+                        }
+                    }
+
+                    // Natura 2000
+                    if (naturaSites.length > 0) {
+                        let minD = Infinity, nearestName = '';
+                        naturaSites.forEach(site => {
+                            const d = poiLL.distanceTo(L.latLng(site.lat, site.lon));
+                            if (d < minD) { minD = d; nearestName = site.name; }
+                        });
+                        if (minD !== Infinity) {
+                            poi.nearestNaturaDist = minD;
+                            poi.nearestNaturaName = nearestName;
+                            poi.isInNaturaSite = minD <= 1000; // within 1 km
+                        }
+                    }
+                });
+
                 // Render Networks (Affiche les tracés immédiatement)
                 this.renderNetworks(networks);
 
