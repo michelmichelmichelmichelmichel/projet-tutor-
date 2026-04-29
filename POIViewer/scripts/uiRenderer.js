@@ -3277,11 +3277,14 @@ export class UiRenderer {
 
         // ── 4. Données digitales (/100) ────────────────────────────────────────
         // Website seul = déjà bien (55 pts)
-        // Website (40), Wikipedia (25), Social Media (15), Wikivoyage (10), Languages (10)
+        // Website (30), Wikipedia (20), Photos (20), Social Media (10), Wikivoyage (10), Languages (10)
         let digital = 0;
-        if (t.website || t['contact:website'] || t.url)         digital += 40;
-        if (t.wikipedia || t.wikidata)                           digital += 25;
-        if (d.hasSocialMedia)                                    digital += 15;
+        const hasPhotos = t.image || t.wikimedia_commons || t.mapillary || d.hasPhotos;
+        
+        if (t.website || t['contact:website'] || t.url)         digital += 30;
+        if (t.wikipedia || t.wikidata)                           digital += 20;
+        if (hasPhotos)                                           digital += 20;
+        if (d.hasSocialMedia)                                    digital += 10;
         if (d.hasWikivoyage || t.wikivoyage)                     digital += 10;
         if (d.wikidataLanguagesCount > 0)                        digital += 10;
 
@@ -3707,6 +3710,9 @@ export class UiRenderer {
                         if (wikidataInfo.wikidataHasWikivoyage) {
                             poi.digital.hasWikivoyage = true;
                         }
+                        if (wikidataInfo.image) {
+                            poi.digital.hasPhotos = true;
+                        }
                     } else {
                         poi.digital.wikidataLanguagesCount = 0;
                     }
@@ -3833,6 +3839,9 @@ export class UiRenderer {
         } else {
             rows.push(this._infoRow('Wikipedia', noLabel));
         }
+
+        const hasPhotos = t.image || t.wikimedia_commons || t.mapillary || d.hasPhotos;
+        rows.push(this._infoRow('Photos', hasPhotos ? yesLabel : noLabel));
 
         rows.push(this._infoRow('Wikivoyage', d.hasWikivoyage ? yesLabel : noLabel));
 

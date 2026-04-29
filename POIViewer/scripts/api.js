@@ -633,6 +633,7 @@ export class ApiService {
                         );
 
                         const hasWikivoyage = !!el.tags.wikivoyage;
+                        const hasPhotos = !!(el.tags.image || el.tags.wikimedia_commons || el.tags.mapillary);
 
                         pois.push({
                             id: el.id,
@@ -652,6 +653,7 @@ export class ApiService {
                                 hasWebsite,
                                 hasSocialMedia,
                                 hasWikivoyage,
+                                hasPhotos,
                                 wikidataLanguagesCount: null, // Sera rempli plus tard si fetchWikidata est appelé
                                 wikidataHasWikivoyage: false
                             }
@@ -722,6 +724,7 @@ export class ApiService {
                                     hasWebsite,
                                     hasSocialMedia,
                                     hasWikivoyage,
+                                    hasPhotos: !!(el.tags.image || el.tags.wikimedia_commons || el.tags.mapillary),
                                     wikidataLanguagesCount: null,
                                     wikidataHasWikivoyage: false
                                 }
