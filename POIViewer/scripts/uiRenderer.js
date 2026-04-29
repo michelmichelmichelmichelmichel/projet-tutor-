@@ -3801,7 +3801,26 @@ export class UiRenderer {
         } else if (d.wikidataLanguagesCount === 0) {
             langLabel = noLabel;
         } else {
-            langLabel = `<span style="color:${color};font-weight:bold;">${d.wikidataLanguagesCount} langue(s)</span>`;
+            const wikidataId = poi.tags.wikidata;
+            const wikipediaTitle = poi.tags.wikipedia;
+            let link = null;
+
+            if (wikidataId) {
+                link = `https://www.wikidata.org/wiki/${wikidataId}#sitelinks-wikipedia`;
+            } else if (wikipediaTitle) {
+                const parts = wikipediaTitle.split(':');
+                const lang = parts.length > 1 ? parts[0] : 'fr';
+                const title = parts.length > 1 ? parts[1] : parts[0];
+                link = `https://${lang}.wikipedia.org/wiki/${encodeURIComponent(title.replace(/ /g, '_'))}`;
+            }
+
+            if (link) {
+                langLabel = `<a href="${link}" target="_blank" rel="noopener" style="color:${color}; font-weight:bold; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="Voir les sources multilingues">
+                    ${d.wikidataLanguagesCount} langue(s) ↗
+                </a>`;
+            } else {
+                langLabel = `<span style="color:${color};font-weight:bold;">${d.wikidataLanguagesCount} langue(s)</span>`;
+            }
         }
 
         rows.push(this._infoRow('Langues', langLabel));

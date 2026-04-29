@@ -1314,9 +1314,13 @@ export class ApiService {
 
             if (entity.sitelinks) {
                 const slKeys = Object.keys(entity.sitelinks);
-                // Compter le nombre de pages Wikipedia (clés terminant par 'wiki')
-                wikidataLanguagesCount = slKeys.filter(k => k.endsWith('wiki')).length;
-                // Vérifier si une page Wikivoyage existe (clés terminant par 'wikivoyage')
+                // Compter uniquement les pages Wikipédia (exclure Commons, Meta, etc.)
+                wikidataLanguagesCount = slKeys.filter(k => 
+                    k.endsWith('wiki') && 
+                    !['commonswiki', 'metawiki', 'specieswiki', 'mediawiki', 'sourceswiki', 'wikidatawiki'].includes(k)
+                ).length;
+                
+                // Vérifier si une page Wikivoyage existe
                 wikidataHasWikivoyage = slKeys.some(k => k.endsWith('wikivoyage'));
             }
 
