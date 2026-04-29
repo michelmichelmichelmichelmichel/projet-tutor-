@@ -3384,7 +3384,7 @@ export class UiRenderer {
                             <span class="poi-score-row__pct" style="color:${c};">${score}%</span>
                         </div>`;
                     };
-                    return `<div class="poi-scores-widget">
+                    return `<div class="poi-scores-widget" id="poi-scores-widget">
                         <div class="poi-scores-widget__title">
                             📊 Complétude de la fiche
                             <span class="poi-scores-widget__global" style="color:${col(s.global)};">${s.global}%</span>
@@ -3712,6 +3712,8 @@ export class UiRenderer {
                     if (digitalBlock) {
                         digitalBlock.innerHTML = this._buildDigitalRows(poi, color);
                     }
+                    // Rafraîchir le widget de score de complétude
+                    this._refreshScoresWidget(poi);
                 }
             }).catch(err => {
                 console.warn('POI enrichment error:', err);
@@ -3726,6 +3728,39 @@ export class UiRenderer {
     }
 
     // ── Private helpers ───────────────────────────────────────────────────────
+
+    /**
+     * Recalcule et met à jour le widget de complétude après enrichissement async.
+     */
+    _refreshScoresWidget(poi) {
+        const widget = document.getElementById('poi-scores-widget');
+        if (!widget) return;
+
+        const s = this._computeCompletenessBreakdown(poi);
+        const col = (score) => score >= 60 ? '#34d399' : score >= 35 ? '#f59e0b' : '#ef4444';
+
+        const bar = (label, score) => {
+            const c = col(score);
+            return `<div class="poi-score-row">
+                <span class="poi-score-row__label">${label}</span>
+                <div class="poi-score-row__track">
+                    <div class="poi-score-row__fill" style="width:${score}%;background:${c};"></div>
+                </div>
+                <span class="poi-score-row__pct" style="color:${c};">${score}%</span>
+            </div>`;
+        };
+
+        widget.innerHTML = `
+            <div class="poi-scores-widget__title">
+                📊 Complétude de la fiche
+                <span class="poi-scores-widget__global" style="color:${col(s.global)};">${s.global}%</span>
+            </div>
+            ${bar('Infos générales', s.general)}
+            ${bar('Infrastructures', s.infra)}
+            ${bar('Tourisme', s.tourisme)}
+            ${bar('Données digitales', s.digital)}
+        `;
+    }
 
     _buildDigitalRows(poi, color) {
         const d = poi.digital || {};
