@@ -3277,9 +3277,11 @@ export class UiRenderer {
 
         // ── 4. Données digitales (/100) ────────────────────────────────────────
         // Website seul = déjà bien (55 pts)
+        // Website (40), Wikipedia (25), Social Media (15), Wikivoyage (10), Languages (10)
         let digital = 0;
-        if (t.website || t['contact:website'] || t.url)         digital += 55;
-        if (d.hasSocialMedia)                                    digital += 25;
+        if (t.website || t['contact:website'] || t.url)         digital += 40;
+        if (t.wikipedia || t.wikidata)                           digital += 25;
+        if (d.hasSocialMedia)                                    digital += 15;
         if (d.hasWikivoyage || t.wikivoyage)                     digital += 10;
         if (d.wikidataLanguagesCount > 0)                        digital += 10;
 
@@ -3823,6 +3825,14 @@ export class UiRenderer {
             rows.push(this._infoRow('Réseaux Sociaux', d.hasSocialMedia ? yesLabel : noLabel));
         }
         // --- FIN DES MODIFICATIONS ---
+
+        // --- MODIFICATIONS : Wikipedia ---
+        const wikipediaUrl = this._getWikipediaUrl(t);
+        if (wikipediaUrl) {
+            rows.push(this._infoRow('Wikipedia', `<a href="${wikipediaUrl}" target="_blank" rel="noopener" style="color:${color}; font-weight:bold; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Page Wikipédia ↗</a>`));
+        } else {
+            rows.push(this._infoRow('Wikipedia', noLabel));
+        }
 
         rows.push(this._infoRow('Wikivoyage', d.hasWikivoyage ? yesLabel : noLabel));
 
