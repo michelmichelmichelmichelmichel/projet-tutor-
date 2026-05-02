@@ -1578,10 +1578,6 @@ export class UiRenderer {
                         <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="caravan" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🚚</span><span class="accom-detail-label">Aires CC</span></div>
                         <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span></div>
                     </div>
-
-                    <div class="ind-block__footer" style="font-size:0.65rem;opacity:0.55;margin-top:4px;">
-                        Données OpenStreetMap — INSEE non disponible pour cette zone
-                    </div>
                 </div>`;
         }
 
@@ -2647,7 +2643,12 @@ export class UiRenderer {
                 'Hotels': '#818cf8', 'Touristic boarding houses': '#f472b6',
                 'Agroturistic boarding houses': '#34d399', 'Hostels': '#fbbf24',
                 'Motels': '#fb923c', 'Touristic villas': '#a78bfa',
-                'Touristic chalets': '#22d3ee', 'Campings': '#4ade80'
+                'Touristic chalets': '#22d3ee', 'Campings': '#4ade80',
+                'Apartments and rooms for rent': '#e879f9', 'Bungalows': '#f87171',
+                'Holiday villages': '#38bdf8', 'Houselet type unit': '#facc15',
+                'Inns': '#fb7185', 'School and pre-school camps': '#a3e635',
+                'Ships accommodation spaces': '#67e8f9', 'Touristic halting places': '#c084fc',
+                'Apartament hotels': '#fda4af'
             };
 
             // Collect all establishment types that have data
@@ -2660,23 +2661,22 @@ export class UiRenderer {
                 });
             });
 
-            // Sum totals to find top 5
+            // Sort all types by total arrivals (descending)
             const typeTotals = Object.entries(typeArrivals).map(([type, vals]) => ({
                 type,
                 total: Object.values(vals).reduce((a, b) => a + b, 0)
             })).sort((a, b) => b.total - a.total);
 
-            const top5Types = typeTotals.slice(0, 5).map(t => t.type);
-            const othersTotal = typeTotals.slice(5).reduce((sum, t) => sum + t.total, 0);
+            const allTypes = typeTotals.filter(t => t.total > 0).map(t => t.type);
 
-            const { section, chartDiv, maxBtn } = createChartSection('Arrivées par type (TUR104H)', `${typeTotals.length} types`, '240px');
+            const { section, chartDiv, maxBtn } = createChartSection('Arrivées par type (TUR104H)', `${allTypes.length} types`, '300px');
 
-            const traces = top5Types.map((type, i) => ({
+            const traces = allTypes.map((type, i) => ({
                 x: xLabels,
                 y: months.map(m => typeArrivals[type]?.[m] || 0),
                 type: 'scatter', mode: 'lines',
                 name: type,
-                line: { color: typeColors[type] || `hsl(${i * 55 + 200}, 70%, 65%)`, width: 2 },
+                line: { color: typeColors[type] || `hsl(${i * 21}, 70%, 65%)`, width: 2 },
                 hovertemplate: `<b>${type}</b><br>%{x}: %{y:,.0f} arrivées<extra></extra>`
             }));
 
@@ -2736,20 +2736,25 @@ export class UiRenderer {
             const years = Object.keys(annualCap.total || {}).sort();
             const byType = annualCap.by_type || {};
 
-            // Get top 5 types by latest year
+            // All types sorted by latest year value (descending)
             const typeYearTotals = Object.entries(byType).map(([type, yearVals]) => ({
                 type,
                 latest: yearVals[years[years.length - 1]] || 0,
                 data: yearVals
             })).sort((a, b) => b.latest - a.latest);
 
-            const topTypes = typeYearTotals.slice(0, 5);
-            const typeBarColors = ['#818cf8', '#f472b6', '#34d399', '#fbbf24', '#fb923c'];
+            const allCapTypes = typeYearTotals.filter(t => t.latest > 0);
+            const typeBarColors = [
+                '#818cf8', '#f472b6', '#34d399', '#fbbf24', '#fb923c',
+                '#a78bfa', '#22d3ee', '#4ade80', '#e879f9', '#f87171',
+                '#38bdf8', '#facc15', '#fb7185', '#a3e635', '#67e8f9',
+                '#c084fc', '#fda4af'
+            ];
 
-            if (years.length > 0 && topTypes.length > 0) {
-                const { section, chartDiv, maxBtn } = createChartSection('Capacité annuelle par type (TUR102C)', `${years[0]}–${years[years.length - 1]}`, '220px');
+            if (years.length > 0 && allCapTypes.length > 0) {
+                const { section, chartDiv, maxBtn } = createChartSection('Capacité annuelle par type (TUR102C)', `${years[0]}–${years[years.length - 1]}`, '280px');
 
-                const traces = topTypes.map((t, i) => ({
+                const traces = allCapTypes.map((t, i) => ({
                     x: years,
                     y: years.map(yr => t.data[yr] || 0),
                     type: 'bar',
