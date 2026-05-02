@@ -1605,7 +1605,40 @@ export class UiRenderer {
                     </div>
                 </div>
             </div>`;
-        const section3Html = accommodationHtml + `<div id="section-tourisme-content"></div>` + `<div id="romania-tourism-section"></div>`;
+        // ── Accommodation Intensity : beds / habitants (INSEE / INSSE / OSM) ──
+        let accomIntensityHtml = '';
+        if (population && population > 0) {
+            let bestBeds = totalBeds; // fallback OSM
+            let bedSource = 'OSM';
+            if (inseeStats) {
+                bestBeds = inseeStats.hotel_beds + inseeStats.camping_beds + inseeStats.collective_beds;
+                bedSource = 'INSEE';
+            } else if (romaniaStats?.data?.annual_capacity?.total) {
+                const years = Object.keys(romaniaStats.data.annual_capacity.total).sort();
+                if (years.length > 0) {
+                    bestBeds = romaniaStats.data.annual_capacity.total[years[years.length - 1]];
+                    bedSource = 'INSSE';
+                }
+            }
+            const accomIntensity = bestBeds / population;
+            let accomRating = '';
+            if (accomIntensity < 0.05) accomRating = 'Faible';
+            else if (accomIntensity < 0.15) accomRating = 'Modérée';
+            else if (accomIntensity < 0.5) accomRating = 'Élevée';
+            else accomRating = 'Très élevée';
+
+            accomIntensityHtml = `
+                <div class="kpi-card kpi-card--col kpi-card--amber" style="margin-top:8px;">
+                    <div class="kpi-label">Accommodation Intensity (${bedSource})</div>
+                    <div style="display:flex;align-items:baseline;gap:6px;">
+                        <span class="kpi-value" style="color:#fb923c;">${accomIntensity.toFixed(3)}</span>
+                        <span class="kpi-sub">lits / hab.</span>
+                    </div>
+                    <div class="kpi-sub" style="margin-top:2px;">Intensité : <b>${accomRating}</b> · ${bestBeds.toLocaleString('fr-FR')} lits / ${population.toLocaleString('fr-FR')} hab.</div>
+                </div>`;
+        }
+
+        const section3Html = accommodationHtml + accomIntensityHtml + `<div id="section-tourisme-content"></div>` + `<div id="romania-tourism-section"></div>`;
 
         // ── SECTION 4 : Marketing digital ─────────────────────────────────
         const webPct = total > 0 ? (websiteCount / total * 100) : 0;
@@ -4813,10 +4846,20 @@ export class UiRenderer {
             addRow(D, 'Densité sentiers piétons', (data.pedestrianTrailLength / data.areaKm2).toFixed(2), 'km / km²');
             addRow(D, 'Densité pistes cyclables', (data.cyclingTrailLength / data.areaKm2).toFixed(2), 'km / km²');
             if (data.population && data.population > 0) {
-                const bestBeds = data.inseeStats
-                    ? (data.inseeStats.hotel_beds + data.inseeStats.camping_beds + data.inseeStats.collective_beds)
-                    : data.totalBeds;
+                let bestBeds = data.totalBeds; // fallback OSM
+                let bedSource = 'OSM';
+                if (data.inseeStats) {
+                    bestBeds = data.inseeStats.hotel_beds + data.inseeStats.camping_beds + data.inseeStats.collective_beds;
+                    bedSource = 'INSEE';
+                } else if (data.romaniaStats?.data?.annual_capacity?.total) {
+                    const years = Object.keys(data.romaniaStats.data.annual_capacity.total).sort();
+                    if (years.length > 0) {
+                        bestBeds = data.romaniaStats.data.annual_capacity.total[years[years.length - 1]];
+                        bedSource = 'INSSE';
+                    }
+                }
                 addRow(D, 'Capacité d\'accueil', ((bestBeds / data.population) * 100).toFixed(1), 'lits / 100 hab.');
+                addRow(D, `Accommodation Intensity (${bedSource})`, (bestBeds / data.population).toFixed(4), 'lits / hab.');
             }
         }
 
