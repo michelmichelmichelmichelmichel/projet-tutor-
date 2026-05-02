@@ -3755,6 +3755,24 @@ export class UiRenderer {
                             ${this._buildAccomDistRows(poi, color)}
                         </div>
 
+                        <!-- Environnement filter toggles -->
+                        <div class="poi-transport-filter">
+                            <div class="poi-transport-filter__title">🌍 Environnement — le plus proche :</div>
+                            <div class="poi-transport-filter__toggles poi-transport-filter__toggles--wrap">
+                                <label class="poi-transport-toggle ${poi.nearestWhcDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="env_whc" class="poi-transit-cb" ${poi.nearestWhcDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🏛️</span>
+                                    <span class="poi-transport-toggle__label">UNESCO</span>
+                                </label>
+                                <label class="poi-transport-toggle ${poi.nearestNaturaDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
+                                    <input type="checkbox" value="env_natura" class="poi-transit-cb" ${poi.nearestNaturaDist !== undefined ? '' : 'disabled'}>
+                                    <span class="poi-transport-toggle__icon">🌿</span>
+                                    <span class="poi-transport-toggle__label">Natura 2000</span>
+                                </label>
+                            </div>
+                            ${this._buildEnvDistRows(poi, color)}
+                        </div>
+
                         <!-- Wikidata Block (skeleton then replaced) -->
                         <div id="poi-wikidata-section" style="display:none">
                             <div class="poi-section__subtitle">
@@ -4024,8 +4042,8 @@ export class UiRenderer {
                     </a>
                 </div>
             `);
-        } else {
-            rows.push(this._infoRow('🌐 Site Web', d.hasWebsite ? yesLabel : noLabel));
+        } else if (d.hasWebsite) {
+            rows.push(this._infoRow('🌐 Site Web', yesLabel));
         }
 
         // --- MODIFICATIONS : Réseaux sociaux ---
@@ -4041,8 +4059,8 @@ export class UiRenderer {
         
         if (socialLinks.length > 0) {
             rows.push(`<div class="info-row"><span class="info-label">Réseaux Sociaux</span><span class="info-value" style="display:flex; flex-wrap:wrap; gap:6px;">${socialLinks.join('')}</span></div>`);
-        } else {
-            rows.push(this._infoRow('Réseaux Sociaux', d.hasSocialMedia ? yesLabel : noLabel));
+        } else if (d.hasSocialMedia) {
+            rows.push(this._infoRow('Réseaux Sociaux', yesLabel));
         }
         // --- FIN DES MODIFICATIONS ---
 
@@ -4050,25 +4068,23 @@ export class UiRenderer {
         const wikipediaUrl = this._getWikipediaUrl(t);
         if (wikipediaUrl) {
             rows.push(this._infoRow('Wikipedia', `<a href="${wikipediaUrl}" target="_blank" rel="noopener" style="color:${color}; font-weight:bold; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">Page Wikipédia ↗</a>`));
-        } else {
-            rows.push(this._infoRow('Wikipedia', noLabel));
         }
 
         const hasPhotos = t.image || t.wikimedia_commons || t.mapillary || d.hasPhotos;
-        rows.push(this._infoRow('Photos', hasPhotos ? yesLabel : noLabel));
+        if (hasPhotos) {
+            rows.push(this._infoRow('Photos', yesLabel));
+        }
 
-        rows.push(this._infoRow('Wikivoyage', d.hasWikivoyage ? yesLabel : noLabel));
+        if (d.hasWikivoyage) {
+            rows.push(this._infoRow('Wikivoyage', yesLabel));
+        }
 
         let langLabel = '';
         if (d.wikidataLanguagesCount === null || d.wikidataLanguagesCount === undefined) {
             if (poi.tags.wikidata) {
                 langLabel = `<span style="color:var(--color-text-muted);font-style:italic;">Chargement...</span>`;
-            } else {
-                langLabel = noLabel;
             }
-        } else if (d.wikidataLanguagesCount === 0) {
-            langLabel = noLabel;
-        } else {
+        } else if (d.wikidataLanguagesCount > 0) {
             const wikidataId = poi.tags.wikidata;
             const wikipediaTitle = poi.tags.wikipedia;
             let link = null;
@@ -4091,7 +4107,9 @@ export class UiRenderer {
             }
         }
 
-        rows.push(this._infoRow('Langues', langLabel));
+        if (langLabel) {
+            rows.push(this._infoRow('Langues', langLabel));
+        }
 
         return rows.join('');
     }
@@ -4332,28 +4350,14 @@ export class UiRenderer {
         // ── UNESCO & Natura 2000 indicators ──
         const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
 
-        if (poi.isInWhcSite !== undefined) {
+        if (poi.isInWhcSite) {
             rows.push(this._infoRow('🏛️ World Heritage Site',
-                poi.isInWhcSite
-                    ? `<span style="color:#22c55e;font-weight:600;">✔ Oui</span> <span style="color:var(--color-text-muted);font-size:0.8em;">(${poi.nearestWhcName})</span>`
-                    : `<span style="color:#ef4444;font-weight:600;">✘ Non</span>`));
+                `<span style="color:#22c55e;font-weight:600;">✔ Oui</span> <span style="color:var(--color-text-muted);font-size:0.8em;">(${poi.nearestWhcName})</span>`));
         }
 
-        if (poi.nearestWhcDist !== undefined) {
-            rows.push(this._infoRow('🏛️ Site UNESCO le plus proche',
-                `<span style="color:${color};font-weight:600;">${poi.nearestWhcName}</span><br><span style="color:var(--color-text-muted);">${formatDist(poi.nearestWhcDist)}</span>`));
-        }
-
-        if (poi.isInNaturaSite !== undefined) {
+        if (poi.isInNaturaSite) {
             rows.push(this._infoRow('🌿 Natura 2000',
-                poi.isInNaturaSite
-                    ? `<span style="color:#22c55e;font-weight:600;">✔ Oui</span> <span style="color:var(--color-text-muted);font-size:0.8em;">(${poi.nearestNaturaName})</span>`
-                    : `<span style="color:#ef4444;font-weight:600;">✘ Non</span>`));
-        }
-
-        if (poi.nearestNaturaDist !== undefined) {
-            rows.push(this._infoRow('🌿 Site Natura 2000 le plus proche',
-                `<span style="color:${color};font-weight:600;">${poi.nearestNaturaName}</span><br><span style="color:var(--color-text-muted);">${formatDist(poi.nearestNaturaDist)}</span>`));
+                `<span style="color:#22c55e;font-weight:600;">✔ Oui</span> <span style="color:var(--color-text-muted);font-size:0.8em;">(${poi.nearestNaturaName})</span>`));
         }
 
         return rows.join('') || '<p style="color:var(--color-text-muted);font-size:0.85rem;">Aucune donnée disponible.</p>';
@@ -4425,6 +4429,23 @@ export class UiRenderer {
         if (poi.nearestServiceChargingDist !== undefined) {
             rows.push(this._infoRow('⚡ Borne de recharge la plus proche',
                 `<span style="color:${color};font-weight:600">${poi.nearestServiceChargingName || 'Borne de recharge'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestServiceChargingDist)}</span>`));
+        }
+
+        return rows.length > 0 ? `<div class="detail-info" style="padding:4px 0;">${rows.join('')}</div>` : '';
+    }
+
+    /** Build nearest environment site distance rows */
+    _buildEnvDistRows(poi, color) {
+        const rows = [];
+        const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
+
+        if (poi.nearestWhcDist !== undefined) {
+            rows.push(this._infoRow('🏛️ Site UNESCO le plus proche',
+                `<span style="color:${color};font-weight:600;">${poi.nearestWhcName}</span><br><span style="color:var(--color-text-muted);">${formatDist(poi.nearestWhcDist)}</span>`));
+        }
+        if (poi.nearestNaturaDist !== undefined) {
+            rows.push(this._infoRow('🌿 Site Natura 2000 le plus proche',
+                `<span style="color:${color};font-weight:600;">${poi.nearestNaturaName}</span><br><span style="color:var(--color-text-muted);">${formatDist(poi.nearestNaturaDist)}</span>`));
         }
 
         return rows.length > 0 ? `<div class="detail-info" style="padding:4px 0;">${rows.join('')}</div>` : '';

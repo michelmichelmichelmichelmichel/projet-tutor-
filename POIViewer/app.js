@@ -882,28 +882,30 @@ class App {
 
                     // UNESCO
                     if (whcSites.length > 0) {
-                        let minD = Infinity, nearestName = '';
+                        let minD = Infinity, nearestName = '', nearestCoords = null;
                         whcSites.forEach(site => {
                             const d = poiLL.distanceTo(L.latLng(site.lat, site.lon));
-                            if (d < minD) { minD = d; nearestName = site.name; }
+                            if (d < minD) { minD = d; nearestName = site.name; nearestCoords = [site.lat, site.lon]; }
                         });
                         if (minD !== Infinity) {
                             poi.nearestWhcDist = minD;
                             poi.nearestWhcName = nearestName;
+                            poi.nearestWhcCoords = nearestCoords;
                             poi.isInWhcSite = minD <= 1000; // within 1 km
                         }
                     }
 
                     // Natura 2000
                     if (naturaSites.length > 0) {
-                        let minD = Infinity, nearestName = '';
+                        let minD = Infinity, nearestName = '', nearestCoords = null;
                         naturaSites.forEach(site => {
                             const d = poiLL.distanceTo(L.latLng(site.lat, site.lon));
-                            if (d < minD) { minD = d; nearestName = site.name; }
+                            if (d < minD) { minD = d; nearestName = site.name; nearestCoords = [site.lat, site.lon]; }
                         });
                         if (minD !== Infinity) {
                             poi.nearestNaturaDist = minD;
                             poi.nearestNaturaName = nearestName;
+                            poi.nearestNaturaCoords = nearestCoords;
                             poi.isInNaturaSite = minD <= 1000; // within 1 km
                         }
                     }
@@ -1881,6 +1883,14 @@ class App {
         }
         if (activeFilters.includes('service_charging') && poi.nearestServiceChargingCoords) {
             lines.push({ from, to: poi.nearestServiceChargingCoords, type: 'service_charging', name: poi.nearestServiceChargingName || 'Borne de recharge' });
+        }
+
+        // ── Environnement ──
+        if (activeFilters.includes('env_whc') && poi.nearestWhcCoords) {
+            lines.push({ from, to: poi.nearestWhcCoords, type: 'env_whc', name: poi.nearestWhcName || 'UNESCO' });
+        }
+        if (activeFilters.includes('env_natura') && poi.nearestNaturaCoords) {
+            lines.push({ from, to: poi.nearestNaturaCoords, type: 'env_natura', name: poi.nearestNaturaName || 'Natura 2000' });
         }
 
         if (lines.length > 0) {

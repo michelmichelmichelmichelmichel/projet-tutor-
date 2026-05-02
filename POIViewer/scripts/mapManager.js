@@ -370,14 +370,17 @@ export class MapManager {
             accom_gite: '#e11d48',    // Rose
             service_parking: '#6366f1',  // Indigo
             service_toilets: '#06b6d4',  // Cyan
-            service_charging: '#84cc16'  // Lime
+            service_charging: '#84cc16', // Lime
+            env_whc: '#fbbf24',          // Amber/Gold
+            env_natura: '#10b981'        // Emerald Green
         };
 
         const emojis = {
             bus: '🚌', gare: '🚉', aeroport: '✈️',
             route: '🛣️', rando: '🥾', cyclable: '🚴',
             accom_hotel: '🏨', accom_camping: '⛺', accom_refuge: '🏔️', accom_gite: '🏡',
-            service_parking: '🅿️', service_toilets: '🚻', service_charging: '⚡'
+            service_parking: '🅿️', service_toilets: '🚻', service_charging: '⚡',
+            env_whc: '🏛️', env_natura: '🌿'
         };
 
         lines.forEach(line => {
