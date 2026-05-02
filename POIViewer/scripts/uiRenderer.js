@@ -4084,13 +4084,11 @@ export class UiRenderer {
                 <div style="margin-top:8px;">
                     <div style="font-size:0.75rem;color:var(--color-text-muted);margin-bottom:4px;">Articles les plus proches :</div>
                     ${top5.map(a => {
-                const distKm = (a.dist / 1000).toFixed(1);
                 const flag = getLangInfo(a.lang).flag;
                 const url = `https://${a.lang}.wikivoyage.org/wiki/${encodeURIComponent(a.title)}`;
                 return `<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:0.8rem;">
                             <span>${flag}</span>
                             <a href="${url}" target="_blank" rel="noopener" style="color:var(--color-primary);text-decoration:none;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${a.title}">${a.title}</a>
-                            <span style="color:var(--color-text-muted);font-size:0.72rem;white-space:nowrap;">${distKm} km</span>
                         </div>`;
             }).join('')}
                 </div>`;
