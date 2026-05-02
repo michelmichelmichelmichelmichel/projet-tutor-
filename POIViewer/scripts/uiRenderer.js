@@ -1366,7 +1366,7 @@ export class UiRenderer {
             });
         }
     }
-    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null, population = null, romaniaStats = null, whcCount = 0, naturaCount = 0) {
+    renderMacroStats(pois, demoHtml = '', networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null, population = null, romaniaStats = null, whcCount = 0, naturaCount = 0, whcSites = [], naturaSites = []) {
         const total = pois.length;
 
         // ── Calcul des KPI hébergement & sentiers (toujours, même si pois filtrés = 0) ──
@@ -1858,9 +1858,8 @@ export class UiRenderer {
         if (total === 0) {
             const totalPoisHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">NB POIs</span><span class="ind-block__big">${totalRaw.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs trouvés</span></span></div></div>`;
             const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
-            const whcHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Number of World Heritage Sites in the area:</span><span class="ind-block__big" style="color:var(--color-primary);">${whcCount}</span></div></div>`;
-            const naturaHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Number of Natura 2000 Sites in the area:</span><span class="ind-block__big" style="color:var(--color-primary);">${naturaCount}</span></div></div>`;
-            const section1Html = totalPoisHtml + areaHtml + whcHtml + naturaHtml + demoHtml + densityHtml;
+            const envSitesHtml = this._buildEnvSitesHtml(whcCount, naturaCount, whcSites, naturaSites);
+            const section1Html = totalPoisHtml + areaHtml + envSitesHtml + demoHtml + densityHtml;
             const infraKpisHtml = buildInfraKpis() + trailsHtml + '<div id="section-infra-content"></div>';
             const countLabel = totalRaw > 0
                 ? `${totalRaw.toLocaleString('fr-FR')} POIs trouvés`
@@ -1880,6 +1879,7 @@ export class UiRenderer {
             this._bindDigitalFilterClicks();
             this._bindAccomFilterClicks();
             this._bindInfraFilterClicks();
+            this._bindEnvSiteClicks();
             this._showExportButton();
             this.lastPois = pois; // SYNC: Even if empty, update lastPois reference
             if (totalRaw > 0) {
@@ -1994,9 +1994,8 @@ export class UiRenderer {
             }
         }
 
-        const whcHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Number of World Heritage Sites in the area:</span><span class="ind-block__big" style="color:var(--color-primary);">${whcCount}</span></div></div>`;
-        const naturaHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Number of Natura 2000 Sites in the area:</span><span class="ind-block__big" style="color:var(--color-primary);">${naturaCount}</span></div></div>`;
-        const section1Html = totalPoisHtml + areaHtml + whcHtml + naturaHtml + localisationHtml + demoHtml + densityHtml;
+        const envSitesHtml = this._buildEnvSitesHtml(whcCount, naturaCount, whcSites, naturaSites);
+        const section1Html = totalPoisHtml + areaHtml + envSitesHtml + localisationHtml + demoHtml + densityHtml;
         const infraKpisHtml = buildInfraKpis() + trailsHtml + `<div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
             buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
@@ -2009,6 +2008,7 @@ export class UiRenderer {
         this._bindDigitalFilterClicks();
         this._bindAccomFilterClicks();
         this._bindInfraFilterClicks();
+        this._bindEnvSiteClicks();
         this._showExportButton();
 
         this.macroStats.style.height = 'auto'; // Let it grow
@@ -3138,6 +3138,55 @@ export class UiRenderer {
                     if (this.onInfraFilterClick) this.onInfraFilterClick(filterType);
                 } else {
                     if (this.onInfraFilterClick) this.onInfraFilterClick(null);
+                }
+            });
+        });
+    }
+
+    // ── UNESCO + Natura 2000 side-by-side cards ────────────────────────────
+    _buildEnvSitesHtml(whcCount, naturaCount, whcSites = [], naturaSites = []) {
+        const buildSiteList = (sites, type) => {
+            if (!sites || sites.length === 0) return '<div class="env-card__empty">Aucun site dans la zone</div>';
+            return sites.map((s, i) =>
+                `<div class="env-site-item" data-env-type="${type}" data-env-idx="${i}" data-env-lat="${s.lat}" data-env-lon="${s.lon}" title="Localiser sur la carte">${s.name || 'Site sans nom'}</div>`
+            ).join('');
+        };
+
+        return `
+            <div class="env-sites-grid">
+                <div class="env-card env-card--unesco">
+                    <div class="env-card__icon">🏛️</div>
+                    <div class="env-card__count">${whcCount}</div>
+                    <div class="env-card__label">UNESCO</div>
+                    <div class="env-card__list">${buildSiteList(whcSites, 'whc')}</div>
+                </div>
+                <div class="env-card env-card--natura">
+                    <div class="env-card__icon">🌿</div>
+                    <div class="env-card__count">${naturaCount}</div>
+                    <div class="env-card__label">Natura 2000</div>
+                    <div class="env-card__list">${buildSiteList(naturaSites, 'natura')}</div>
+                </div>
+            </div>`;
+    }
+
+    _bindEnvSiteClicks() {
+        this.macroStats.querySelectorAll('.env-site-item').forEach(el => {
+            el.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const lat = parseFloat(el.dataset.envLat);
+                const lon = parseFloat(el.dataset.envLon);
+                const type = el.dataset.envType;
+                const name = el.textContent;
+
+                // Toggle active state
+                const wasActive = el.classList.contains('env-site-item--active');
+                this.macroStats.querySelectorAll('.env-site-item--active').forEach(a => a.classList.remove('env-site-item--active'));
+
+                if (!wasActive) {
+                    el.classList.add('env-site-item--active');
+                    if (this.onEnvSiteClick) this.onEnvSiteClick({ lat, lon, type, name });
+                } else {
+                    if (this.onEnvSiteClick) this.onEnvSiteClick(null);
                 }
             });
         });

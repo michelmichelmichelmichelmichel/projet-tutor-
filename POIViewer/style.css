@@ -3073,4 +3073,108 @@ body {
 .trail-tooltip::before {
     border-top-color: rgba(5, 10, 20, 0.92) !important;
 }
+
+/* ============================================
+   UNESCO + NATURA 2000 CARDS
+   ============================================ */
+
+.env-sites-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.env-card {
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    transition: border-color 0.2s ease;
+}
+
+.env-card--unesco {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(217, 119, 6, 0.06));
+}
+
+.env-card--natura {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(22, 163, 74, 0.06));
+}
+
+.env-card__icon {
+    font-size: 1.4rem;
+    line-height: 1;
+    margin-bottom: 2px;
+}
+
+.env-card__count {
+    font-size: 1.6rem;
+    font-weight: 700;
+    line-height: 1.1;
+}
+
+.env-card--unesco .env-card__count { color: #f59e0b; }
+.env-card--natura .env-card__count { color: #22c55e; }
+
+.env-card__label {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+}
+
+.env-card__list {
+    text-align: left;
+    max-height: 90px;
+    overflow-y: auto;
+}
+
+.env-card__empty {
+    font-size: 0.68rem;
+    color: var(--color-text-muted);
+    opacity: 0.5;
+    text-align: center;
+    padding: 4px 0;
+}
+
+.env-site-item {
+    font-size: 0.7rem;
+    color: var(--color-text);
+    padding: 3px 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.env-site-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.env-site-item--active {
+    background: rgba(255, 255, 255, 0.15) !important;
+    font-weight: 600;
+}
+
+.env-card--unesco .env-site-item--active {
+    color: #f59e0b;
+}
+
+.env-card--natura .env-site-item--active {
+    color: #22c55e;
+}
+
+/* Pulse animation for highlighted env markers */
+@keyframes envPulse {
+    0% { transform: scale(1); opacity: 0.9; }
+    50% { transform: scale(1.4); opacity: 0.4; }
+    100% { transform: scale(1); opacity: 0.9; }
+}
+
+.env-pulse-marker {
+    animation: envPulse 2s ease-in-out infinite;
+}
 }

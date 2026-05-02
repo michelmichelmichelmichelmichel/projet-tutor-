@@ -133,7 +133,7 @@ class App {
             this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0);
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0, this.currentWhcSites || [], this.currentNaturaSites || []);
                 if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
@@ -218,7 +218,7 @@ class App {
             this.selectedPoiType = null;
             if (this.currentPOIs && this.currentPOIs.length > 0) {
                 const filtered = this.getFilteredPOIs();
-                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0);
+                this.uiRenderer.renderMacroStats(filtered, '', this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0, this.currentWhcSites || [], this.currentNaturaSites || []);
                 if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                 this.uiRenderer.renderMicroList(filtered);
                 this.addMarkersToMap(filtered);
@@ -321,6 +321,62 @@ class App {
             this.treemapHighlight = null;
             this.selectedPoiType = null;
             this.addMarkersToMap(this.getFilteredPOIs());
+        };
+
+        // Bind Environment Site Click (UNESCO / Natura 2000)
+        this.uiRenderer.onEnvSiteClick = (siteData) => {
+            // Remove previous env highlight
+            if (this._envHighlightLayer) {
+                this.mapManager.map.removeLayer(this._envHighlightLayer);
+                this._envHighlightLayer = null;
+            }
+            if (this._envPulseLayer) {
+                this.mapManager.map.removeLayer(this._envPulseLayer);
+                this._envPulseLayer = null;
+            }
+
+            if (!siteData) return; // toggled off
+
+            const { lat, lon, type, name } = siteData;
+            const color = type === 'whc' ? '#f59e0b' : '#22c55e'; // gold for UNESCO, green for Natura
+
+            // Zoom to site
+            this.mapManager.map.setView([lat, lon], 14, { animate: true });
+
+            // Add pulsing circle
+            this._envHighlightLayer = L.circleMarker([lat, lon], {
+                radius: 18,
+                color: color,
+                fillColor: color,
+                fillOpacity: 0.25,
+                weight: 3,
+                opacity: 0.9,
+                className: 'env-pulse-marker'
+            }).addTo(this.mapManager.map);
+
+            this._envHighlightLayer.bindPopup(`<b>${type === 'whc' ? '🏛️ UNESCO' : '🌿 Natura 2000'}</b><br>${name}`, { className: 'trail-tooltip' }).openPopup();
+
+            // Highlight matching POIs on map (those within 1km of this site)
+            const siteLL = L.latLng(lat, lon);
+            const nearbyPois = this.currentPOIs.filter(p => {
+                if (!p.lat || !p.lng) return false;
+                return siteLL.distanceTo(L.latLng(p.lat, p.lng)) <= 1000;
+            });
+
+            if (nearbyPois.length > 0) {
+                this._envPulseLayer = L.layerGroup();
+                nearbyPois.forEach(p => {
+                    L.circleMarker([p.lat, p.lng], {
+                        radius: 10,
+                        color: color,
+                        fillColor: color,
+                        fillOpacity: 0.35,
+                        weight: 2
+                    }).addTo(this._envPulseLayer);
+                });
+                this._envPulseLayer.addTo(this.mapManager.map);
+                this.uiRenderer.showToast(`${nearbyPois.length} POIs à proximité du site`, 'info', 3000);
+            }
         };
 
         // Bind Treemap Item Click
@@ -487,6 +543,10 @@ class App {
         this.mapManager.clearSelectionMarker();
         this.mapManager.clearHeatmapLayers();
 
+        // Clean up env site highlight layers
+        if (this._envHighlightLayer) { this.mapManager.map.removeLayer(this._envHighlightLayer); this._envHighlightLayer = null; }
+        if (this._envPulseLayer) { this.mapManager.map.removeLayer(this._envPulseLayer); this._envPulseLayer = null; }
+
         // Redraw overtourism heatmaps if active (they are global)
         if (this.heatmapVisibility.overtourism_cities || this.heatmapVisibility.overtourism_pois) {
             this.updateOvertourismHeatmaps();
@@ -554,17 +614,21 @@ class App {
             // Calcul du nombre de sites du Patrimoine Mondial dans la zone
             this.currentWhcCount = 0;
             this.currentNaturaCount = 0;
+            this.currentWhcSites = [];
+            this.currentNaturaSites = [];
             if (layer && layer.getBounds) {
                 const bounds = layer.getBounds();
                 if (this.apiService.whcData) {
-                    this.currentWhcCount = this.apiService.whcData.filter(site => 
+                    this.currentWhcSites = this.apiService.whcData.filter(site => 
                         bounds.contains(L.latLng(site.lat, site.lon))
-                    ).length;
+                    );
+                    this.currentWhcCount = this.currentWhcSites.length;
                 }
                 if (this.apiService.natura2000Data) {
-                    this.currentNaturaCount = this.apiService.natura2000Data.filter(site => 
+                    this.currentNaturaSites = this.apiService.natura2000Data.filter(site => 
                         bounds.contains(L.latLng(site.lat, site.lon))
-                    ).length;
+                    );
+                    this.currentNaturaCount = this.currentNaturaSites.length;
                 }
             }
         } catch (e) {
@@ -878,7 +942,7 @@ class App {
                 }
 
                 // Update UI (Macro Stats) - Affiche les POIs, chemins, et soit la démo en cache, soit le spinner
-                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0);
+                this.uiRenderer.renderMacroStats(filteredPOIs, initialDemoHtml, networks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), this.activeZone?.hierarchy || null, this.activeZone?.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0, this.currentWhcSites || [], this.currentNaturaSites || []);
 
                 // Construire et afficher les heatmaps
                 this.updateHeatmaps();
@@ -958,7 +1022,7 @@ class App {
                                         </div>
                                     `;
 
-                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null, currentZone.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0);
+                                    this.uiRenderer.renderMacroStats(this.getFilteredPOIs(), currentZone.demoHtml || fallbackHtml, this.currentNetworks, this.currentAreaKm2, this.currentPOIs.length, this._getInseeStats(), currentZone.hierarchy || null, currentZone.population || null, this._getRomaniaStats(), this.currentWhcCount || 0, this.currentNaturaCount || 0, this.currentWhcSites || [], this.currentNaturaSites || []);
                                     if (this.currentWikivoyageData) this.uiRenderer.updateWikivoyagePanel(this.currentWikivoyageData);
                                     if (this.currentPageviewsData !== undefined) this.uiRenderer.updatePageviewsPanel(this.currentPageviewsData);
                                     this.uiRenderer.renderSparkline();
