@@ -2851,6 +2851,31 @@ export class UiRenderer {
                     </div>`;
             }
 
+            // Durée Moyenne de Séjour : TUR105H overnight stays / TUR104H arrivals
+            if (totalArrivals > 0) {
+                const avgStay = totalNights / totalArrivals;
+                let rating = '';
+                if (avgStay < 1.5) rating = 'Court séjour';
+                else if (avgStay < 3) rating = 'Moyen';
+                else if (avgStay < 5) rating = 'Long';
+                else rating = 'Très long';
+
+                const pct = Math.min((avgStay / 7) * 100, 100);
+                kpiHtml += `
+                    <div class="density-bar" style="margin-top:6px;">
+                        <div class="density-bar__header">
+                            <span class="density-bar__label">Durée Moyenne de Séjour</span>
+                            <div class="density-bar__metrics">
+                                <span class="density-bar__value" style="color:#22d3ee;">${avgStay.toFixed(2)} <span class="density-bar__unit">nuits / arrivée</span></span>
+                                <span class="density-bar__rating">(${rating})</span>
+                            </div>
+                        </div>
+                        <div class="density-bar__track">
+                            <div class="density-bar__fill" style="width:${pct}%;background:linear-gradient(90deg,rgba(34,211,238,0.4),rgba(34,211,238,1));"></div>
+                        </div>
+                    </div>`;
+            }
+
             kpiBlock.innerHTML = kpiHtml;
             container.appendChild(kpiBlock);
         }
@@ -4738,6 +4763,37 @@ export class UiRenderer {
                     .forEach(([rank, count]) => {
                         addRow(T, `Hôtels ${rank} étoile(s)`, count, 'hôtels');
                     });
+            }
+        }
+
+        // ── INSSE Roumanie ──
+        if (data.romaniaStats?.data?.monthly_data) {
+            const R = 'Tourisme INSSE Roumanie';
+            const roData = data.romaniaStats.data;
+            const roMonths = Object.keys(roData.monthly_data).sort();
+            if (roMonths.length > 0) {
+                const roTotalArrivals = roMonths.reduce((s, m) => s + (roData.monthly_data[m]?.arrivals?.total || 0), 0);
+                const roTotalNights = roMonths.reduce((s, m) => s + (roData.monthly_data[m]?.overnight_stays?.total || 0), 0);
+                const roTotalBedCap = roMonths.reduce((s, m) => s + (roData.monthly_data[m]?.bed_capacity?.total || 0), 0);
+                addRow(R, 'Comté', data.romaniaStats.countyName);
+                addRow(R, 'Période couverte', `${roMonths[0]} → ${roMonths[roMonths.length - 1]}`, 'mois');
+                addRow(R, 'Arrivées totales (TUR104H)', roTotalArrivals, 'personnes');
+                addRow(R, 'Nuitées totales (TUR105H)', roTotalNights, 'nuitées');
+                if (roTotalArrivals > 0) {
+                    addRow(R, 'Durée Moyenne de Séjour (TUR105H / TUR104H)', (roTotalNights / roTotalArrivals).toFixed(2), 'nuits / arrivée');
+                }
+                addRow(R, 'Capacité lits cumulée (TUR103F)', roTotalBedCap, 'places-jours');
+                if (roTotalBedCap > 0) {
+                    addRow(R, 'Taux d\'occupation moyen', ((roTotalNights / roTotalBedCap) * 100).toFixed(1), '%');
+                }
+                // Capacité annuelle dernière année
+                if (roData.annual_capacity?.total) {
+                    const years = Object.keys(roData.annual_capacity.total).sort();
+                    if (years.length > 0) {
+                        const latestYear = years[years.length - 1];
+                        addRow(R, `Capacité annuelle ${latestYear} (TUR102C)`, roData.annual_capacity.total[latestYear], 'places');
+                    }
+                }
             }
         }
 
