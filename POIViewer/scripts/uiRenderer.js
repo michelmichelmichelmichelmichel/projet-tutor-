@@ -1854,12 +1854,15 @@ export class UiRenderer {
             return html;
         };
 
+        // ── Score de Complétude Macro ──────────────────────────────────────
+        const completenessHtml = this._buildMacroCompletenessHtml(pois, totalRaw);
+
         // Si aucun POI après filtrage
         if (total === 0) {
             const totalPoisHtml = `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">NB POIs</span><span class="ind-block__big">${totalRaw.toLocaleString('fr-FR')} <span class="ind-block__unit">POIs trouvés</span></span></div></div>`;
             const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
             const envSitesHtml = this._buildEnvSitesHtml(whcCount, naturaCount, whcSites, naturaSites);
-            const section1Html = totalPoisHtml + areaHtml + envSitesHtml + demoHtml + densityHtml;
+            const section1Html = totalPoisHtml + areaHtml + envSitesHtml + completenessHtml + demoHtml + densityHtml;
             const infraKpisHtml = buildInfraKpis() + trailsHtml + '<div id="section-infra-content"></div>';
             const countLabel = totalRaw > 0
                 ? `${totalRaw.toLocaleString('fr-FR')} POIs trouvés`
@@ -1995,7 +1998,7 @@ export class UiRenderer {
         }
 
         const envSitesHtml = this._buildEnvSitesHtml(whcCount, naturaCount, whcSites, naturaSites);
-        const section1Html = totalPoisHtml + areaHtml + envSitesHtml + localisationHtml + demoHtml + densityHtml;
+        const section1Html = totalPoisHtml + areaHtml + envSitesHtml + completenessHtml + localisationHtml + demoHtml + densityHtml;
         const infraKpisHtml = buildInfraKpis() + trailsHtml + `<div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
             buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
@@ -3190,6 +3193,103 @@ export class UiRenderer {
                 }
             });
         });
+    }
+
+
+    // ── Macro Completeness Score ────────────────────────────────────────────
+    _buildMacroCompletenessHtml(pois, totalRaw) {
+        if (!pois || pois.length === 0) {
+            if (totalRaw === 0) return '';
+            return `<div class="completeness-macro" style="margin-bottom:8px;">
+                <div class="completeness-macro__title">Score de Complétude</div>
+                <div class="completeness-macro__sub">Activez les filtres pour voir le score</div>
+            </div>`;
+        }
+
+        const breakdowns = pois.map(p => {
+            try { return this._computeCompletenessBreakdown(p); }
+            catch(e) { return { general: 0, infra: 0, tourisme: 0, digital: 0, global: 0 }; }
+        });
+
+        const avg = (arr, key) => arr.length > 0 ? Math.round(arr.reduce((s, b) => s + b[key], 0) / arr.length) : 0;
+        const globalAvg = avg(breakdowns, 'global');
+        const generalAvg = avg(breakdowns, 'general');
+        const infraAvg = avg(breakdowns, 'infra');
+        const tourismeAvg = avg(breakdowns, 'tourisme');
+        const digitalAvg = avg(breakdowns, 'digital');
+
+        const catLabels = this.categories.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
+        const catGroups = {};
+        pois.forEach((p, i) => {
+            const cat = p.category || 'unknown';
+            if (!catGroups[cat]) catGroups[cat] = [];
+            catGroups[cat].push(breakdowns[i]);
+        });
+
+        const catScores = Object.entries(catGroups)
+            .map(([catId, bks]) => ({
+                label: catLabels[catId] || catId,
+                score: Math.round(bks.reduce((s, b) => s + b.global, 0) / bks.length),
+                count: bks.length
+            }))
+            .sort((a, b) => b.score - a.score);
+
+        const scoreColor = (s) => s >= 70 ? '#22c55e' : s >= 50 ? '#eab308' : s >= 30 ? '#f97316' : '#ef4444';
+        const scoreLabel = (s) => s >= 70 ? 'Complet' : s >= 50 ? 'Bon' : s >= 30 ? 'Partiel' : 'Insuffisant';
+
+        const radius = 32, circumference = 2 * Math.PI * radius;
+        const offset = circumference - (globalAvg / 100) * circumference;
+        const color = scoreColor(globalAvg);
+
+        const dimBar = (label, value) => {
+            const c = scoreColor(value);
+            return `<div class="completeness-dim">
+                <span class="completeness-dim__label">${label}</span>
+                <div class="completeness-dim__track"><div class="completeness-dim__fill" style="width:${value}%;background:${c};"></div></div>
+                <span class="completeness-dim__val" style="color:${c};">${value}%</span>
+            </div>`;
+        };
+
+        const catRowsHtml = catScores.slice(0, 8).map(c => {
+            const cc = scoreColor(c.score);
+            return `<div class="completeness-cat">
+                <span class="completeness-cat__label" title="${c.label}">${c.label}</span>
+                <div class="completeness-cat__track"><div class="completeness-cat__fill" style="width:${c.score}%;background:${cc};"></div></div>
+                <span class="completeness-cat__val" style="color:${cc};">${c.score}%</span>
+                <span class="completeness-cat__count">${c.count}</span>
+            </div>`;
+        }).join('');
+
+        return `
+            <div class="completeness-macro">
+                <div class="completeness-macro__header">
+                    <div class="completeness-macro__gauge">
+                        <svg viewBox="0 0 80 80" class="completeness-svg">
+                            <circle cx="40" cy="40" r="${radius}" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="6"/>
+                            <circle cx="40" cy="40" r="${radius}" fill="none" stroke="${color}" stroke-width="6"
+                                stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+                                stroke-linecap="round" transform="rotate(-90 40 40)" class="completeness-ring"/>
+                        </svg>
+                        <div class="completeness-macro__score">
+                            <span class="completeness-macro__value" style="color:${color};">${globalAvg}</span>
+                            <span class="completeness-macro__unit">/ 100</span>
+                        </div>
+                    </div>
+                    <div class="completeness-macro__info">
+                        <div class="completeness-macro__title">Score de Complétude</div>
+                        <div class="completeness-macro__rating" style="color:${color};">${scoreLabel(globalAvg)}</div>
+                        <div class="completeness-macro__sub">Moyenne sur ${pois.length.toLocaleString('fr-FR')} POIs</div>
+                    </div>
+                </div>
+                <div class="completeness-macro__dims">
+                    ${dimBar('Général', generalAvg)}
+                    ${dimBar('Infrastructures', infraAvg)}
+                    ${dimBar('Tourisme', tourismeAvg)}
+                    ${dimBar('Digital', digitalAvg)}
+                </div>
+                <div class="completeness-macro__cats-title">Par catégorie</div>
+                <div class="completeness-macro__cats">${catRowsHtml}</div>
+            </div>`;
     }
 
     renderMicroList(pois) {
