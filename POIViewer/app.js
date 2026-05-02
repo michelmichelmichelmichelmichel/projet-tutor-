@@ -1158,7 +1158,38 @@ class App {
             if (net.tags.natural === 'water' || net.tags.landuse === 'reservoir' || net.tags.landuse === 'basin') {
                 L.polygon(latLngs, style).addTo(this.mapManager.networkGroup);
             } else {
-                L.polyline(latLngs, style).addTo(this.mapManager.networkGroup);
+                const polyline = L.polyline(latLngs, style).addTo(this.mapManager.networkGroup);
+
+                // ── Hover: tooltip + highlight ──
+                const lengthKm = this.uiRenderer._getPathLength(net.geometry);
+                const trailName = net.tags?.name || net.relationRef || net.tags?.ref || '';
+                const sacLabel = net.tags?.sac_scale ? ` · ${net.tags.sac_scale}` : '';
+                let tooltipText = '';
+                if (trailName) tooltipText += `<b>${trailName}</b><br>`;
+                tooltipText += `${lengthKm >= 1 ? lengthKm.toFixed(2) + ' km' : (lengthKm * 1000).toFixed(0) + ' m'}${sacLabel}`;
+
+                polyline.bindTooltip(tooltipText, {
+                    sticky: true,
+                    direction: 'top',
+                    offset: [0, -8],
+                    className: 'trail-tooltip'
+                });
+
+                // Store original style for mouseout restoration
+                const origStyle = { ...style };
+
+                polyline.on('mouseover', function () {
+                    this.setStyle({
+                        weight: (origStyle.weight || 3) + 4,
+                        opacity: 1,
+                        color: '#ffffff'
+                    });
+                    this.bringToFront();
+                });
+
+                polyline.on('mouseout', function () {
+                    this.setStyle(origStyle);
+                });
             }
         });
     }
