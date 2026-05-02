@@ -387,6 +387,11 @@ class App {
             this.mapManager.setPolygonColor(color);
         };
 
+        // Bind Export Request
+        this.uiRenderer.onExportRequest = () => {
+            this._exportZoneData();
+        };
+
         // Initialize Presets
         this.uiRenderer.initPresets();
         // NOUVEAU: Zoomer sur la carte lors de la sélection d'un pays
@@ -471,6 +476,7 @@ class App {
 
         this.uiRenderer.clear();
         this.uiRenderer.toggleLoadNeighborsBtn(false);
+        this.uiRenderer._hideExportButton();
 
         if (clearDrawnLayer && this.mapManager.drawnItems) {
             this.mapManager.drawnItems.clearLayers();
@@ -1843,6 +1849,122 @@ class App {
         });
 
         return nearest;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  EXPORT CSV — Collecte des données et déclenchement
+    // ══════════════════════════════════════════════════════════════════════════
+
+    _exportZoneData() {
+        const filteredPOIs = this.getFilteredPOIs();
+        const allPOIs = this.currentPOIs || [];
+        const networks = this.currentNetworks || [];
+        const inseeStats = this._getInseeStats();
+        const romaniaStats = this._getRomaniaStats();
+
+        // ── Comptages macro (recalculés à partir des POIs filtrés) ──
+        const accommodationTypes = new Set([
+            'hotel', 'guest_house', 'hostel', 'camp_site', 'chalet',
+            'alpine_hut', 'apartment', 'motel', 'caravan_site', 'shelter'
+        ]);
+        let accommodationCount = 0, totalBeds = 0, totalRooms = 0;
+        let websiteCount = 0, socialMediaCount = 0, digitalPresenceCount = 0, wikivoyageCount = 0;
+        let busStopCount = 0, trainStationCount = 0, airportCount = 0;
+        let parkingCount = 0, sanitaryCount = 0, chargingCount = 0;
+
+        const busTypes = new Set(['bus_stop', 'bus_station', 'platform']);
+        const trainTypes = new Set(['station', 'halt', 'tram_stop', 'subway_entrance']);
+        const airportTypes = new Set(['aerodrome', 'aeroway', 'airport']);
+
+        filteredPOIs.forEach(p => {
+            if (accommodationTypes.has(p.type)) {
+                accommodationCount++;
+                if (p.tags?.beds) totalBeds += parseInt(p.tags.beds, 10) || 0;
+                if (p.tags?.rooms) totalRooms += parseInt(p.tags.rooms, 10) || 0;
+            }
+            if (p.digital) {
+                if (p.digital.hasWebsite) websiteCount++;
+                if (p.digital.hasSocialMedia) socialMediaCount++;
+                if (p.digital.hasWebsite || p.digital.hasSocialMedia) digitalPresenceCount++;
+                if (p.digital.hasWikivoyage) wikivoyageCount++;
+            }
+            const pType = p.type || '';
+            if (busTypes.has(pType) || p.tags?.bus === 'yes' || p.tags?.highway === 'bus_stop') busStopCount++;
+            if (trainTypes.has(pType) || p.tags?.railway === 'station' || p.tags?.railway === 'halt') trainStationCount++;
+            if (airportTypes.has(pType) || p.tags?.aeroway === 'aerodrome') airportCount++;
+            if (pType === 'parking' || pType === 'parking_space' || pType === 'bicycle_parking' || p.tags?.amenity === 'parking') parkingCount++;
+            if (pType === 'toilets' || pType === 'shower' || pType === 'drinking_water' || (p.tags && (p.tags.amenity === 'toilets' || p.tags.amenity === 'shower' || p.tags.amenity === 'drinking_water'))) sanitaryCount++;
+            if (pType === 'charging_station' || p.tags?.amenity === 'charging_station') chargingCount++;
+        });
+
+        // ── Sentiers ──
+        const pedestrianTypes = new Set(['path', 'footway', 'pedestrian', 'living_street']);
+        const cyclingTypes = new Set(['cycleway']);
+        let pedestrianTrailCount = 0, pedestrianTrailLength = 0;
+        let cyclingTrailCount = 0, cyclingTrailLength = 0;
+        networks.forEach(net => {
+            const t = net.type;
+            const route = net.relationRoute;
+            if (pedestrianTypes.has(t) || route === 'hiking' || route === 'foot' || net.tags?.sac_scale) {
+                pedestrianTrailCount++;
+                pedestrianTrailLength += this.uiRenderer._getPathLength(net.geometry);
+            } else if (cyclingTypes.has(t) || route === 'bicycle' || route === 'mtb') {
+                cyclingTrailCount++;
+                cyclingTrailLength += this.uiRenderer._getPathLength(net.geometry);
+            }
+        });
+
+        // ── Assembler les données pour le Macro CSV ──
+        const macroData = {
+            pois: filteredPOIs,
+            totalRaw: allPOIs.length,
+            totalFiltered: filteredPOIs.length,
+            areaKm2: this.currentAreaKm2 || 0,
+            whcCount: this.currentWhcCount || 0,
+            naturaCount: this.currentNaturaCount || 0,
+            population: this.activeZone?.population || null,
+            hierarchy: this.activeZone?.hierarchy || null,
+            zoneName: this.activeZone?.name || null,
+            inseeStats: inseeStats,
+            romaniaStats: romaniaStats,
+            accommodationCount,
+            totalBeds,
+            totalRooms,
+            websiteCount,
+            socialMediaCount,
+            digitalPresenceCount,
+            wikivoyageCount,
+            busStopCount,
+            trainStationCount,
+            airportCount,
+            parkingCount,
+            sanitaryCount,
+            chargingCount,
+            pedestrianTrailCount,
+            pedestrianTrailLength,
+            cyclingTrailCount,
+            cyclingTrailLength,
+        };
+
+        // ── Nom de fichier basé sur la zone ──
+        const dateStr = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+        const zoneLabel = (this.activeZone?.name || 'zone').replace(/[^a-zA-Z0-9À-ÿ\s-]/g, '').replace(/\s+/g, '_').substring(0, 40);
+
+        // ── Générer et télécharger Macro ──
+        const macroCsv = this.uiRenderer.generateMacroCsv(macroData);
+        this.uiRenderer._downloadCsv(macroCsv, `Export_Macro_${zoneLabel}_${dateStr}.csv`);
+
+        // ── Générer et télécharger Micro ──
+        // On utilise TOUS les POIs courants (pas seulement filtrés) pour le fichier Micro
+        const microCsv = this.uiRenderer.generateMicroCsv(allPOIs);
+        this.uiRenderer._downloadCsv(microCsv, `Export_Micro_${zoneLabel}_${dateStr}.csv`);
+
+        // ── Toast de confirmation ──
+        this.uiRenderer.showToast(
+            `📥 Export terminé : 2 fichiers CSV (${allPOIs.length} POIs)`,
+            'success',
+            4000
+        );
     }
 }
 

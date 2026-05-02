@@ -1851,6 +1851,7 @@ export class UiRenderer {
             this._bindDigitalFilterClicks();
             this._bindAccomFilterClicks();
             this._bindInfraFilterClicks();
+            this._showExportButton();
             this.lastPois = pois; // SYNC: Even if empty, update lastPois reference
             if (totalRaw > 0) {
                 this.showToast(`${countLabel} — activez les filtres pour les afficher`, 'info', 5000);
@@ -1979,6 +1980,7 @@ export class UiRenderer {
         this._bindDigitalFilterClicks();
         this._bindAccomFilterClicks();
         this._bindInfraFilterClicks();
+        this._showExportButton();
 
         this.macroStats.style.height = 'auto'; // Let it grow
 
@@ -4616,6 +4618,336 @@ export class UiRenderer {
 
         toast.addEventListener('click', fadeOut);
         setTimeout(fadeOut, duration);
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  EXPORT CSV — Macro + Micro
+    // ══════════════════════════════════════════════════════════════════════════
+
+    /** Attache l'événement click au bouton export statique (appelé une seule fois à l'init) */
+    _bindExportButton() {
+        const btn = document.getElementById('export-zone-btn');
+        if (btn && !btn._exportBound) {
+            btn._exportBound = true;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this.onExportRequest) this.onExportRequest();
+            });
+        }
+    }
+
+    /** Affiche le bouton export (icône dans la barre gauche) */
+    _showExportButton() {
+        const btn = document.getElementById('export-zone-btn');
+        if (btn) {
+            btn.classList.remove('hidden');
+            // Bind au premier appel si pas encore fait
+            this._bindExportButton();
+        }
+    }
+
+    /** Cache le bouton export */
+    _hideExportButton() {
+        const btn = document.getElementById('export-zone-btn');
+        if (btn) btn.classList.add('hidden');
+    }
+
+    /** Déclenche le téléchargement d'un fichier CSV */
+    _downloadCsv(csvContent, filename) {
+        const BOM = '\uFEFF'; // UTF-8 BOM pour Excel
+        const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    }
+
+    /**
+     * Échapper une valeur pour CSV (point-virgule comme séparateur).
+     * Entoure de guillemets si la valeur contient ;, ", ou saut de ligne.
+     */
+    _csvEscape(value) {
+        if (value === null || value === undefined) return '';
+        const str = String(value);
+        if (str.includes(';') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+            return '"' + str.replace(/"/g, '""') + '"';
+        }
+        return str;
+    }
+
+    /**
+     * Génère le contenu CSV du fichier Macro.
+     * @param {object} data — Objet avec toutes les données agrégées de la zone
+     * @returns {string} contenu CSV
+     */
+    generateMacroCsv(data) {
+        const esc = (v) => this._csvEscape(v);
+        const rows = [['CATÉGORIE', 'INDICATEUR', 'VALEUR', 'UNITÉ'].map(esc).join(';')];
+
+        const addRow = (cat, ind, val, unit = '') => {
+            rows.push([esc(cat), esc(ind), esc(val), esc(unit)].join(';'));
+        };
+
+        // ── Informations générales ──
+        const G = 'Informations générales';
+        addRow(G, 'Nombre de POIs (total)', data.totalRaw, 'POIs');
+        addRow(G, 'Nombre de POIs (affichés)', data.totalFiltered, 'POIs');
+        if (data.areaKm2 > 0) addRow(G, 'Superficie', data.areaKm2.toFixed(2), 'km²');
+        addRow(G, 'Sites UNESCO dans la zone', data.whcCount, 'sites');
+        addRow(G, 'Sites Natura 2000 dans la zone', data.naturaCount, 'sites');
+        if (data.population) addRow(G, 'Population', data.population, 'habitants');
+        if (data.hierarchy) {
+            if (data.hierarchy.country) addRow(G, 'Pays', data.hierarchy.country);
+            if (data.hierarchy.region) addRow(G, 'Région', data.hierarchy.region);
+            if (data.hierarchy.dept) addRow(G, 'Département', data.hierarchy.dept);
+            if (data.hierarchy.city) addRow(G, 'Ville', data.hierarchy.city);
+        }
+        if (data.zoneName) addRow(G, 'Nom de la zone', data.zoneName);
+
+        // ── Infrastructures ──
+        const I = 'Infrastructures & activités';
+        addRow(I, 'Arrêts de bus', data.busStopCount, 'arrêts');
+        addRow(I, 'Gares', data.trainStationCount, 'gares');
+        addRow(I, 'Aéroports', data.airportCount, 'aéroports');
+        addRow(I, 'Stationnements', data.parkingCount, 'places');
+        addRow(I, 'Sanitaires', data.sanitaryCount, 'installations');
+        addRow(I, 'Bornes de recharge', data.chargingCount, 'bornes');
+        addRow(I, 'Sentiers piétons (nombre)', data.pedestrianTrailCount, 'tracés');
+        addRow(I, 'Sentiers piétons (longueur)', data.pedestrianTrailLength.toFixed(1), 'km');
+        addRow(I, 'Pistes cyclables (nombre)', data.cyclingTrailCount, 'tracés');
+        addRow(I, 'Pistes cyclables (longueur)', data.cyclingTrailLength.toFixed(1), 'km');
+        addRow(I, 'Km total des sentiers', (data.pedestrianTrailLength + data.cyclingTrailLength).toFixed(1), 'km');
+
+        // ── Tourisme ──
+        const T = 'Tourisme';
+        addRow(T, 'Hébergements', data.accommodationCount, 'établissements');
+        addRow(T, 'Lits (total)', data.totalBeds, 'lits');
+        addRow(T, 'Chambres (total)', data.totalRooms, 'chambres');
+        if (data.inseeStats) {
+            addRow(T, 'Hébergements INSEE', data.inseeStats.total_loc, 'établissements');
+            addRow(T, 'Lits hôtels (INSEE)', data.inseeStats.hotel_beds, 'lits');
+            addRow(T, 'Lits campings (INSEE)', data.inseeStats.camping_beds, 'lits');
+            addRow(T, 'Lits héb. collectifs (INSEE)', data.inseeStats.collective_beds, 'lits');
+            if (data.inseeStats.hotel_stars) {
+                Object.entries(data.inseeStats.hotel_stars)
+                    .filter(([rank, val]) => val > 0 && rank !== 'NC')
+                    .forEach(([rank, count]) => {
+                        addRow(T, `Hôtels ${rank} étoile(s)`, count, 'hôtels');
+                    });
+            }
+        }
+
+        // ── Marketing digital ──
+        const M = 'Marketing digital';
+        addRow(M, 'Présence numérique', data.digitalPresenceCount, 'POIs');
+        if (data.totalFiltered > 0) {
+            addRow(M, 'Présence numérique (%)', (data.digitalPresenceCount / data.totalFiltered * 100).toFixed(1), '%');
+        }
+        addRow(M, 'Avec site web', data.websiteCount, 'POIs');
+        addRow(M, 'Avec réseaux sociaux', data.socialMediaCount, 'POIs');
+        addRow(M, 'Avec Wikivoyage', data.wikivoyageCount, 'POIs');
+
+        // ── Densités ──
+        if (data.areaKm2 > 0) {
+            const D = 'Densités';
+            addRow(D, 'Densité sentiers piétons', (data.pedestrianTrailLength / data.areaKm2).toFixed(2), 'km / km²');
+            addRow(D, 'Densité pistes cyclables', (data.cyclingTrailLength / data.areaKm2).toFixed(2), 'km / km²');
+            if (data.population && data.population > 0) {
+                const bestBeds = data.inseeStats
+                    ? (data.inseeStats.hotel_beds + data.inseeStats.camping_beds + data.inseeStats.collective_beds)
+                    : data.totalBeds;
+                addRow(D, 'Capacité d\'accueil', ((bestBeds / data.population) * 100).toFixed(1), 'lits / 100 hab.');
+            }
+        }
+
+        // ── Catégories de POIs ──
+        const C = 'Répartition POIs';
+        const categoryCounts = {};
+        data.pois.forEach(p => {
+            categoryCounts[p.category] = (categoryCounts[p.category] || 0) + 1;
+        });
+        const catLabels = this.categories.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
+        Object.entries(categoryCounts)
+            .sort((a, b) => b[1] - a[1])
+            .forEach(([catId, count]) => {
+                addRow(C, catLabels[catId] || catId, count, 'POIs');
+            });
+
+        return rows.join('\n');
+    }
+
+    /**
+     * Génère le contenu CSV du fichier Micro.
+     * Dynamique : scanne toutes les propriétés présentes dans les POIs.
+     * @param {Array} pois — Liste des POIs
+     * @returns {string} contenu CSV
+     */
+    generateMicroCsv(pois) {
+        if (!pois || pois.length === 0) return '';
+
+        const esc = (v) => this._csvEscape(v);
+        const catLabels = this.categories.reduce((acc, c) => { acc[c.id] = c.label; return acc; }, {});
+        const fmtDist = (d) => d !== undefined && d !== null ? Math.round(d) : '';
+        const yesNo = (v) => v ? 'Oui' : 'Non';
+
+        // ── Définition des colonnes, organisées par catégorie ──
+        const columns = [
+            // Identité
+            { header: 'ID_OSM', get: p => p.id },
+            { header: 'Nom', get: p => p.name },
+            { header: 'Catégorie', get: p => catLabels[p.category] || p.category },
+            { header: 'Type', get: p => this.translateType(p.type) },
+            { header: 'Type_brut', get: p => p.type },
+            { header: 'Latitude', get: p => p.lat },
+            { header: 'Longitude', get: p => p.lng || p.lon },
+
+            // Wikipedia
+            { header: 'Wikipedia_tag', get: p => p.tags?.wikipedia || '' },
+            { header: 'Wikidata_tag', get: p => p.tags?.wikidata || '' },
+            { header: 'Wikipedia_URL', get: p => {
+                const url = this._getWikipediaUrl(p.tags || {});
+                return url || '';
+            }},
+
+            // Photos
+            { header: 'Photo_image', get: p => p.tags?.image || '' },
+            { header: 'Photo_wikimedia', get: p => p.tags?.wikimedia_commons || '' },
+            { header: 'Photo_mapillary', get: p => p.tags?.mapillary || '' },
+            { header: 'Photos_présentes', get: p => yesNo(p.tags?.image || p.tags?.wikimedia_commons || p.tags?.mapillary || p.digital?.hasPhotos) },
+
+            // Langues
+            { header: 'Langues_Wikidata', get: p => p.digital?.wikidataLanguagesCount != null ? p.digital.wikidataLanguagesCount : '' },
+
+            // UNESCO
+            { header: 'UNESCO_distance_m', get: p => fmtDist(p.nearestWhcDist) },
+            { header: 'UNESCO_nom', get: p => p.nearestWhcName || '' },
+            { header: 'Dans_site_UNESCO', get: p => p.isInWhcSite !== undefined ? yesNo(p.isInWhcSite) : '' },
+
+            // Natura 2000
+            { header: 'Natura2000_distance_m', get: p => fmtDist(p.nearestNaturaDist) },
+            { header: 'Natura2000_nom', get: p => p.nearestNaturaName || '' },
+            { header: 'Dans_site_Natura2000', get: p => p.isInNaturaSite !== undefined ? yesNo(p.isInNaturaSite) : '' },
+
+            // Bornes de recharge
+            { header: 'Borne_recharge_distance_m', get: p => fmtDist(p.nearestServiceChargingDist) },
+            { header: 'Borne_recharge_nom', get: p => p.nearestServiceChargingName || '' },
+
+            // Transport
+            { header: 'Bus_distance_m', get: p => fmtDist(p.nearestBusStopDist) },
+            { header: 'Bus_nom', get: p => p.nearestBusStopName || '' },
+            { header: 'Gare_distance_m', get: p => fmtDist(p.nearestTrainStationDist) },
+            { header: 'Gare_nom', get: p => p.nearestTrainStationName || '' },
+            { header: 'Aéroport_distance_m', get: p => fmtDist(p.nearestAirportDist) },
+            { header: 'Aéroport_nom', get: p => p.nearestAirportName || '' },
+
+            // Services
+            { header: 'Parking_distance_m', get: p => fmtDist(p.nearestServiceParkingDist) },
+            { header: 'Parking_nom', get: p => p.nearestServiceParkingName || '' },
+            { header: 'Toilettes_distance_m', get: p => fmtDist(p.nearestServiceToiletsDist) },
+            { header: 'Toilettes_nom', get: p => p.nearestServiceToiletsName || '' },
+
+            // Voies d'accès
+            { header: 'Route_distance_m', get: p => fmtDist(p.nearestRoadDist) },
+            { header: 'Route_nom', get: p => p.nearestRoadName || '' },
+            { header: 'Rando_distance_m', get: p => fmtDist(p.nearestHikingDist) },
+            { header: 'Rando_nom', get: p => p.nearestHikingName || '' },
+            { header: 'Cyclable_distance_m', get: p => fmtDist(p.nearestCyclingDist) },
+            { header: 'Cyclable_nom', get: p => p.nearestCyclingName || '' },
+
+            // Hébergement le plus proche
+            { header: 'Hôtel_distance_m', get: p => fmtDist(p.nearestAccomHotelDist) },
+            { header: 'Hôtel_nom', get: p => p.nearestAccomHotelName || '' },
+            { header: 'Camping_distance_m', get: p => fmtDist(p.nearestAccomCampingDist) },
+            { header: 'Camping_nom', get: p => p.nearestAccomCampingName || '' },
+            { header: 'Refuge_distance_m', get: p => fmtDist(p.nearestAccomRefugeDist) },
+            { header: 'Refuge_nom', get: p => p.nearestAccomRefugeName || '' },
+            { header: 'Gîte_distance_m', get: p => fmtDist(p.nearestAccomGiteDist) },
+            { header: 'Gîte_nom', get: p => p.nearestAccomGiteName || '' },
+
+            // Digital
+            { header: 'Site_web', get: p => yesNo(p.digital?.hasWebsite) },
+            { header: 'Site_web_URL', get: p => p.tags?.website || p.tags?.['contact:website'] || p.tags?.url || '' },
+            { header: 'Réseaux_sociaux', get: p => yesNo(p.digital?.hasSocialMedia) },
+            { header: 'Facebook', get: p => p.tags?.facebook || p.tags?.['contact:facebook'] || '' },
+            { header: 'Instagram', get: p => p.tags?.instagram || p.tags?.['contact:instagram'] || '' },
+            { header: 'Twitter', get: p => p.tags?.twitter || p.tags?.['contact:twitter'] || '' },
+            { header: 'Youtube', get: p => p.tags?.youtube || p.tags?.['contact:youtube'] || '' },
+            { header: 'Wikivoyage', get: p => yesNo(p.digital?.hasWikivoyage) },
+
+            // Tourisme
+            { header: 'Étoiles', get: p => p.tags?.stars || p.tags?.['stars:tourism'] || '' },
+            { header: 'Cuisine', get: p => p.tags?.cuisine || '' },
+            { header: 'Capacité', get: p => p.tags?.capacity || '' },
+            { header: 'Lits', get: p => p.tags?.beds || '' },
+            { header: 'Chambres', get: p => p.tags?.rooms || '' },
+            { header: 'Horaires', get: p => p.tags?.opening_hours || '' },
+            { header: 'PMR', get: p => p.tags?.wheelchair || '' },
+
+            // Infos générales
+            { header: 'Description', get: p => p.tags?.description || p.tags?.['description:fr'] || '' },
+            { header: 'Téléphone', get: p => p.tags?.phone || p.tags?.['contact:phone'] || '' },
+            { header: 'Email', get: p => p.tags?.email || p.tags?.['contact:email'] || '' },
+            { header: 'Adresse', get: p => {
+                const t = p.tags || {};
+                const parts = [t['addr:housenumber'], t['addr:street'], t['addr:postcode'], t['addr:city']].filter(Boolean);
+                return parts.join(' ');
+            }},
+            { header: 'Altitude', get: p => p.tags?.ele || '' },
+
+            // OSM Métadonnées
+            { header: 'OSM_version', get: p => p.osmMetadata?.version || '' },
+            { header: 'OSM_dernière_modif', get: p => p.osmMetadata?.timestamp || '' },
+            { header: 'OSM_utilisateur', get: p => p.osmMetadata?.user || '' },
+
+            // Score de complétude
+            { header: 'Score_complétude_%', get: p => {
+                try { return this._computeCompleteness(p); } catch(e) { return ''; }
+            }},
+        ];
+
+        // ── Détecter les tags OSM supplémentaires non encore couverts ──
+        // On scanne toutes les clés de tags présentes dans les POIs
+        const coveredTagKeys = new Set([
+            'name', 'wikipedia', 'wikidata', 'image', 'wikimedia_commons', 'mapillary',
+            'website', 'contact:website', 'url', 'facebook', 'contact:facebook',
+            'instagram', 'contact:instagram', 'twitter', 'contact:twitter',
+            'youtube', 'contact:youtube', 'linkedin', 'contact:linkedin',
+            'tiktok', 'contact:tiktok', 'wikivoyage', 'stars', 'stars:tourism',
+            'cuisine', 'capacity', 'beds', 'rooms', 'opening_hours', 'wheelchair',
+            'description', 'description:fr', 'phone', 'contact:phone',
+            'email', 'contact:email', 'addr:housenumber', 'addr:street',
+            'addr:postcode', 'addr:city', 'ele'
+        ]);
+
+        const extraTagKeys = new Set();
+        pois.forEach(p => {
+            if (p.tags) {
+                Object.keys(p.tags).forEach(key => {
+                    if (!coveredTagKeys.has(key)) extraTagKeys.add(key);
+                });
+            }
+        });
+
+        // Ajouter les colonnes dynamiques pour les tags non couverts
+        const sortedExtraTags = Array.from(extraTagKeys).sort();
+        sortedExtraTags.forEach(tagKey => {
+            columns.push({
+                header: `tag:${tagKey}`,
+                get: p => p.tags?.[tagKey] || ''
+            });
+        });
+
+        // ── Générer le CSV ──
+        const headerRow = columns.map(c => esc(c.header)).join(';');
+        const dataRows = pois.map(poi => {
+            return columns.map(col => esc(col.get(poi))).join(';');
+        });
+
+        return [headerRow, ...dataRows].join('\n');
     }
 }
 
