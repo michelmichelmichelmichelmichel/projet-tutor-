@@ -2854,7 +2854,7 @@ export class UiRenderer {
                         <div class="density-bar__header">
                             <span class="density-bar__label">Accommodation Density</span>
                             <div class="density-bar__metrics">
-                                <span class="density-bar__value" style="color:#a78bfa;">${accomDensity.toFixed(0)} <span class="density-bar__unit">places-jours / km²</span></span>
+                                <span class="density-bar__value" style="color:#a78bfa;">${accomDensity.toFixed(0)} <span class="density-bar__unit">lits / km²</span></span>
                                 <span class="density-bar__rating">(${rating})</span>
                             </div>
                         </div>
