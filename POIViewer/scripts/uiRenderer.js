@@ -5448,55 +5448,61 @@ export class UiRenderer {
             </div>`;
 
         // ── 5. TOURISM — Saturation Index ────────────────────────────────────
-        const accommodationTypes = new Set([
-            'hotel', 'guest_house', 'hostel', 'camp_site', 'chalet',
-            'alpine_hut', 'apartment', 'motel', 'caravan_site', 'shelter',
-            'wilderness_hut', 'bed_and_breakfast', 'holiday_flat', 'camp_pitch'
-        ]);
-        let accomCount = 0;
-        pois.forEach(p => {
-            if (p.category === 'accommodation' || accommodationTypes.has(p.type)) accomCount++;
-        });
+        let totalArrivals = 0;
+        let tiSource = '';
+        let avgMonthlyBedsRo = null;
 
-        // Tourist Density = POIs / km²
-        const touristDensity = areaKm2 > 0 ? totalRaw / areaKm2 : 0;
+        if (romaniaStats?.data?.monthly_data) {
+            const roMonths = Object.keys(romaniaStats.data.monthly_data);
+            if (roMonths.length > 0) {
+                totalArrivals = roMonths.reduce((s, m) => s + (romaniaStats.data.monthly_data[m]?.arrivals?.total || 0), 0);
+                const totBeds = roMonths.reduce((sum, m) => sum + (romaniaStats.data.monthly_data[m]?.bed_capacity?.total || 0), 0);
+                avgMonthlyBedsRo = totBeds / roMonths.length;
+                if (totalArrivals > 0) tiSource = 'INSSE';
+            }
+        }
+
+        // 1. Tourist Density = Arrivals / km²
+        const touristDensity = areaKm2 > 0 ? totalArrivals / areaKm2 : 0;
         let tdRating = '';
-        if (touristDensity < 10) tdRating = 'Faible';
-        else if (touristDensity < 50) tdRating = 'Modérée';
-        else if (touristDensity < 200) tdRating = 'Élevée';
+        if (touristDensity === 0) tdRating = 'N/A';
+        else if (touristDensity < 100) tdRating = 'Faible';
+        else if (touristDensity < 500) tdRating = 'Modérée';
+        else if (touristDensity < 2000) tdRating = 'Élevée';
         else tdRating = 'Très élevée';
 
-        // Accommodation Density = (accom * 100) / (area)
-        const accomDensity = areaKm2 > 0 ? (accomCount / areaKm2) : 0;
+        // 2. Accommodation Density = Beds / km²
+        let bestAccomBeds = 0;
+        if (inseeStats) {
+            bestAccomBeds = (inseeStats.hotel_beds || 0) + (inseeStats.camping_beds || 0) + (inseeStats.collective_beds || 0);
+        } else if (avgMonthlyBedsRo !== null) {
+            bestAccomBeds = avgMonthlyBedsRo;
+        } else {
+            // fallback OSM beds
+            pois.forEach(p => {
+                if (p.tags?.beds) bestAccomBeds += parseInt(p.tags.beds, 10) || 0;
+            });
+        }
+
+        const accomDensity = areaKm2 > 0 ? (bestAccomBeds / areaKm2) : 0;
         let adRating = '';
-        if (accomDensity < 1) adRating = 'Faible';
-        else if (accomDensity < 5) adRating = 'Modérée';
-        else if (accomDensity < 20) adRating = 'Élevée';
+        if (accomDensity === 0) adRating = 'N/A';
+        else if (accomDensity < 500) adRating = 'Faible';
+        else if (accomDensity < 5000) adRating = 'Modérée';
+        else if (accomDensity < 20000) adRating = 'Élevée';
         else adRating = 'Très élevée';
 
-        // Tourist Intensity = accom / (population * area) * 100 (Tourism Saturation Index from the spec)
-        let tiValue = 0, tiRating = '', tiSource = '';
+        // 3. Tourist Intensity = Arrivals / population
+        let tiValue = 0, tiRating = '';
         const pop = population || 0;
-        if (pop > 0 && areaKm2 > 0) {
-            // Best beds count: INSEE > Romania > OSM count
-            let bestAccom = accomCount;
-            if (inseeStats) {
-                bestAccom = inseeStats.total_loc || accomCount;
-                tiSource = 'INSEE';
-            } else if (romaniaStats?.data?.annual_capacity?.total) {
-                const years = Object.keys(romaniaStats.data.annual_capacity.total).sort();
-                if (years.length > 0) {
-                    bestAccom = romaniaStats.data.annual_capacity.total[years[years.length - 1]];
-                    tiSource = 'INSSE';
-                }
-            } else {
-                tiSource = 'OSM';
-            }
-            tiValue = (bestAccom * 100) / (pop * areaKm2);
-            if (tiValue < 0.1) tiRating = 'Faible';
-            else if (tiValue < 1) tiRating = 'Modérée';
-            else if (tiValue < 5) tiRating = 'Élevée';
-            else tiRating = 'Très élevée';
+        if (pop > 0 && totalArrivals > 0) {
+            tiValue = totalArrivals / pop;
+            if (tiValue < 1) tiRating = 'Faible';
+            else if (tiValue < 5) tiRating = 'Modérée';
+            else if (tiValue < 20) tiRating = 'Élevée';
+            else tiRating = 'Saturation';
+        } else if (pop > 0) {
+            tiRating = 'N/A';
         }
 
         const fmtDensity = (v) => {
@@ -5506,21 +5512,40 @@ export class UiRenderer {
             return v.toFixed(3);
         };
 
+        const buildProgressBar = (val, max, color) => {
+            let pct = (val / max) * 100;
+            if (pct > 100) pct = 100;
+            return `
+                <div style="width:100%; height:4px; background:rgba(255,255,255,0.1); border-radius:2px; margin-top:2px; overflow:hidden;">
+                    <div style="width:${pct}%; height:100%; background:${color}; border-radius:2px; box-shadow:0 0 5px ${color}88;"></div>
+                </div>
+            `;
+        };
+
         const tourismCard = `
             <div class="dashboard-kpi dashboard-kpi--tourism">
                 <div class="dashboard-kpi__title">🏖️ Tourisme</div>
-                <div class="dashboard-kpi__body">
-                    <div class="dash-metric">
-                        <span class="dash-metric__label">Tourist Density</span>
-                        <span class="dash-metric__val" style="color:#a78bfa;">${fmtDensity(touristDensity)} <span class="dash-metric__rating">${tdRating}</span></span>
+                <div class="dashboard-kpi__body" style="display:flex; flex-direction:column; gap:6px;">
+                    <div style="display:flex; flex-direction:column;">
+                        <div class="dash-metric" style="padding-bottom:0;">
+                            <span class="dash-metric__label">Tourist Density</span>
+                            <span class="dash-metric__val" style="color:#a78bfa;">${touristDensity === 0 ? 'N/A' : fmtDensity(touristDensity)} <span class="dash-metric__rating">${tdRating}</span></span>
+                        </div>
+                        ${buildProgressBar(touristDensity, 5000, '#a78bfa')}
                     </div>
-                    <div class="dash-metric">
-                        <span class="dash-metric__label">Accommodation Density</span>
-                        <span class="dash-metric__val" style="color:#c4b5fd;">${fmtDensity(accomDensity)} <span class="dash-metric__rating">${adRating}</span></span>
+                    <div style="display:flex; flex-direction:column;">
+                        <div class="dash-metric" style="padding-bottom:0;">
+                            <span class="dash-metric__label">Accommodation Density</span>
+                            <span class="dash-metric__val" style="color:#c4b5fd;">${accomDensity === 0 ? 'N/A' : fmtDensity(accomDensity)} <span class="dash-metric__rating">${adRating}</span></span>
+                        </div>
+                        ${buildProgressBar(accomDensity, 50000, '#c4b5fd')}
                     </div>
-                    ${pop > 0 ? `<div class="dash-metric">
-                        <span class="dash-metric__label">Tourist Intensity${tiSource ? ' (' + tiSource + ')' : ''}</span>
-                        <span class="dash-metric__val" style="color:#8b5cf6;">${fmtDensity(tiValue)} <span class="dash-metric__rating">${tiRating}</span></span>
+                    ${pop > 0 ? `<div style="display:flex; flex-direction:column;">
+                        <div class="dash-metric" style="padding-bottom:0;">
+                            <span class="dash-metric__label">Tourist Intensity${tiSource ? ' (' + tiSource + ')' : ''}</span>
+                            <span class="dash-metric__val" style="color:#8b5cf6;">${tiValue === 0 ? 'N/A' : fmtDensity(tiValue)} <span class="dash-metric__rating">${tiRating}</span></span>
+                        </div>
+                        ${buildProgressBar(tiValue, 30, '#8b5cf6')}
                     </div>` : ''}
                 </div>
             </div>`;
