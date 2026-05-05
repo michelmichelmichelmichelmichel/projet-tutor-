@@ -12,6 +12,13 @@ export class UiRenderer {
         this.microSidebar = document.getElementById('micro-sidebar');
         this.closeMicroBtn = document.getElementById('close-micro-view');
 
+        // Dashboard panel references
+        this.dashboardPanel = document.getElementById('dashboard-panel');
+        this.dashboardGrid = document.getElementById('dashboard-grid');
+        this._dashboardWikivoyageCount = 0;
+        this._dashboardPageviewsTotal = 0;
+        this._dashboardPageviewsPois = 0;
+
         this.toggleFiltersBtn = document.getElementById('toggle-filters-btn');
         this.deselectAllBtn = document.getElementById('deselect-all-btn');
         this.macroFiltersContent = document.getElementById('macro-filters-content');
@@ -44,8 +51,8 @@ export class UiRenderer {
         ];
 
         this.lastPois = [];
-        this.currentSort = 'default';
-        this.groupByCategory = true;
+        this.currentSort = 'completeness_desc';
+        this.groupByCategory = false;
         this.currentCatSpotlight = '';
 
         // Definir les parcs nationaux (Coordonnées approximatives des bounding boxes + OSM Relation ID)
@@ -627,7 +634,40 @@ export class UiRenderer {
         };
 
         setupMinimize('minimize-macro-btn', 'macro-overlay');
+        setupMinimize('minimize-dashboard-btn', 'dashboard-panel');
         setupMinimize('minimize-presets-btn', 'presets-panel');
+
+        // --- "Voir les détails" BUTTON ---
+        const detailsBtn = document.getElementById('dashboard-details-btn');
+        if (detailsBtn) {
+            detailsBtn.addEventListener('click', () => {
+                // 1. Minimize dashboard
+                const dashPanel = document.getElementById('dashboard-panel');
+                const dashMinBtn = document.getElementById('minimize-dashboard-btn');
+                if (dashPanel && !dashPanel.classList.contains('minimized')) {
+                    dashPanel.classList.add('minimized');
+                    if (dashMinBtn) dashMinBtn.textContent = '+';
+                }
+
+                // 2. Expand macro overlay
+                const macroPanel = document.getElementById('macro-overlay');
+                const macroMinBtn = document.getElementById('minimize-macro-btn');
+                if (macroPanel && macroPanel.classList.contains('minimized')) {
+                    macroPanel.classList.remove('minimized');
+                    if (macroMinBtn) macroMinBtn.textContent = '−';
+                }
+
+                // 3. Show micro sidebar
+                if (this.microSidebar) {
+                    this.microSidebar.classList.add('visible');
+                    this.microSidebar.classList.remove('minimized');
+                    if (this.closeMicroBtn) {
+                        this.closeMicroBtn.textContent = '−';
+                        this.closeMicroBtn.title = 'Réduire';
+                    }
+                }
+            });
+        }
 
         // --- APPEARANCE SETTINGS PANEL (floating) ---
         const settingsBtn = document.getElementById('settings-toggle-btn');
@@ -1231,7 +1271,35 @@ export class UiRenderer {
                 <span class="stat-label">Points d'Intérêt</span>
             </div>`;
         this.poiList.innerHTML = '<p class="empty-state">Sélectionnez une zone pour voir les lieux.</p>';
-        this.toggleMicroSidebar(false);
+        
+        // Reset l'affichage de la sidebar micro par défaut (agrandie et visible)
+        this.toggleMicroSidebar(true);
+        
+        // Reset le tri par défaut
+        this.currentSort = 'completeness_desc';
+        const sortSelect = document.getElementById('poi-sort-select');
+        if (sortSelect) sortSelect.value = 'completeness_desc';
+        
+        // Reset le regroupement par catégorie par défaut
+        this.groupByCategory = false;
+        const groupToggle = document.getElementById('poi-group-by-cat');
+        if (groupToggle) groupToggle.checked = false;
+
+        // Reset dashboard panel to enlarged (not minimized)
+        if (this.dashboardPanel) {
+            this.dashboardPanel.style.display = 'none';
+            this.dashboardPanel.classList.remove('minimized');
+            const dashMinBtn = document.getElementById('minimize-dashboard-btn');
+            if (dashMinBtn) dashMinBtn.textContent = '−';
+        }
+
+        // Reset macro overlay to reduced (minimized)
+        const macroPanel = document.getElementById('macro-overlay');
+        const macroMinBtn = document.getElementById('minimize-macro-btn');
+        if (macroPanel) {
+            macroPanel.classList.add('minimized');
+            if (macroMinBtn) macroMinBtn.textContent = '+';
+        }
     }
     generateDemographicsKPI(history, osmPopulation, zoneName) {
         if ((!history || history.length === 0) && !osmPopulation) return '';
@@ -1892,6 +1960,8 @@ export class UiRenderer {
             if (romaniaStats) {
                 this._renderRomaniaTourismCharts(romaniaStats, areaKm2, population);
             }
+            // Render the dashboard (even with 0 filtered POIs, use totalRaw pois)
+            this.renderDashboard(pois, networks, areaKm2, totalRaw, inseeStats, hierarchy, population, romaniaStats);
             return;
         }
 
@@ -2015,6 +2085,9 @@ export class UiRenderer {
         this._showExportButton();
 
         this.macroStats.style.height = 'auto'; // Let it grow
+
+        // Render the minimalist 6-KPI dashboard
+        this.renderDashboard(pois, networks, areaKm2, totalRaw, inseeStats, hierarchy, population, romaniaStats);
 
         // ── Section 2: Infrastructures & activités (injected via DOM) ──────
         const infraContainer = document.getElementById('section-infra-content');
@@ -5220,6 +5293,277 @@ export class UiRenderer {
         });
 
         return [headerRow, ...dataRows].join('\n');
+    }
+
+    // ═══════════════════════════════════════════════════════════════════
+    //  DASHBOARD MINIMALISTE — 6 KPIs
+    // ═══════════════════════════════════════════════════════════════════
+
+    /**
+     * Renders the minimalist 6-KPI dashboard panel below the macro-overlay.
+     * Called at the end of renderMacroStats() to keep data in sync.
+     */
+    renderDashboard(pois, networks = [], areaKm2 = 0, totalRaw = 0, inseeStats = null, hierarchy = null, population = null, romaniaStats = null) {
+        if (!this.dashboardPanel || !this.dashboardGrid) return;
+
+        // Show panel
+        this.dashboardPanel.style.display = '';
+
+        // ── 1. LOCALISATION ─────────────────────────────────────────────────
+        let locHtml = '';
+        if (hierarchy && typeof hierarchy === 'object') {
+            const parts = [];
+            if (hierarchy.country) parts.push(`<span class="dash-breadcrumb__item">${hierarchy.country}</span>`);
+            if (hierarchy.region)  parts.push(`<span class="dash-breadcrumb__item">${hierarchy.region}</span>`);
+            if (hierarchy.dept)    parts.push(`<span class="dash-breadcrumb__item">${hierarchy.dept}</span>`);
+            if (hierarchy.city)    parts.push(`<span class="dash-breadcrumb__item dash-breadcrumb__item--highlight">${hierarchy.city}</span>`);
+            locHtml = parts.join('<span class="dash-breadcrumb__sep">›</span>');
+        }
+        if (!locHtml) locHtml = '<span class="dash-breadcrumb__item" style="opacity:0.5;">Zone personnalisée</span>';
+
+        const locCard = `
+            <div class="dashboard-kpi dashboard-kpi--loc">
+                <div class="dashboard-kpi__title">📍 Localisation</div>
+                <div class="dashboard-kpi__body">
+                    <div class="dash-breadcrumb">${locHtml}</div>
+                </div>
+            </div>`;
+
+        // ── 2. INFRASTRUCTURES ───────────────────────────────────────────────
+        const busTypes = new Set(['bus_stop', 'bus_station', 'platform']);
+        const trainTypes = new Set(['station', 'halt', 'tram_stop', 'subway_entrance']);
+        const airportTypes = new Set(['aerodrome', 'aeroway', 'airport']);
+        let transportTotal = 0, servicesTotal = 0;
+
+        pois.forEach(p => {
+            const pType = p.type || '';
+            // Transport
+            if (busTypes.has(pType) || (p.tags && p.tags.bus === 'yes') || (p.tags && p.tags.highway === 'bus_stop')) transportTotal++;
+            if (trainTypes.has(pType) || (p.tags && p.tags.railway === 'station') || (p.tags && p.tags.railway === 'halt')) transportTotal++;
+            if (airportTypes.has(pType) || (p.tags && p.tags.aeroway === 'aerodrome')) transportTotal++;
+            // Services
+            if (pType === 'parking' || pType === 'parking_space' || pType === 'bicycle_parking' || (p.tags && p.tags.amenity === 'parking')) servicesTotal++;
+            if (pType === 'toilets' || pType === 'shower' || pType === 'drinking_water' || (p.tags && (p.tags.amenity === 'toilets' || p.tags.amenity === 'shower' || p.tags.amenity === 'drinking_water'))) servicesTotal++;
+            if (pType === 'charging_station' || (p.tags && p.tags.amenity === 'charging_station')) servicesTotal++;
+        });
+
+        const infraCard = `
+            <div class="dashboard-kpi dashboard-kpi--infra">
+                <div class="dashboard-kpi__title">🏗️ Infrastructures</div>
+                <div class="dashboard-kpi__body">
+                    <div class="dash-badge-row">
+                        <div class="dash-badge dash-badge--transport">
+                            <span class="dash-badge__val">${transportTotal.toLocaleString('fr-FR')}</span>
+                            <span class="dash-badge__label">Points d'accès</span>
+                        </div>
+                        <div class="dash-badge dash-badge--service">
+                            <span class="dash-badge__val">${servicesTotal.toLocaleString('fr-FR')}</span>
+                            <span class="dash-badge__label">Installations</span>
+                        </div>
+                    </div>
+                </div>
+            </div>`;
+
+        // ── 3. SLOW MOBILITY ─────────────────────────────────────────────────
+        const pedestrianTypes = new Set(['path', 'footway', 'pedestrian', 'living_street']);
+        const cyclingTypes = new Set(['cycleway']);
+        let pedLength = 0, cycleLength = 0;
+
+        networks.forEach(net => {
+            const t = net.type;
+            const route = net.relationRoute;
+            if (pedestrianTypes.has(t) || route === 'hiking' || route === 'foot' || (net.tags && net.tags.sac_scale)) {
+                pedLength += this._getPathLength(net.geometry);
+            } else if (cyclingTypes.has(t) || route === 'bicycle' || route === 'mtb') {
+                cycleLength += this._getPathLength(net.geometry);
+            }
+        });
+
+        const pedDensity = areaKm2 > 0 ? pedLength / areaKm2 : 0;
+        const cycleDensity = areaKm2 > 0 ? cycleLength / areaKm2 : 0;
+        const maxDensity = Math.max(pedDensity, cycleDensity, 0.1);
+
+        const dashBar = (label, value, max, color, suffix = '') => {
+            const pct = max > 0 ? Math.min((value / max) * 100, 100) : 0;
+            const fmt = value < 0.01 && value > 0 ? value.toExponential(1) : value.toFixed(2);
+            return `<div class="dash-bar-row">
+                <span class="dash-bar-row__label">${label}</span>
+                <div class="dash-bar-row__track"><div class="dash-bar-row__fill" style="width:${pct}%;background:${color};"></div></div>
+                <span class="dash-bar-row__val" style="color:${color};">${fmt}${suffix}</span>
+            </div>`;
+        };
+
+        const mobilityCard = `
+            <div class="dashboard-kpi dashboard-kpi--mobility">
+                <div class="dashboard-kpi__title">🚶 Mobilité douce</div>
+                <div class="dashboard-kpi__body">
+                    ${dashBar('Sentiers piétons', pedDensity, maxDensity, '#34d399', ' km/km²')}
+                    ${dashBar('Pistes cyclables', cycleDensity, maxDensity, '#60a5fa', ' km/km²')}
+                </div>
+            </div>`;
+
+        // ── 4. TERRITORY PROFILE ─────────────────────────────────────────────
+        const categoryCounts = {};
+        pois.forEach(p => {
+            if (!categoryCounts[p.category]) categoryCounts[p.category] = 0;
+            categoryCounts[p.category]++;
+        });
+
+        const top5 = Object.entries(categoryCounts)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 5);
+
+        const maxCatDensity = top5.length > 0 && areaKm2 > 0 ? top5[0][1] / areaKm2 : 1;
+
+        let territoryBars = '';
+        top5.forEach(([catId, count]) => {
+            const catDef = this.categories.find(c => c.id === catId);
+            const label = catDef ? catDef.label : catId;
+            const color = this.getCategoryColor(catId);
+            const density = areaKm2 > 0 ? count / areaKm2 : count;
+            const suffix = areaKm2 > 0 ? ' /km²' : '';
+            territoryBars += dashBar(label, density, maxCatDensity, color, suffix);
+        });
+
+        const territoryCard = `
+            <div class="dashboard-kpi dashboard-kpi--territory">
+                <div class="dashboard-kpi__title">🗺️ Profil territorial</div>
+                <div class="dashboard-kpi__body">
+                    ${territoryBars || '<span style="font-size:0.68rem;color:var(--color-text-muted);opacity:0.6;">Aucune donnée</span>'}
+                </div>
+            </div>`;
+
+        // ── 5. TOURISM — Saturation Index ────────────────────────────────────
+        const accommodationTypes = new Set([
+            'hotel', 'guest_house', 'hostel', 'camp_site', 'chalet',
+            'alpine_hut', 'apartment', 'motel', 'caravan_site', 'shelter',
+            'wilderness_hut', 'bed_and_breakfast', 'holiday_flat', 'camp_pitch'
+        ]);
+        let accomCount = 0;
+        pois.forEach(p => {
+            if (p.category === 'accommodation' || accommodationTypes.has(p.type)) accomCount++;
+        });
+
+        // Tourist Density = POIs / km²
+        const touristDensity = areaKm2 > 0 ? totalRaw / areaKm2 : 0;
+        let tdRating = '';
+        if (touristDensity < 10) tdRating = 'Faible';
+        else if (touristDensity < 50) tdRating = 'Modérée';
+        else if (touristDensity < 200) tdRating = 'Élevée';
+        else tdRating = 'Très élevée';
+
+        // Accommodation Density = (accom * 100) / (area)
+        const accomDensity = areaKm2 > 0 ? (accomCount / areaKm2) : 0;
+        let adRating = '';
+        if (accomDensity < 1) adRating = 'Faible';
+        else if (accomDensity < 5) adRating = 'Modérée';
+        else if (accomDensity < 20) adRating = 'Élevée';
+        else adRating = 'Très élevée';
+
+        // Tourist Intensity = accom / (population * area) * 100 (Tourism Saturation Index from the spec)
+        let tiValue = 0, tiRating = '', tiSource = '';
+        const pop = population || 0;
+        if (pop > 0 && areaKm2 > 0) {
+            // Best beds count: INSEE > Romania > OSM count
+            let bestAccom = accomCount;
+            if (inseeStats) {
+                bestAccom = inseeStats.total_loc || accomCount;
+                tiSource = 'INSEE';
+            } else if (romaniaStats?.data?.annual_capacity?.total) {
+                const years = Object.keys(romaniaStats.data.annual_capacity.total).sort();
+                if (years.length > 0) {
+                    bestAccom = romaniaStats.data.annual_capacity.total[years[years.length - 1]];
+                    tiSource = 'INSSE';
+                }
+            } else {
+                tiSource = 'OSM';
+            }
+            tiValue = (bestAccom * 100) / (pop * areaKm2);
+            if (tiValue < 0.1) tiRating = 'Faible';
+            else if (tiValue < 1) tiRating = 'Modérée';
+            else if (tiValue < 5) tiRating = 'Élevée';
+            else tiRating = 'Très élevée';
+        }
+
+        const fmtDensity = (v) => {
+            if (v >= 1000) return v.toFixed(0);
+            if (v >= 10) return v.toFixed(1);
+            if (v >= 1) return v.toFixed(2);
+            return v.toFixed(3);
+        };
+
+        const tourismCard = `
+            <div class="dashboard-kpi dashboard-kpi--tourism">
+                <div class="dashboard-kpi__title">🏖️ Tourisme</div>
+                <div class="dashboard-kpi__body">
+                    <div class="dash-metric">
+                        <span class="dash-metric__label">Tourist Density</span>
+                        <span class="dash-metric__val" style="color:#a78bfa;">${fmtDensity(touristDensity)} <span class="dash-metric__rating">${tdRating}</span></span>
+                    </div>
+                    <div class="dash-metric">
+                        <span class="dash-metric__label">Accommodation Density</span>
+                        <span class="dash-metric__val" style="color:#c4b5fd;">${fmtDensity(accomDensity)} <span class="dash-metric__rating">${adRating}</span></span>
+                    </div>
+                    ${pop > 0 ? `<div class="dash-metric">
+                        <span class="dash-metric__label">Tourist Intensity${tiSource ? ' (' + tiSource + ')' : ''}</span>
+                        <span class="dash-metric__val" style="color:#8b5cf6;">${fmtDensity(tiValue)} <span class="dash-metric__rating">${tiRating}</span></span>
+                    </div>` : ''}
+                </div>
+            </div>`;
+
+        // ── 6. NOTORIETY ─────────────────────────────────────────────────────
+        // Wikivoyage + Wikipedia data are loaded async, so we use cached values
+        // that get updated by updateDashboardNotoriety()
+        const wvCount = this._dashboardWikivoyageCount || 0;
+        const pvTotal = this._dashboardPageviewsTotal || 0;
+        const pvPois = this._dashboardPageviewsPois || 0;
+
+        const notorietyCard = `
+            <div class="dashboard-kpi dashboard-kpi--notoriety">
+                <div class="dashboard-kpi__title">🌍 Notoriété</div>
+                <div class="dashboard-kpi__body">
+                    <div class="dash-notoriety-big">
+                        <span class="dash-notoriety-big__val" id="dash-wv-count">${wvCount}</span>
+                        <span class="dash-notoriety-big__label">articles Wikivoyage</span>
+                    </div>
+                    <div class="dash-pv-mini">
+                        <span class="dash-pv-mini__val" id="dash-pv-total">${pvTotal > 0 ? pvTotal.toLocaleString('fr-FR') : '—'}</span>
+                        <span class="dash-pv-mini__label">${pvPois > 0 ? `vues (${pvPois} POIs)` : 'vues Wikipedia'}</span>
+                    </div>
+                </div>
+            </div>`;
+
+        this.dashboardGrid.innerHTML = locCard + infraCard + mobilityCard + territoryCard + tourismCard + notorietyCard;
+    }
+
+    /**
+     * Updates the notoriety section of the dashboard with async-loaded data.
+     * Called after Wikivoyage/Pageviews data arrives.
+     */
+    updateDashboardNotoriety(wikivoyageData = null, pageviewsData = null) {
+        if (wikivoyageData) {
+            this._dashboardWikivoyageCount = wikivoyageData.totalUnique || 0;
+        }
+        if (pageviewsData) {
+            const results = pageviewsData.results || [];
+            this._dashboardPageviewsTotal = results.reduce((s, d) => s + d.views, 0);
+            this._dashboardPageviewsPois = pageviewsData.totalWikiPois || 0;
+        }
+
+        // Update DOM elements if they exist
+        const wvEl = document.getElementById('dash-wv-count');
+        const pvEl = document.getElementById('dash-pv-total');
+
+        if (wvEl) wvEl.textContent = this._dashboardWikivoyageCount || 0;
+        if (pvEl) {
+            pvEl.textContent = this._dashboardPageviewsTotal > 0
+                ? this._dashboardPageviewsTotal.toLocaleString('fr-FR')
+                : '—';
+            const labelEl = pvEl.nextElementSibling;
+            if (labelEl && this._dashboardPageviewsPois > 0) {
+                labelEl.textContent = `vues (${this._dashboardPageviewsPois} POIs)`;
+            }
+        }
     }
 }
 

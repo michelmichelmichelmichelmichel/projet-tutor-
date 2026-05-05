@@ -164,11 +164,13 @@ body {
 }
 
 #macro-overlay.minimized {
-    height: 64px;
+    height: auto;
+    min-height: 0;
     overflow: hidden;
 }
 
-#macro-overlay.minimized .instructions {
+#macro-overlay.minimized .instructions,
+#macro-overlay.minimized .stats-grid {
     display: none;
 }
 
@@ -3113,8 +3115,13 @@ body {
     line-height: 1.1;
 }
 
-.env-card--unesco .env-card__count { color: #f59e0b; }
-.env-card--natura .env-card__count { color: #22c55e; }
+.env-card--unesco .env-card__count {
+    color: #f59e0b;
+}
+
+.env-card--natura .env-card__count {
+    color: #22c55e;
+}
 
 .env-card__label {
     font-size: 0.65rem;
@@ -3169,9 +3176,20 @@ body {
 
 /* Pulse animation for highlighted env markers */
 @keyframes envPulse {
-    0% { transform: scale(1); opacity: 0.9; }
-    50% { transform: scale(1.4); opacity: 0.4; }
-    100% { transform: scale(1); opacity: 0.9; }
+    0% {
+        transform: scale(1);
+        opacity: 0.9;
+    }
+
+    50% {
+        transform: scale(1.4);
+        opacity: 0.4;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.9;
+    }
 }
 
 .env-pulse-marker {
@@ -3186,7 +3204,7 @@ body {
     border-radius: 10px;
     padding: 10px;
     margin-bottom: 8px;
-    background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02));
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
     border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -3277,7 +3295,7 @@ body {
 .completeness-dim__track {
     flex: 1;
     height: 5px;
-    background: rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 3px;
     overflow: hidden;
 }
@@ -3329,7 +3347,7 @@ body {
 .completeness-cat__track {
     flex: 1;
     height: 4px;
-    background: rgba(255,255,255,0.06);
+    background: rgba(255, 255, 255, 0.06);
     border-radius: 2px;
     overflow: hidden;
 }
@@ -3355,4 +3373,341 @@ body {
     text-align: right;
     opacity: 0.6;
 }
+
+/* ============================================
+   MACRO COLUMN (stacks macro-overlay + dashboard)
+   ============================================ */
+
+#macro-column {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 320px;
+    max-width: 480px;
+}
+
+/* ============================================
+   DASHBOARD PANEL — 6 KPIs minimaliste
+   ============================================ */
+
+#dashboard-panel {
+    padding: 14px 16px;
+    z-index: var(--z-overlay);
+    transition: opacity 0.35s ease, transform 0.35s ease;
+    animation: dashboardSlideIn 0.4s ease both;
+}
+
+#dashboard-panel.minimized {
+    overflow: hidden;
+}
+
+#dashboard-panel.minimized .dashboard-grid,
+#dashboard-panel.minimized .dashboard-details-btn {
+    display: none;
+}
+
+/* "Voir les détails" button */
+.dashboard-details-btn {
+    display: block;
+    width: 100%;
+    margin-top: 8px;
+    padding: 7px 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--radius-sm);
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--color-text-muted);
+    font-family: "Google Sans", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.dashboard-details-btn:hover {
+    background: rgba(96, 165, 250, 0.12);
+    color: #fff;
+    border-color: rgba(96, 165, 250, 0.35);
+}
+
+@keyframes dashboardSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.dashboard-header h2 {
+    font-weight: 700;
+    font-size: 0.88rem;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* 6-card grid: 2 columns × 3 rows */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+}
+
+/* Individual KPI card */
+.dashboard-kpi {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: var(--radius-sm);
+    padding: 10px 11px 9px;
+    position: relative;
+    overflow: hidden;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.dashboard-kpi:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.14);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+
+/* Accent left stripe */
+.dashboard-kpi::before {
+    content: '';
+    position: absolute;
+    top: 6px;
+    left: 0;
+    bottom: 6px;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: var(--kpi-accent, rgba(255, 255, 255, 0.15));
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.dashboard-kpi:hover::before {
+    opacity: 1;
+}
+
+/* Color variants (via CSS custom property) */
+.dashboard-kpi--loc      { --kpi-accent: #10b981; }
+.dashboard-kpi--infra    { --kpi-accent: #fbbf24; }
+.dashboard-kpi--mobility { --kpi-accent: #34d399; }
+.dashboard-kpi--territory{ --kpi-accent: #60a5fa; }
+.dashboard-kpi--tourism  { --kpi-accent: #a78bfa; }
+.dashboard-kpi--notoriety{ --kpi-accent: #ec4899; }
+
+.dashboard-kpi__icon {
+    font-size: 0.82rem;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.dashboard-kpi__title {
+    font-size: 0.62rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-text-muted);
+    margin-bottom: 5px;
+}
+
+.dashboard-kpi__body {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+/* Breadcrumb for Localisation */
+.dash-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 1px;
+}
+
+.dash-breadcrumb__item {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.65);
+    font-weight: 400;
+}
+
+.dash-breadcrumb__sep {
+    font-size: 0.6rem;
+    color: var(--color-primary);
+    opacity: 0.5;
+    margin: 0 2px;
+}
+
+.dash-breadcrumb__item--highlight {
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+/* Badge pair (Transports / Services) */
+.dash-badge-row {
+    display: flex;
+    gap: 4px;
+}
+
+.dash-badge {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 5px 4px;
+    border-radius: var(--radius-sm);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.dash-badge__val {
+    font-size: 1rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #fff;
+}
+
+.dash-badge__label {
+    font-size: 0.55rem;
+    color: var(--color-text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-top: 2px;
+    text-align: center;
+}
+
+.dash-badge--transport {
+    border-color: rgba(251, 191, 36, 0.2);
+    background: rgba(251, 191, 36, 0.06);
+}
+
+.dash-badge--transport .dash-badge__val {
+    color: #fbbf24;
+}
+
+.dash-badge--service {
+    border-color: rgba(14, 165, 233, 0.2);
+    background: rgba(14, 165, 233, 0.06);
+}
+
+.dash-badge--service .dash-badge__val {
+    color: #0ea5e9;
+}
+
+/* Mini horizontal bars (shared by Mobility, Territory, Tourism) */
+.dash-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 2px;
+}
+
+.dash-bar-row__label {
+    font-size: 0.62rem;
+    color: rgba(255, 255, 255, 0.7);
+    width: 70px;
+    flex-shrink: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.dash-bar-row__track {
+    flex: 1;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.06);
+    border-radius: 3px;
+    overflow: hidden;
+    min-width: 30px;
+}
+
+.dash-bar-row__fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.6s ease;
+}
+
+.dash-bar-row__val {
+    font-size: 0.62rem;
+    font-weight: 600;
+    flex-shrink: 0;
+    min-width: 32px;
+    text-align: right;
+}
+
+/* Tourism saturation metrics */
+.dash-metric {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 2px 0;
+}
+
+.dash-metric__label {
+    font-size: 0.62rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.dash-metric__val {
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.dash-metric__rating {
+    font-size: 0.55rem;
+    color: var(--color-text-muted);
+    margin-left: 4px;
+    font-weight: 400;
+}
+
+/* Notoriety compact */
+.dash-notoriety-big {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.dash-notoriety-big__val {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #fff;
+    line-height: 1;
+}
+
+.dash-notoriety-big__label {
+    font-size: 0.6rem;
+    color: var(--color-text-muted);
+}
+
+.dash-pv-mini {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    margin-top: 2px;
+}
+
+.dash-pv-mini__val {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #ec4899;
+}
+
+.dash-pv-mini__label {
+    font-size: 0.58rem;
+    color: var(--color-text-muted);
 }

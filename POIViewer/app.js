@@ -578,6 +578,9 @@ class App {
     }
 
     async handleAreaSelection(layer, name = null, type = null, ref = null) {
+        // Force le reset de l'interface (panneaux, tri, filtres) pour chaque nouvelle zone
+        this.uiRenderer.clear();
+        
         this.currentLayer = layer;
         this.uiRenderer.showLoading(true);
 
@@ -962,6 +965,7 @@ class App {
                         .then(wikivoyageData => {
                             this.currentWikivoyageData = wikivoyageData;
                             this.uiRenderer.updateWikivoyagePanel(wikivoyageData);
+                            this.uiRenderer.updateDashboardNotoriety(wikivoyageData, null);
                         })
                         .catch(err => {
                             console.warn('Erreur chargement Wikivoyage:', err);
@@ -977,6 +981,7 @@ class App {
                         .then(pageviewsData => {
                             this.currentPageviewsData = pageviewsData;
                             this.uiRenderer.updatePageviewsPanel(pageviewsData);
+                            this.uiRenderer.updateDashboardNotoriety(null, pageviewsData);
                         })
                         .catch(err => {
                             console.warn('Erreur chargement Pageviews Wikipedia:', err);
