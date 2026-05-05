@@ -1374,7 +1374,7 @@ export class ApiService {
      * @param {string} excludeCode  Code INSEE de la commune active à exclure
      */
     async fetchNeighborCommunes(deptCode, screenBounds, excludeCode = null) {
-        const url = `https://geo.api.gouv.fr/departements/${deptCode}/communes?fields=nom,code,codeDepartement&format=geojson&geometry=contour`;
+        const url = `https://geo.api.gouv.fr/departements/${deptCode}/communes?fields=nom,code,codeDepartement,codeRegion&format=geojson&geometry=contour`;
         return this._fetchAndFilterNeighbors(url, screenBounds, excludeCode, 'commune');
     }
 
@@ -1384,7 +1384,7 @@ export class ApiService {
      * @param {string} excludeCode  Code du département actif à exclure
      */
     async fetchNeighborDepts(screenBounds, excludeCode = null) {
-        const url = `https://geo.api.gouv.fr/departements?fields=nom,code&format=geojson&geometry=contour`;
+        const url = `https://geo.api.gouv.fr/departements?fields=nom,code,codeRegion&format=geojson&geometry=contour`;
         return this._fetchAndFilterNeighbors(url, screenBounds, excludeCode, 'dept');
     }
 
@@ -1429,13 +1429,31 @@ export class ApiService {
                         maxLng < screenBounds.minLng ||
                         minLng > screenBounds.maxLng);
                 })
-                .map(feature => ({
-                    name: feature.properties.nom,
-                    code: feature.properties.code,
-                    codeDepartement: feature.properties.codeDepartement || null,
-                    type: type,
-                    geometry: feature.geometry
-                }));
+                .map(feature => {
+                    const props = feature.properties;
+
+                    let hierarchy = { country: 'France' };
+                    if (type === 'commune') {
+                        hierarchy.region = props.codeRegion ? this.REGION_NAMES[props.codeRegion] : null;
+                        hierarchy.dept = props.codeDepartement ? this.DEPARTEMENT_NAMES[props.codeDepartement] : null;
+                        hierarchy.city = props.nom;
+                    } else if (type === 'dept') {
+                        hierarchy.region = props.codeRegion ? this.REGION_NAMES[props.codeRegion] : null;
+                        hierarchy.dept = props.nom;
+                    } else if (type === 'region') {
+                        hierarchy.region = props.nom;
+                    }
+
+                    return {
+                        name: props.nom,
+                        code: props.code,
+                        codeDepartement: props.codeDepartement || null,
+                        codeRegion: props.codeRegion || null,
+                        type: type,
+                        geometry: feature.geometry,
+                        hierarchy: hierarchy
+                    };
+                });
         } catch (error) {
             console.error('Erreur fetchNeighbors:', error);
             return [];

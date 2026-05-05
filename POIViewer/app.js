@@ -589,8 +589,9 @@ class App {
             // Fusionner avec l'activeZone existante pour ne pas perdre code/codeDepartement
             this.activeZone = { ...this.activeZone, name, type, ref: ref || null };
             console.log(`[AreaSelected] Name: ${name}, Type: ${type}, Ref: ${ref}`);
-        } else if (!this.activeZone) {
-            // If it's a drawn polygon and no activeZone is set yet
+        } else {
+            // S'il s'agit d'un polygone tracé à la main, on s'assure d'effacer la zone active
+            // pour qu'elle soit considérée comme "Zone personnalisée"
             this.activeZone = null;
         }
 
@@ -1498,6 +1499,14 @@ class App {
 
             this.mapManager.drawNeighborZones(neighbors, (neighbor) => {
                 // Clic sur un voisin → charger comme un nouveau preset
+                let h = neighbor.hierarchy;
+                if (!h) {
+                    h = {};
+                    if (neighbor.type === 'dept') h.dept = neighbor.name;
+                    else if (neighbor.type === 'region') h.region = neighbor.name;
+                    else h.city = neighbor.name;
+                }
+
                 const neighborAsPreset = {
                     name: neighbor.name,
                     code: neighbor.code,
@@ -1506,7 +1515,8 @@ class App {
                     adminType: neighbor.type === 'commune' ? undefined : neighbor.type,
                     osmType: neighbor.type === 'city' ? 'relation' : undefined,
                     adminLevel: neighbor.adminLevel,
-                    geometry: neighbor.geometry
+                    geometry: neighbor.geometry,
+                    hierarchy: h
                 };
                 this.uiRenderer.onPresetSelected(neighborAsPreset);
             });
