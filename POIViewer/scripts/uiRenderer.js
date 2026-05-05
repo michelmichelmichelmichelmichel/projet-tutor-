@@ -1274,6 +1274,10 @@ export class UiRenderer {
         
         // Reset l'affichage de la sidebar micro par défaut (agrandie et visible)
         this.toggleMicroSidebar(true);
+
+        // Réafficher les filtres (au cas où on changeait de zone en regardant les détails d'un POI)
+        const filtersContainer = document.getElementById('micro-filters-container');
+        if (filtersContainer) filtersContainer.style.display = '';
         
         // Reset le tri par défaut
         this.currentSort = 'completeness_desc';
@@ -1284,6 +1288,16 @@ export class UiRenderer {
         this.groupByCategory = false;
         const groupToggle = document.getElementById('poi-group-by-cat');
         if (groupToggle) groupToggle.checked = false;
+
+        // Reset category spotlight
+        this.currentCatSpotlight = '';
+        const catSpotlightSelect = document.getElementById('poi-cat-spotlight');
+        if (catSpotlightSelect) catSpotlightSelect.value = '';
+
+        // Reset search input
+        if (this.poiSearchInput) {
+            this.poiSearchInput.value = '';
+        }
 
         // Reset dashboard panel to enlarged (not minimized)
         if (this.dashboardPanel) {
