@@ -629,6 +629,17 @@ export class UiRenderer {
                     panel.classList.toggle('minimized');
                     const isMin = panel.classList.contains('minimized');
                     btn.textContent = isMin ? '+' : '−';
+                    
+                    // Si on vient d'agrandir le panneau, on force Plotly à recalculer la taille des graphiques
+                    // car ils ne peuvent pas se dimensionner correctement s'ils étaient en display:none (minimized)
+                    if (!isMin) {
+                        setTimeout(() => {
+                            const plots = panel.querySelectorAll('.js-plotly-plot');
+                            plots.forEach(plot => {
+                                try { Plotly.Plots.resize(plot); } catch(e) {}
+                            });
+                        }, 50); // Petit délai pour laisser le CSS s'appliquer
+                    }
                 });
             }
         };
@@ -655,6 +666,14 @@ export class UiRenderer {
                 if (macroPanel && macroPanel.classList.contains('minimized')) {
                     macroPanel.classList.remove('minimized');
                     if (macroMinBtn) macroMinBtn.textContent = '−';
+                    
+                    // Force resize des graphiques Plotly
+                    setTimeout(() => {
+                        const plots = macroPanel.querySelectorAll('.js-plotly-plot');
+                        plots.forEach(plot => {
+                            try { Plotly.Plots.resize(plot); } catch(e) {}
+                        });
+                    }, 50);
                 }
 
                 // 3. Show micro sidebar
@@ -3126,6 +3145,16 @@ export class UiRenderer {
                 body.style.display = isOpen ? 'none' : 'block';
                 if (chevron) {
                     chevron.style.transform = isOpen ? '' : 'rotate(180deg)';
+                }
+
+                // Si on vient d'ouvrir la section, on force le resize des graphiques Plotly à l'intérieur
+                if (!isOpen) {
+                    setTimeout(() => {
+                        const plots = body.querySelectorAll('.js-plotly-plot');
+                        plots.forEach(plot => {
+                            try { Plotly.Plots.resize(plot); } catch(e) {}
+                        });
+                    }, 50);
                 }
             });
         });
