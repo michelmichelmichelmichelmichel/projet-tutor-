@@ -2243,14 +2243,14 @@ export class UiRenderer {
                 ids: ['AccomRoot'], labels: ['Hébergements'], parents: [''], values: [totalAccom],
                 colors: ['rgba(167,139,250,0.25)']
             };
-            const baseColors = ['#c4b5fd', '#a78bfa', '#8b5cf6', '#7c3aed', '#6d28d9', '#5b21b6', '#4c1d95', '#ddd6fe', '#ede9fe', '#e9d5ff', '#d8b4fe', '#b794f4', '#9f7aea', '#805ad5'];
             let ci = 0;
             Object.entries(accomCounts).sort((a, b) => b[1] - a[1]).forEach(([key, count]) => {
                 accomTreemap.ids.push(key);
                 accomTreemap.labels.push(accomTags[key]);
                 accomTreemap.parents.push('AccomRoot');
                 accomTreemap.values.push(count);
-                accomTreemap.colors.push(baseColors[ci % baseColors.length]);
+                // Dégradé de violet
+                accomTreemap.colors.push(this.adjustColor('#a78bfa', ci * 12));
                 ci++;
             });
             addMiniTreemap('Hébergements par type', accomTreemap, `${Object.keys(accomCounts).length} types`, tourismeContainer);
@@ -2277,13 +2277,15 @@ export class UiRenderer {
                 ids: ['SacRoot'], labels: ['Sentiers piétons'], parents: [''], values: [totalSac],
                 colors: ['rgba(52,211,153,0.25)']
             };
-            const sacColors = { 'hiking': '#facc15', 'mountain_hiking': '#ef4444', 'demanding_mountain_hiking': '#dc2626', 'alpine_hiking': '#1e1e1e', 'demanding_alpine_hiking': '#000000' };
+            let ci = 0;
             Object.entries(sacCounts).sort((a, b) => b[1] - a[1]).forEach(([key, count]) => {
                 sacTreemap.ids.push(key);
                 sacTreemap.labels.push(sacLabels[key]);
                 sacTreemap.parents.push('SacRoot');
                 sacTreemap.values.push(count);
-                sacTreemap.colors.push(sacColors[key] || '#6ee7b7');
+                // Dégradé de vert
+                sacTreemap.colors.push(this.adjustColor('#34d399', ci * 15));
+                ci++;
             });
             addMiniTreemap('Sentiers piétons par difficulté', sacTreemap, `${Object.keys(sacCounts).length} niveaux`);
         }
@@ -2312,13 +2314,15 @@ export class UiRenderer {
                 ids: ['CycleRoot'], labels: ['Offre cyclable'], parents: [''], values: [totalCycle],
                 colors: ['rgba(96,165,250,0.25)']
             };
-            const cycleColors = { 'bicycle_routes': '#f97316', 'cycleways': '#3b82f6', 'tracks': '#854d0e' };
+            let ci = 0;
             Object.entries(cycleCounts).sort((a, b) => b[1] - a[1]).forEach(([key, count]) => {
                 cycleTreemap.ids.push(key);
                 cycleTreemap.labels.push(cycleCats[key]);
                 cycleTreemap.parents.push('CycleRoot');
                 cycleTreemap.values.push(count);
-                cycleTreemap.colors.push(cycleColors[key] || '#93c5fd');
+                // Dégradé de bleu
+                cycleTreemap.colors.push(this.adjustColor('#60a5fa', ci * 20));
+                ci++;
             });
             addMiniTreemap('Chemins vélo par type', cycleTreemap, `${Object.keys(cycleCounts).length} segments`);
         }
@@ -3594,7 +3598,7 @@ export class UiRenderer {
         if (hasPhotos)                                           digital += 20;
         if (d.hasSocialMedia)                                    digital += 10;
         if (d.hasWikivoyage || t.wikivoyage)                     digital += 10;
-        if (d.wikidataLanguagesCount \u003e 0)                        digital += 10;
+        if (d.wikidataLanguagesCount > 0)                        digital += 10;
 
         general  = Math.min(general, 100);
         infra    = Math.min(infra, 100);
