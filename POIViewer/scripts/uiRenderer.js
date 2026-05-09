@@ -3535,11 +3535,13 @@ export class UiRenderer {
         const d = poi.digital || {};
 
         // ── 1. Informations générales (/100) ───────────────────────────────────
-        // Critère clé : nom (45), horaires (25), description (20), contact (10)
+        // Critères : nom (40), coordonnées (10), modif OSM (5), horaires (20), description (15), contact (10)
         let general = 0;
-        if (t.name)                                              general += 45;
-        if (t.opening_hours)                                     general += 25;
-        if (t.description || t['description:fr'])                general += 20;
+        if (t.name)                                              general += 40;
+        if (poi.lat != null && (poi.lng != null || poi.lon != null)) general += 10;
+        if (poi.osmMetadata && poi.osmMetadata.timestamp)        general += 5;
+        if (t.opening_hours)                                     general += 20;
+        if (t.description || t['description:fr'])                general += 15;
         if (t.phone || t['contact:phone'] ||
             t.email || t['contact:email'])                       general += 10;
         // Bonus: nom traduit ou adresse structurée
@@ -3568,16 +3570,21 @@ export class UiRenderer {
         if (t.fee !== undefined && t.fee !== null)               infra += 5;
 
         // ── 3. Tourisme (/100) ─────────────────────────────────────────────────
-        // Avoir un type OSM spécifique est la base (50 pts)
+        // Base catégorie (40), Wikipedia (25), Proximité sites/env (25), Détails (10)
         let tourisme = 0;
         if (t.tourism || t.historic || t.natural ||
-            t.leisure || t.amenity)                              tourisme += 50;
-        if (t.wikipedia || t.wikidata)                           tourisme += 30;
-        if (t.stars || t['stars:tourism'])                       tourisme += 10;
-        if (t.cuisine || t.sport || t.capacity)                  tourisme += 10;
+            t.leisure || t.amenity)                              tourisme += 40;
+        if (t.wikipedia || t.wikidata)                           tourisme += 25;
+        
+        // Valorisation du contexte (POIs à proximité : UNESCO, Natura 2000, hébergements)
+        const hasNearbyEnv = poi.nearestWhcDist !== undefined || poi.nearestNaturaDist !== undefined;
+        const hasNearbyAccom = poi.nearestAccomHotelDist !== undefined || poi.nearestAccomCampingDist !== undefined || poi.nearestAccomRefugeDist !== undefined;
+        if (hasNearbyEnv)                                        tourisme += 15;
+        if (hasNearbyAccom)                                      tourisme += 10;
+
+        if (t.stars || t['stars:tourism'] || t.cuisine || t.sport || t.capacity) tourisme += 10;
 
         // ── 4. Données digitales (/100) ────────────────────────────────────────
-        // Website seul = déjà bien (55 pts)
         // Website (30), Wikipedia (20), Photos (20), Social Media (10), Wikivoyage (10), Languages (10)
         let digital = 0;
         const hasPhotos = t.image || t.wikimedia_commons || t.mapillary || d.hasPhotos;
@@ -3587,7 +3594,7 @@ export class UiRenderer {
         if (hasPhotos)                                           digital += 20;
         if (d.hasSocialMedia)                                    digital += 10;
         if (d.hasWikivoyage || t.wikivoyage)                     digital += 10;
-        if (d.wikidataLanguagesCount > 0)                        digital += 10;
+        if (d.wikidataLanguagesCount \u003e 0)                        digital += 10;
 
         general  = Math.min(general, 100);
         infra    = Math.min(infra, 100);
