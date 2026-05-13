@@ -652,39 +652,7 @@ export class UiRenderer {
         const detailsBtn = document.getElementById('dashboard-details-btn');
         if (detailsBtn) {
             detailsBtn.addEventListener('click', () => {
-                // 1. Minimize dashboard
-                const dashPanel = document.getElementById('dashboard-panel');
-                const dashMinBtn = document.getElementById('minimize-dashboard-btn');
-                if (dashPanel && !dashPanel.classList.contains('minimized')) {
-                    dashPanel.classList.add('minimized');
-                    if (dashMinBtn) dashMinBtn.textContent = '+';
-                }
-
-                // 2. Expand macro overlay
-                const macroPanel = document.getElementById('macro-overlay');
-                const macroMinBtn = document.getElementById('minimize-macro-btn');
-                if (macroPanel && macroPanel.classList.contains('minimized')) {
-                    macroPanel.classList.remove('minimized');
-                    if (macroMinBtn) macroMinBtn.textContent = '−';
-                    
-                    // Force resize des graphiques Plotly
-                    setTimeout(() => {
-                        const plots = macroPanel.querySelectorAll('.js-plotly-plot');
-                        plots.forEach(plot => {
-                            try { Plotly.Plots.resize(plot); } catch(e) {}
-                        });
-                    }, 50);
-                }
-
-                // 3. Show micro sidebar
-                if (this.microSidebar) {
-                    this.microSidebar.classList.add('visible');
-                    this.microSidebar.classList.remove('minimized');
-                    if (this.closeMicroBtn) {
-                        this.closeMicroBtn.textContent = '−';
-                        this.closeMicroBtn.title = 'Réduire';
-                    }
-                }
+                this._showMacroDetails();
             });
         }
 
@@ -1686,7 +1654,7 @@ export class UiRenderer {
         const totalTrailsCount = pedestrianTrailCount + cyclingTrailCount;
         const pedPct = totalTrailsCount > 0 ? (pedestrianTrailCount / totalTrailsCount * 100) : 50;
         const trailsHtml = `
-            <div class="ind-block ind-block--green" style="margin-top:6px;">
+            <div class="ind-block ind-block--green" id="section-sentiers-pistes" style="margin-top:6px;">
                 <div class="ind-block__header">
                     <span class="ind-block__title">Sentiers & pistes</span>
                     <span class="ind-block__big">${totalTrailsCount.toLocaleString('fr-FR')} <span class="ind-block__unit">traces</span></span>
@@ -1964,7 +1932,7 @@ export class UiRenderer {
             const areaHtml = areaKm2 > 0 ? `<div class="ind-block" style="margin-bottom:6px;"><div class="ind-block__header"><span class="ind-block__title">Superficie</span><span class="ind-block__big">${areaKm2.toFixed(2)} <span class="ind-block__unit">km²</span></span></div></div>` : '';
             const envSitesHtml = this._buildEnvSitesHtml(whcCount, naturaCount, whcSites, naturaSites);
             const section1Html = totalPoisHtml + areaHtml + envSitesHtml + completenessHtml + demoHtml + densityHtml;
-            const infraKpisHtml = buildInfraKpis() + trailsHtml + '<div id="section-infra-content"></div>';
+            const infraKpisHtml = buildInfraKpis() + trailsHtml + '<div id="section-treemaps-density-services"></div><div id="section-infra-content"></div>';
             const countLabel = totalRaw > 0
                 ? `${totalRaw.toLocaleString('fr-FR')} POIs trouvés`
                 : 'POIs disponibles';
@@ -2102,7 +2070,7 @@ export class UiRenderer {
 
         const envSitesHtml = this._buildEnvSitesHtml(whcCount, naturaCount, whcSites, naturaSites);
         const section1Html = totalPoisHtml + areaHtml + envSitesHtml + completenessHtml + localisationHtml + demoHtml + densityHtml;
-        const infraKpisHtml = buildInfraKpis() + trailsHtml + `<div id="section-infra-content"></div>`;
+        const infraKpisHtml = buildInfraKpis() + trailsHtml + `<div id="section-treemaps-density-services"></div><div id="section-infra-content"></div>`;
         this.macroStats.innerHTML =
             buildCollapsibleSection('Informations générales', section1Html, 'section-info', true) +
             buildCollapsibleSection('Infrastructures & activités', infraKpisHtml, 'section-infra', true) +
@@ -3155,6 +3123,89 @@ export class UiRenderer {
                             try { Plotly.Plots.resize(plot); } catch(e) {}
                         });
                     }, 50);
+                }
+            });
+        });
+    }
+
+    _showMacroDetails() {
+        const dashPanel = document.getElementById('dashboard-panel');
+        const dashMinBtn = document.getElementById('minimize-dashboard-btn');
+        if (dashPanel && !dashPanel.classList.contains('minimized')) {
+            dashPanel.classList.add('minimized');
+            if (dashMinBtn) dashMinBtn.textContent = '+';
+        }
+
+        const macroPanel = document.getElementById('macro-overlay');
+        const macroMinBtn = document.getElementById('minimize-macro-btn');
+        if (macroPanel && macroPanel.classList.contains('minimized')) {
+            macroPanel.classList.remove('minimized');
+            if (macroMinBtn) macroMinBtn.textContent = '−';
+        }
+
+        if (this.microSidebar) {
+            this.microSidebar.classList.add('visible');
+            this.microSidebar.classList.remove('minimized');
+            if (this.closeMicroBtn) {
+                this.closeMicroBtn.textContent = '−';
+                this.closeMicroBtn.title = 'Réduire';
+            }
+        }
+
+        if (macroPanel) {
+            setTimeout(() => {
+                const plots = macroPanel.querySelectorAll('.js-plotly-plot');
+                plots.forEach(plot => {
+                    try { Plotly.Plots.resize(plot); } catch (e) {}
+                });
+            }, 50);
+        }
+    }
+
+    _openMacroSection(sectionId) {
+        const body = document.getElementById(sectionId);
+        const toggleBtn = document.querySelector(`.macro-section-toggle[data-section="${sectionId}"]`);
+        const chevron = toggleBtn?.querySelector('.macro-section-chevron');
+        if (!body) return null;
+
+        body.style.display = 'block';
+        if (chevron) chevron.style.transform = 'rotate(180deg)';
+        return body;
+    }
+
+    _navigateToMacroSection(targetId, parentSectionId = targetId) {
+        this._showMacroDetails();
+
+        const parentBody = this._openMacroSection(parentSectionId);
+        const targetEl = document.getElementById(targetId) || parentBody;
+        if (!targetEl) return;
+
+        setTimeout(() => {
+            targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            const plots = (targetEl.querySelectorAll('.js-plotly-plot').length > 0 ? targetEl : parentBody)
+                ?.querySelectorAll('.js-plotly-plot') || [];
+            plots.forEach(plot => {
+                try { Plotly.Plots.resize(plot); } catch (e) {}
+            });
+        }, 80);
+    }
+
+    _bindDashboardCardNavigation() {
+        if (!this.dashboardGrid) return;
+
+        this.dashboardGrid.querySelectorAll('[data-dashboard-target]').forEach(card => {
+            const handleNavigate = () => {
+                const targetId = card.dataset.dashboardTarget;
+                const parentSectionId = card.dataset.dashboardParent || targetId;
+                this._navigateToMacroSection(targetId, parentSectionId);
+            };
+
+            card.addEventListener('click', handleNavigate);
+            card.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleNavigate();
                 }
             });
         });
@@ -5376,7 +5427,7 @@ export class UiRenderer {
         if (!locHtml) locHtml = '<span class="dash-breadcrumb__item" style="opacity:0.5;">Zone personnalisée</span>';
 
         const locCard = `
-            <div class="dashboard-kpi dashboard-kpi--loc">
+            <div class="dashboard-kpi dashboard-kpi--loc dashboard-kpi--clickable" data-dashboard-target="section-info" data-dashboard-parent="section-info" role="button" tabindex="0" title="Ouvrir la section Informations générales">
                 <div class="dashboard-kpi__title">📍 Localisation</div>
                 <div class="dashboard-kpi__body">
                     <div class="dash-breadcrumb">${locHtml}</div>
@@ -5402,7 +5453,7 @@ export class UiRenderer {
         });
 
         const infraCard = `
-            <div class="dashboard-kpi dashboard-kpi--infra">
+            <div class="dashboard-kpi dashboard-kpi--infra dashboard-kpi--clickable" data-dashboard-target="section-infra" data-dashboard-parent="section-infra" role="button" tabindex="0" title="Ouvrir la section Infrastructures & activités">
                 <div class="dashboard-kpi__title">🏗️ Infrastructures</div>
                 <div class="dashboard-kpi__body">
                     <div class="dash-badge-row">
@@ -5448,7 +5499,7 @@ export class UiRenderer {
         };
 
         const mobilityCard = `
-            <div class="dashboard-kpi dashboard-kpi--mobility">
+            <div class="dashboard-kpi dashboard-kpi--mobility dashboard-kpi--clickable" data-dashboard-target="section-sentiers-pistes" data-dashboard-parent="section-infra" role="button" tabindex="0" title="Ouvrir la section Sentiers & pistes">
                 <div class="dashboard-kpi__title">🚶 Mobilité douce</div>
                 <div class="dashboard-kpi__body">
                     ${dashBar('Sentiers piétons', pedDensity, maxDensity, '#34d399', ' km/km²')}
@@ -5480,7 +5531,7 @@ export class UiRenderer {
         });
 
         const territoryCard = `
-            <div class="dashboard-kpi dashboard-kpi--territory">
+            <div class="dashboard-kpi dashboard-kpi--territory dashboard-kpi--clickable" data-dashboard-target="section-treemaps-density-services" data-dashboard-parent="section-infra" role="button" tabindex="0" title="Ouvrir la section Treemaps et densité des services">
                 <div class="dashboard-kpi__title">🗺️ Profil territorial</div>
                 <div class="dashboard-kpi__body">
                     ${territoryBars || '<span style="font-size:0.68rem;color:var(--color-text-muted);opacity:0.6;">Aucune donnée</span>'}
@@ -5563,7 +5614,7 @@ export class UiRenderer {
         };
 
         const tourismCard = `
-            <div class="dashboard-kpi dashboard-kpi--tourism">
+            <div class="dashboard-kpi dashboard-kpi--tourism dashboard-kpi--clickable" data-dashboard-target="section-tourisme" data-dashboard-parent="section-tourisme" role="button" tabindex="0" title="Ouvrir la section Tourisme">
                 <div class="dashboard-kpi__title">🏖️ Tourisme</div>
                 <div class="dashboard-kpi__body" style="display:flex; flex-direction:column; gap:6px;">
                     <div style="display:flex; flex-direction:column;">
@@ -5598,7 +5649,7 @@ export class UiRenderer {
         const pvPois = this._dashboardPageviewsPois || 0;
 
         const notorietyCard = `
-            <div class="dashboard-kpi dashboard-kpi--notoriety">
+            <div class="dashboard-kpi dashboard-kpi--notoriety dashboard-kpi--clickable" data-dashboard-target="section-marketing" data-dashboard-parent="section-marketing" role="button" tabindex="0" title="Ouvrir la section Marketing digital">
                 <div class="dashboard-kpi__title">🌍 Notoriété</div>
                 <div class="dashboard-kpi__body">
                     <div class="dash-notoriety-big">
@@ -5613,6 +5664,7 @@ export class UiRenderer {
             </div>`;
 
         this.dashboardGrid.innerHTML = locCard + infraCard + mobilityCard + territoryCard + tourismCard + notorietyCard;
+        this._bindDashboardCardNavigation();
     }
 
     /**

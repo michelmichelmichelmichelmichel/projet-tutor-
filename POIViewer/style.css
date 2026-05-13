@@ -3477,6 +3477,10 @@ body {
     transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
+.dashboard-kpi--clickable {
+    cursor: pointer;
+}
+
 .dashboard-kpi:hover {
     background: rgba(255, 255, 255, 0.06);
     border-color: rgba(255, 255, 255, 0.14);
@@ -3499,6 +3503,11 @@ body {
 
 .dashboard-kpi:hover::before {
     opacity: 1;
+}
+
+.dashboard-kpi--clickable:focus-visible {
+    outline: 2px solid var(--kpi-accent, rgba(255, 255, 255, 0.5));
+    outline-offset: 2px;
 }
 
 /* Color variants (via CSS custom property) */
