@@ -5246,6 +5246,38 @@ export class UiRenderer {
         addRow(M, 'Avec réseaux sociaux', data.socialMediaCount, 'POIs');
         addRow(M, 'Avec Wikivoyage', data.wikivoyageCount, 'POIs');
 
+        if (data.wikivoyageData) {
+            addRow(M, 'Articles Wikivoyage uniques', data.wikivoyageData.totalUnique, 'articles');
+            addRow(M, 'Langues articles Wikivoyage', Object.keys(data.wikivoyageData.byLang).length, 'langues');
+        }
+
+        if (data.pageviewsData) {
+            const pvTotal = data.pageviewsData.results.reduce((s, d) => s + d.views, 0);
+            const top3 = data.pageviewsData.results.slice(0, 3).map(r => r.title).join(', ');
+            addRow(M, 'Wikipedia Pageviews (3 mois)', pvTotal, 'vues');
+            addRow(M, 'Top 3 plus consultés', top3);
+        }
+
+        if (data.pois && data.pois.length > 0) {
+            const avgCompleteness = (data.pois.reduce((sum, p) => sum + this._computeCompleteness(p), 0) / data.pois.length).toFixed(1);
+            addRow(M, 'Score de complétude moyen', avgCompleteness, '/ 100');
+
+            const accommCounts = {};
+            data.pois.forEach(p => {
+                if (p.category === 'accommodation') {
+                    const t = p.type || 'Inconnu';
+                    accommCounts[t] = (accommCounts[t] || 0) + 1;
+                }
+            });
+            const accommList = Object.entries(accommCounts)
+                .sort((a, b) => b[1] - a[1])
+                .map(([type, count]) => `${type}: ${count}`)
+                .join(' | ');
+            if (accommList) {
+                addRow(M, 'Hébergements par type', accommList);
+            }
+        }
+
         // ── Densités ──
         if (data.areaKm2 > 0) {
             const D = 'Densités';
@@ -5391,6 +5423,7 @@ export class UiRenderer {
             { header: 'Chambres', get: p => p.tags?.rooms || '' },
             { header: 'Horaires', get: p => p.tags?.opening_hours || '' },
             { header: 'PMR', get: p => p.tags?.wheelchair || '' },
+            { header: 'Score_Complétude', get: p => this._computeCompleteness(p) },
 
             // Infos générales
             { header: 'Description', get: p => p.tags?.description || p.tags?.['description:fr'] || '' },

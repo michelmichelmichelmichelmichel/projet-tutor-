@@ -2086,6 +2086,8 @@ class App {
             zoneName: this.activeZone?.name || null,
             inseeStats: inseeStats,
             romaniaStats: romaniaStats,
+            wikivoyageData: this.currentWikivoyageData || null,
+            pageviewsData: this.currentPageviewsData || null,
             accommodationCount,
             totalBeds,
             totalRooms,
