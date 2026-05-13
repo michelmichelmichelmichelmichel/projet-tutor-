@@ -159,14 +159,21 @@ body {
     padding: 18px 20px;
     z-index: var(--z-overlay);
     transition: opacity 0.3s ease, transform 0.3s ease;
-    max-height: calc(100vh - 90px);
+    /* Fill remaining space in macro-column (flex child) */
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
+}
+
+#macro-overlay:not(.minimized) {
+    height: 100vh; /* Force stretch to parent's max-height */
 }
 
 #macro-overlay.minimized {
     height: auto;
     min-height: 0;
     overflow: hidden;
+    flex: 0 0 auto;
 }
 
 #macro-overlay.minimized .instructions,
@@ -3414,6 +3421,9 @@ body {
     gap: 8px;
     min-width: 320px;
     max-width: 480px;
+    /* Dynamically adjusted via JS: shrinks when presets panel is open, grows when minimized */
+    max-height: var(--macro-column-max-h, calc(100vh - 46vh - 60px));
+    transition: max-height 0.3s ease;
 }
 
 /* ============================================

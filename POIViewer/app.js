@@ -504,6 +504,7 @@ class App {
                 if (presetsPanel && presetsBtn) {
                     presetsPanel.classList.remove('minimized');
                     presetsBtn.textContent = '-';
+                    if (this.uiRenderer._updateMacroColumnHeight) this.uiRenderer._updateMacroColumnHeight();
                 }
             }
         }

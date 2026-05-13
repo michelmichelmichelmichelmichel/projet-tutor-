@@ -616,6 +616,22 @@ export class UiRenderer {
         if (panel && btn) {
             panel.classList.add('minimized');
             btn.textContent = '+';
+            this._updateMacroColumnHeight();
+        }
+    }
+
+    _updateMacroColumnHeight() {
+        const macroColumn = document.getElementById('macro-column');
+        const presetsPanel = document.getElementById('presets-panel');
+        if (macroColumn && presetsPanel) {
+            const isMinimized = presetsPanel.classList.contains('minimized');
+            if (isMinimized) {
+                // When presets is minimized (40px height + 20px bottom + 20px top)
+                macroColumn.style.maxHeight = 'calc(100vh - 80px - 20px)';
+            } else {
+                // When presets is expanded (46vh + 20px bottom + 20px top)
+                macroColumn.style.maxHeight = 'calc(100vh - 46vh - 60px)';
+            }
         }
     }
 
@@ -647,6 +663,16 @@ export class UiRenderer {
         setupMinimize('minimize-macro-btn', 'macro-overlay');
         setupMinimize('minimize-dashboard-btn', 'dashboard-panel');
         setupMinimize('minimize-presets-btn', 'presets-panel');
+
+        // Dynamically adjust macro-column height when presets panel is toggled
+        this._updateMacroColumnHeight();
+        const presetsBtn = document.getElementById('minimize-presets-btn');
+        if (presetsBtn) {
+            presetsBtn.addEventListener('click', () => {
+                // Delay slightly to let the class toggle apply first
+                requestAnimationFrame(() => this._updateMacroColumnHeight());
+            });
+        }
 
         // --- "Voir les détails" BUTTON ---
         const detailsBtn = document.getElementById('dashboard-details-btn');
