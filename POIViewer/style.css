@@ -3131,47 +3131,77 @@ body {
     margin-bottom: 6px;
 }
 
-.env-card__list {
-    text-align: left;
-    max-height: 90px;
-    overflow-y: auto;
+.env-sites-grid--single {
+    grid-template-columns: 1fr;
 }
 
-.env-card__empty {
-    font-size: 0.68rem;
-    color: var(--color-text-muted);
-    opacity: 0.5;
-    text-align: center;
-    padding: 4px 0;
+/* Badge container */
+.env-card__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    justify-content: center;
+    margin-top: 4px;
 }
 
-.env-site-item {
-    font-size: 0.7rem;
-    color: var(--color-text);
-    padding: 3px 6px;
-    border-radius: 4px;
+/* Round badge (pill / capsule) */
+.env-site-badge {
+    display: inline-block;
+    font-size: 0.62rem;
+    font-weight: 500;
+    line-height: 1;
+    padding: 4px 9px;
+    border-radius: 999px;
     cursor: pointer;
-    transition: background 0.15s ease, color 0.15s ease;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    max-width: 140px;
+    transition: background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease, transform 0.15s ease;
 }
 
-.env-site-item:hover {
-    background: rgba(255, 255, 255, 0.1);
+.env-site-badge--whc {
+    background: rgba(245, 158, 11, 0.15);
+    color: #fbbf24;
+    border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
-.env-site-item--active {
-    background: rgba(255, 255, 255, 0.15) !important;
-    font-weight: 600;
+.env-site-badge--natura {
+    background: rgba(34, 197, 94, 0.15);
+    color: #4ade80;
+    border: 1px solid rgba(34, 197, 94, 0.25);
 }
 
-.env-card--unesco .env-site-item--active {
+.env-site-badge:hover {
+    transform: scale(1.05);
+}
+
+.env-site-badge--whc:hover {
+    background: rgba(245, 158, 11, 0.28);
+    box-shadow: 0 0 8px rgba(245, 158, 11, 0.25);
+}
+
+.env-site-badge--natura:hover {
+    background: rgba(34, 197, 94, 0.28);
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.25);
+}
+
+.env-site-badge--active {
+    font-weight: 700;
+}
+
+.env-site-badge--whc.env-site-badge--active {
+    background: rgba(245, 158, 11, 0.35);
     color: #f59e0b;
+    box-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+    border-color: rgba(245, 158, 11, 0.5);
 }
 
-.env-card--natura .env-site-item--active {
+.env-site-badge--natura.env-site-badge--active {
+    background: rgba(34, 197, 94, 0.35);
     color: #22c55e;
+    box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+    border-color: rgba(34, 197, 94, 0.5);
 }
 
 /* Pulse animation for highlighted env markers */

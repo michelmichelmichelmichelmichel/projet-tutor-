@@ -3337,32 +3337,43 @@ export class UiRenderer {
 
     // ── UNESCO + Natura 2000 side-by-side cards ────────────────────────────
     _buildEnvSitesHtml(whcCount, naturaCount, whcSites = [], naturaSites = []) {
-        const buildSiteList = (sites, type) => {
-            if (!sites || sites.length === 0) return '<div class="env-card__empty">Aucun site dans la zone</div>';
-            return sites.map((s, i) =>
-                `<div class="env-site-item" data-env-type="${type}" data-env-idx="${i}" data-env-lat="${s.lat}" data-env-lon="${s.lon}" title="Localiser sur la carte">${s.name || 'Site sans nom'}</div>`
-            ).join('');
+        // Don't render anything if there are no sites at all
+        if (whcCount === 0 && naturaCount === 0) return '';
+
+        const buildSiteBadges = (sites, type) => {
+            if (!sites || sites.length === 0) return '';
+            return `<div class="env-card__badges">${sites.map((s, i) =>
+                `<span class="env-site-badge env-site-badge--${type}" data-env-type="${type}" data-env-idx="${i}" data-env-lat="${s.lat}" data-env-lon="${s.lon}" title="Localiser sur la carte">${s.name || 'Site sans nom'}</span>`
+            ).join('')}</div>`;
         };
 
-        return `
-            <div class="env-sites-grid">
+        let cards = '';
+
+        if (whcCount > 0) {
+            cards += `
                 <div class="env-card env-card--unesco">
                     <div class="env-card__icon">🏛️</div>
                     <div class="env-card__count">${whcCount}</div>
                     <div class="env-card__label">UNESCO</div>
-                    <div class="env-card__list">${buildSiteList(whcSites, 'whc')}</div>
-                </div>
+                    ${buildSiteBadges(whcSites, 'whc')}
+                </div>`;
+        }
+
+        if (naturaCount > 0) {
+            cards += `
                 <div class="env-card env-card--natura">
                     <div class="env-card__icon">🌿</div>
                     <div class="env-card__count">${naturaCount}</div>
                     <div class="env-card__label">Natura 2000</div>
-                    <div class="env-card__list">${buildSiteList(naturaSites, 'natura')}</div>
-                </div>
-            </div>`;
+                    ${buildSiteBadges(naturaSites, 'natura')}
+                </div>`;
+        }
+
+        return `<div class="env-sites-grid${whcCount > 0 && naturaCount > 0 ? '' : ' env-sites-grid--single'}">${cards}</div>`;
     }
 
     _bindEnvSiteClicks() {
-        this.macroStats.querySelectorAll('.env-site-item').forEach(el => {
+        this.macroStats.querySelectorAll('.env-site-badge').forEach(el => {
             el.addEventListener('click', (e) => {
                 e.stopPropagation();
                 const lat = parseFloat(el.dataset.envLat);
@@ -3371,11 +3382,11 @@ export class UiRenderer {
                 const name = el.textContent;
 
                 // Toggle active state
-                const wasActive = el.classList.contains('env-site-item--active');
-                this.macroStats.querySelectorAll('.env-site-item--active').forEach(a => a.classList.remove('env-site-item--active'));
+                const wasActive = el.classList.contains('env-site-badge--active');
+                this.macroStats.querySelectorAll('.env-site-badge--active').forEach(a => a.classList.remove('env-site-badge--active'));
 
                 if (!wasActive) {
-                    el.classList.add('env-site-item--active');
+                    el.classList.add('env-site-badge--active');
                     if (this.onEnvSiteClick) this.onEnvSiteClick({ lat, lon, type, name });
                 } else {
                     if (this.onEnvSiteClick) this.onEnvSiteClick(null);

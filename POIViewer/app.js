@@ -339,22 +339,59 @@ class App {
 
             const { lat, lon, type, name } = siteData;
             const color = type === 'whc' ? '#f59e0b' : '#22c55e'; // gold for UNESCO, green for Natura
+            const colorFill = type === 'whc' ? '#fbbf24' : '#4ade80';
 
-            // Zoom to site
-            this.mapManager.map.setView([lat, lon], 14, { animate: true });
+            // Smooth fly to site (avoids jerky cursor jumps)
+            this.mapManager.map.flyTo([lat, lon], 14, { animate: true, duration: 1.2 });
 
-            // Add pulsing circle
-            this._envHighlightLayer = L.circleMarker([lat, lon], {
-                radius: 18,
+            // Create a polygon group for the site highlight
+            this._envHighlightLayer = L.layerGroup();
+
+            // Outer translucent polygon (filled circle = area of influence ~1km)
+            const outerCircle = L.circle([lat, lon], {
+                radius: 1000,
                 color: color,
-                fillColor: color,
-                fillOpacity: 0.25,
-                weight: 3,
-                opacity: 0.9,
-                className: 'env-pulse-marker'
-            }).addTo(this.mapManager.map);
+                fillColor: colorFill,
+                fillOpacity: 0.08,
+                weight: 1.5,
+                opacity: 0.4,
+                dashArray: '6 4',
+                interactive: false
+            });
 
-            this._envHighlightLayer.bindPopup(`<b>${type === 'whc' ? '🏛️ UNESCO' : '🌿 Natura 2000'}</b><br>${name}`, { className: 'trail-tooltip' }).openPopup();
+            // Inner polygon ring (~200m radius, more opaque)
+            const innerCircle = L.circle([lat, lon], {
+                radius: 200,
+                color: color,
+                fillColor: colorFill,
+                fillOpacity: 0.2,
+                weight: 2.5,
+                opacity: 0.8,
+                interactive: false
+            });
+
+            // Center marker (small solid dot)
+            const centerDot = L.circleMarker([lat, lon], {
+                radius: 6,
+                color: '#fff',
+                fillColor: color,
+                fillOpacity: 1,
+                weight: 2,
+                opacity: 1
+            });
+
+            centerDot.bindPopup(
+                `<b>${type === 'whc' ? '🏛️ UNESCO' : '🌿 Natura 2000'}</b><br>${name}`,
+                { className: 'trail-tooltip' }
+            );
+
+            this._envHighlightLayer.addLayer(outerCircle);
+            this._envHighlightLayer.addLayer(innerCircle);
+            this._envHighlightLayer.addLayer(centerDot);
+            this._envHighlightLayer.addTo(this.mapManager.map);
+
+            // Open popup after fly animation completes
+            setTimeout(() => centerDot.openPopup(), 1300);
 
             // Highlight matching POIs on map (those within 1km of this site)
             const siteLL = L.latLng(lat, lon);
@@ -367,11 +404,12 @@ class App {
                 this._envPulseLayer = L.layerGroup();
                 nearbyPois.forEach(p => {
                     L.circleMarker([p.lat, p.lng], {
-                        radius: 10,
+                        radius: 8,
                         color: color,
-                        fillColor: color,
-                        fillOpacity: 0.35,
-                        weight: 2
+                        fillColor: colorFill,
+                        fillOpacity: 0.3,
+                        weight: 1.5,
+                        opacity: 0.7
                     }).addTo(this._envPulseLayer);
                 });
                 this._envPulseLayer.addTo(this.mapManager.map);
