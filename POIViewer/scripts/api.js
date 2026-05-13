@@ -100,11 +100,11 @@ export class ApiService {
                             context
                         });
                     }
-                    console.log(`%c[Overpass] ✅ ${context || 'ok'} — ${ms} ms (HTTP ${response.status}) via ${server}`, 'color:#4ade80');
+                    console.log(`%c[Overpass]  ${context || 'ok'} — ${ms} ms (HTTP ${response.status}) via ${server}`, 'color:#4ade80');
                     return response;
                 }
 
-                console.warn(`[Overpass] ⚠️ ${context || 'erreur'} — HTTP ${response.status} (${ms} ms) via ${server}`);
+                console.warn(`[Overpass]  ${context || 'erreur'} — HTTP ${response.status} (${ms} ms) via ${server}`);
                 lastResponse = response;
 
                 if (!this._isRetryableOverpassStatus(response.status) || i === servers.length - 1) {
@@ -310,7 +310,7 @@ export class ApiService {
         }));
 
         this._overtourismContours = contoursMap;
-        console.log(`✅ Contours sur-fréquentation chargés: ${contoursMap.size} communes`);
+        console.log(` Contours sur-fréquentation chargés: ${contoursMap.size} communes`);
         return contoursMap;
     }
 
@@ -384,7 +384,7 @@ export class ApiService {
 
         // 1. Check if a network request is already ongoing for this exact polygon
         if (this._pendingFetches.has(cacheKey)) {
-            console.log("⏳ Requête déjà en cours pour cette zone, attente...");
+            console.log(" Requête déjà en cours pour cette zone, attente...");
             try {
                 // Wait for the ongoing fetch to finish, then we filter the result
                 const fullResult = await this._pendingFetches.get(cacheKey);
@@ -397,7 +397,7 @@ export class ApiService {
         try {
             cachedEntry = await this._idbGet(cacheKey);
             if (cachedEntry && (Date.now() - cachedEntry.timestamp < POI_CACHE_DURATION)) {
-                console.log("✅ Chargement des POIs depuis le cache IndexedDB");
+                console.log(" Chargement des POIs depuis le cache IndexedDB");
                 // Filtrage côté client par catégories sélectionnées
                 return this._filterByCategories(cachedEntry.data, selectedCategories);
             }
@@ -445,7 +445,7 @@ export class ApiService {
         }).filter(Boolean);
 
         if (polyCoordsArray.length === 0) {
-            console.warn("⚠️ Polygones invalides ou trop petits, requête annulée.");
+            console.warn(" Polygones invalides ou trop petits, requête annulée.");
             return { pois: [], networks: [] };
         }
 
@@ -517,7 +517,7 @@ export class ApiService {
             try {
                 await this._idbPut(cacheKey, { timestamp: Date.now(), data: fullResult });
                 await this._cleanupPOICache();
-                console.log("💾 POIs sauvegardés dans le cache IndexedDB");
+                console.log(" POIs sauvegardés dans le cache IndexedDB");
             } catch (e) {
                 console.warn("Impossible d'écrire le cache POI:", e);
             }
@@ -533,7 +533,7 @@ export class ApiService {
         } catch (error) {
             console.error("API Error:", error);
             if (cachedEntry) {
-                console.warn("⚠️ Utilisation du cache POI expiré (fallback réseau)");
+                console.warn(" Utilisation du cache POI expiré (fallback réseau)");
                 return this._filterByCategories(cachedEntry.data, selectedCategories);
             }
             throw error;
@@ -1017,12 +1017,12 @@ export class ApiService {
         try {
             const response = await this._overpassFetch(query, 'zones protégées');
             if (response.status === 429) {
-                console.warn("⚠️ Trop de requetes (429).");
+                console.warn(" Trop de requetes (429).");
                 if (cachedData) return cachedData;
                 throw new Error("API Limit Reached");
             }
             if (response.status === 504) {
-                console.warn("⚠️ Timeout Overpass (504).");
+                console.warn(" Timeout Overpass (504).");
                 if (cachedData) return cachedData;
                 throw new Error("API Timeout");
             }
@@ -1084,12 +1084,12 @@ export class ApiService {
             const response = await this._overpassFetch(query, `admin_level=${adminLevel}`);
 
             if (response.status === 429) {
-                console.warn("⚠️ Trop de requêtes (429).");
+                console.warn(" Trop de requêtes (429).");
                 if (cachedData) return cachedData;
                 throw new Error("API Limit Reached");
             }
             if (response.status === 504) {
-                console.warn("⚠️ Timeout Overpass (504).");
+                console.warn(" Timeout Overpass (504).");
                 if (cachedData) return cachedData;
                 throw new Error("API Timeout");
             }
@@ -1648,7 +1648,7 @@ out geom;`;
             const toRemove = entries.slice(0, entries.length - MAX_POI_CACHE_ENTRIES);
             for (const e of toRemove) {
                 await this._idbDelete(e.key);
-                console.log(`🗑️ Cache POI supprimé : ${e.key}`);
+                console.log(` Cache POI supprimé : ${e.key}`);
             }
         }
     }
@@ -1659,7 +1659,7 @@ out geom;`;
         const cacheKey = this._buildPOICacheKey(latLngs);
         try {
             await this._idbDelete(cacheKey);
-            console.log(`🗑️ Cache POI zone supprimé : ${cacheKey}`);
+            console.log(` Cache POI zone supprimé : ${cacheKey}`);
         } catch (e) {
             console.warn('Erreur suppression cache zone:', e);
         }
@@ -1676,7 +1676,7 @@ out geom;`;
                 req.onsuccess = () => resolve();
                 req.onerror = () => reject(req.error);
             });
-            console.log('🗑️ Cache IndexedDB POI entièrement vidé');
+            console.log(' Cache IndexedDB POI entièrement vidé');
         } catch (e) {
             console.warn('Erreur vidage IndexedDB:', e);
         }
@@ -1691,9 +1691,9 @@ out geom;`;
         }
         keysToRemove.forEach(k => {
             localStorage.removeItem(k);
-            console.log(`🗑️ localStorage supprimé : ${k}`);
+            console.log(` localStorage supprimé : ${k}`);
         });
-        console.log(`🗑️ Reset complet : ${keysToRemove.length} entrées localStorage + IndexedDB vidé`);
+        console.log(` Reset complet : ${keysToRemove.length} entrées localStorage + IndexedDB vidé`);
     }
 
     /**
@@ -1748,7 +1748,7 @@ out geom;`;
                         }
                     }
                 } else {
-                    console.warn(`⚠️ Overpass a refusé la requête (Statut ${response.status}) pour la démo.`);
+                    console.warn(` Overpass a refusé la requête (Statut ${response.status}) pour la démo.`);
                 }
             } catch (e) {
                 console.error("Erreur getZoneDemographics Overpass:", e);

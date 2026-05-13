@@ -253,7 +253,7 @@ export class UiRenderer {
 
         container.innerHTML = `
             <div class="load-error-block load-error-block--small">
-                <span class="load-error-block__icon">⚠️</span>
+                <span class="load-error-block__icon"></span>
                 <p class="load-error-block__msg">${this.escapeHtml(message)}</p>
                 ${onRetry ? '<button class="load-error-block__retry-btn">Réessayer</button>' : ''}
             </div>
@@ -274,7 +274,7 @@ export class UiRenderer {
 
     countryCodeToFlagEmoji(countryCode) {
         const code = (countryCode || '').trim().toUpperCase();
-        if (!/^[A-Z]{2}$/.test(code)) return '🌍';
+        if (!/^[A-Z]{2}$/.test(code)) return '';
 
         const base = 127397;
         return String.fromCodePoint(...Array.from(code).map((char) => base + char.charCodeAt(0)));
@@ -1376,7 +1376,7 @@ export class UiRenderer {
         return `
             <div class="demo-kpi">
                 <div class="demo-kpi__main">
-                    <div class="demo-kpi__label">👥 Résidents <span style="font-size:0.66rem">${yearText}</span></div>
+                    <div class="demo-kpi__label"> Résidents <span style="font-size:0.66rem">${yearText}</span></div>
                     <div class="demo-kpi__value">${displayedPopulation}</div>
                     <div class="demo-kpi__zone">${zoneName}</div>
                 </div>
@@ -1626,10 +1626,10 @@ export class UiRenderer {
                     ${pBar('Lits dans héb. collectifs', inseeStats.collective_beds, maxBeds, '#8b5cf6', ' lits')}
                     
                     <div class="accom-detail-grid">
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon"></span><span class="accom-detail-label">Hôtels</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon"></span><span class="accom-detail-label">Auberges</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon"></span><span class="accom-detail-label">Campings</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon"></span><span class="accom-detail-label">Héb. collect.</span></div>
                     </div>
 
                     <div class="ind-block__footer">
@@ -1667,11 +1667,11 @@ export class UiRenderer {
                     ${pBar('Campings & aires', osmCampings, osmMax, '#a78bfa')}
                     
                     <div class="accom-detail-grid">
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏨</span><span class="accom-detail-label">Hôtels</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏠</span><span class="accom-detail-label">Auberges</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">⛺</span><span class="accom-detail-label">Campings</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="caravan" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🚚</span><span class="accom-detail-label">Aires CC</span></div>
-                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon">🏔️</span><span class="accom-detail-label">Héb. collect.</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="hotel" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon"></span><span class="accom-detail-label">Hôtels</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="auberge" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon"></span><span class="accom-detail-label">Auberges</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="camping" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon"></span><span class="accom-detail-label">Campings</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="caravan" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon"></span><span class="accom-detail-label">Aires CC</span></div>
+                        <div class="accom-detail-item accom-detail-item--clickable" data-accom-filter="collectif" title="Mettre en surbrillance sur la carte"><span class="accom-detail-icon"></span><span class="accom-detail-label">Héb. collect.</span></div>
                     </div>
                 </div>`;
         }
@@ -1742,14 +1742,14 @@ export class UiRenderer {
                 </div>
                 <div class="ind-row ind-row--clickable" data-digital-filter="website" title="Cliquer pour mettre en surbrillance sur la carte">
                     <div class="ind-row__head">
-                        <span class="ind-row__label">🌐 Site web</span>
+                        <span class="ind-row__label"> Site web</span>
                         <span class="ind-row__val" style="color:#34d399;">${typeof webPct === 'number' ? (Number.isInteger(webPct) ? webPct.toLocaleString('fr-FR') : webPct.toFixed(2)) : webPct}%</span>
                     </div>
                     <div class="ind-row__track"><div class="ind-row__fill" style="width:${Math.min(webPct, 100)}%;background:#34d399;"></div></div>
                 </div>
                 <div class="ind-row ind-row--clickable" data-digital-filter="social" title="Cliquer pour mettre en surbrillance sur la carte">
                     <div class="ind-row__head">
-                        <span class="ind-row__label">📱 Réseaux sociaux</span>
+                        <span class="ind-row__label"> Réseaux sociaux</span>
                         <span class="ind-row__val" style="color:#ec4899;">${typeof socPct === 'number' ? (Number.isInteger(socPct) ? socPct.toLocaleString('fr-FR') : socPct.toFixed(2)) : socPct}%</span>
                     </div>
                     <div class="ind-row__track"><div class="ind-row__fill" style="width:${Math.min(socPct, 100)}%;background:#ec4899;"></div></div>
@@ -1758,7 +1758,7 @@ export class UiRenderer {
             <div id="wikivoyage-panel">
                 <div class="ind-block" style="margin-top:6px;">
                     <div class="ind-block__header">
-                        <span class="ind-block__title">🌍 Wikivoyage</span>
+                        <span class="ind-block__title"> Wikivoyage</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
                         <span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>
@@ -1769,7 +1769,7 @@ export class UiRenderer {
             <div id="pageviews-panel">
                 <div class="ind-block" style="margin-top:6px;">
                     <div class="ind-block__header">
-                        <span class="ind-block__title">📊 Wikipedia Pageviews</span>
+                        <span class="ind-block__title"> Wikipedia Pageviews</span>
                     </div>
                     <div style="display:flex;align-items:center;gap:8px;padding:8px 0;">
                         <span class="spinner" style="width:16px;height:16px;border-width:2px;"></span>
@@ -1899,21 +1899,21 @@ export class UiRenderer {
                     </div>
                     <div class="ind-row ind-row--clickable" data-infra-filter="bus" title="Mettre en surbrillance sur la carte">
                         <div class="ind-row__head">
-                            <span class="ind-row__label">🚏 Arrêts de bus</span>
+                            <span class="ind-row__label"> Arrêts de bus</span>
                             <span class="ind-row__val" style="color:#fbbf24;">${busStopCount.toLocaleString('fr-FR')}</span>
                         </div>
                         <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxTransport > 0 ? Math.min(busStopCount / maxTransport * 100, 100) : 0}%;background:#fbbf24;"></div></div>
                     </div>
                     <div class="ind-row ind-row--clickable" data-infra-filter="gare" title="Mettre en surbrillance sur la carte">
                         <div class="ind-row__head">
-                            <span class="ind-row__label">🚉 Gares</span>
+                            <span class="ind-row__label"> Gares</span>
                             <span class="ind-row__val" style="color:#8b5cf6;">${trainStationCount.toLocaleString('fr-FR')}</span>
                         </div>
                         <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxTransport > 0 ? Math.min(trainStationCount / maxTransport * 100, 100) : 0}%;background:#8b5cf6;"></div></div>
                     </div>
                     <div class="ind-row ind-row--clickable" data-infra-filter="aeroport" title="Mettre en surbrillance sur la carte">
                         <div class="ind-row__head">
-                            <span class="ind-row__label">✈️ Aéroports</span>
+                            <span class="ind-row__label"> Aéroports</span>
                             <span class="ind-row__val" style="color:#0ea5e9;">${airportCount.toLocaleString('fr-FR')}</span>
                         </div>
                         <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxTransport > 0 ? Math.min(airportCount / maxTransport * 100, 100) : 0}%;background:#0ea5e9;"></div></div>
@@ -1926,21 +1926,21 @@ export class UiRenderer {
                     </div>
                     <div class="ind-row ind-row--clickable" data-infra-filter="parking" title="Mettre en surbrillance sur la carte">
                         <div class="ind-row__head">
-                            <span class="ind-row__label">🅿️ Stationnements</span>
+                            <span class="ind-row__label"> Stationnements</span>
                             <span class="ind-row__val" style="color:#64748b;">${parkingCount.toLocaleString('fr-FR')}</span>
                         </div>
                         <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxServices > 0 ? Math.min(parkingCount / maxServices * 100, 100) : 0}%;background:#64748b;"></div></div>
                     </div>
                     <div class="ind-row ind-row--clickable" data-infra-filter="sanitaire" title="Mettre en surbrillance sur la carte">
                         <div class="ind-row__head">
-                            <span class="ind-row__label">🚿 Sanitaires</span>
+                            <span class="ind-row__label"> Sanitaires</span>
                             <span class="ind-row__val" style="color:#06b6d4;">${sanitaryCount.toLocaleString('fr-FR')}</span>
                         </div>
                         <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxServices > 0 ? Math.min(sanitaryCount / maxServices * 100, 100) : 0}%;background:#06b6d4;"></div></div>
                     </div>
                     <div class="ind-row ind-row--clickable" data-infra-filter="recharge" title="Mettre en surbrillance sur la carte">
                         <div class="ind-row__head">
-                            <span class="ind-row__label">⚡ Bornes recharge</span>
+                            <span class="ind-row__label"> Bornes recharge</span>
                             <span class="ind-row__val" style="color:#22c55e;">${chargingCount.toLocaleString('fr-FR')}</span>
                         </div>
                         <div class="ind-row__track"><div class="ind-row__fill" style="width:${maxServices > 0 ? Math.min(chargingCount / maxServices * 100, 100) : 0}%;background:#22c55e;"></div></div>
@@ -2429,8 +2429,8 @@ export class UiRenderer {
                     <span class="ind-block__big">${totalTrailKm.toFixed(1)} <span class="ind-block__unit">km</span></span>
                 </div>
                 <div style="display:flex;gap:12px;padding:2px 0 0;">
-                    <span style="font-size:0.75rem;color:#34d399;">🥾 Piétons : ${pedestrianTrailLength.toFixed(1)} km</span>
-                    <span style="font-size:0.75rem;color:#60a5fa;">🚴 Vélo : ${cyclingTrailLength.toFixed(1)} km</span>
+                    <span style="font-size:0.75rem;color:#34d399;"> Piétons : ${pedestrianTrailLength.toFixed(1)} km</span>
+                    <span style="font-size:0.75rem;color:#60a5fa;"> Vélo : ${cyclingTrailLength.toFixed(1)} km</span>
                 </div>
             </div>`;
         infraContainer.appendChild(trailTotalDiv);
@@ -3378,7 +3378,7 @@ export class UiRenderer {
         if (whcCount > 0) {
             cards += `
                 <div class="env-card env-card--unesco">
-                    <div class="env-card__icon">🏛️</div>
+                    <div class="env-card__icon"></div>
                     <div class="env-card__count">${whcCount}</div>
                     <div class="env-card__label">UNESCO</div>
                     ${buildSiteBadges(whcSites, 'whc')}
@@ -3388,7 +3388,7 @@ export class UiRenderer {
         if (naturaCount > 0) {
             cards += `
                 <div class="env-card env-card--natura">
-                    <div class="env-card__icon">🌿</div>
+                    <div class="env-card__icon"></div>
                     <div class="env-card__count">${naturaCount}</div>
                     <div class="env-card__label">Natura 2000</div>
                     ${buildSiteBadges(naturaSites, 'natura')}
@@ -3765,9 +3765,9 @@ export class UiRenderer {
         const distParts = [];
         const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
 
-        if (poi.nearestBusStopDist !== undefined) distParts.push(`🚌 ${formatDist(poi.nearestBusStopDist)}`);
-        if (poi.nearestTrainStationDist !== undefined) distParts.push(`🚉 ${formatDist(poi.nearestTrainStationDist)}`);
-        if (poi.nearestAirportDist !== undefined) distParts.push(`✈️ ${formatDist(poi.nearestAirportDist)}`);
+        if (poi.nearestBusStopDist !== undefined) distParts.push(` ${formatDist(poi.nearestBusStopDist)}`);
+        if (poi.nearestTrainStationDist !== undefined) distParts.push(` ${formatDist(poi.nearestTrainStationDist)}`);
+        if (poi.nearestAirportDist !== undefined) distParts.push(` ${formatDist(poi.nearestAirportDist)}`);
 
         if (distParts.length > 0) {
             distanceHtml = `<div class="poi-desc" style="margin-top:4px; font-size:0.75rem;"><span style="color:var(--color-primary);font-weight:600;">${distParts.join(' • ')}</span></div>`;
@@ -3838,7 +3838,7 @@ export class UiRenderer {
                     };
                     return `<div class="poi-scores-widget" id="poi-scores-widget">
                         <div class="poi-scores-widget__title">
-                            📊 Complétude de la fiche
+                             Complétude de la fiche
                             <span class="poi-scores-widget__global" style="color:${col(s.global)};">${s.global}%</span>
                         </div>
                         ${bar('Infos générales', s.general)}
@@ -3871,21 +3871,21 @@ export class UiRenderer {
                         </div>
                         <!-- Transport filter toggles -->
                         <div class="poi-transport-filter" id="poi-transport-filter">
-                            <div class="poi-transport-filter__title">🚏 Transport — itinéraire vers :</div>
+                            <div class="poi-transport-filter__title"> Transport — itinéraire vers :</div>
                             <div class="poi-transport-filter__toggles">
                                 <label class="poi-transport-toggle ${poi.nearestBusStopDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="bus" class="poi-transit-cb" ${poi.nearestBusStopDist !== undefined ? 'checked' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🚌</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Bus</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestTrainStationDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="gare" class="poi-transit-cb" ${poi.nearestTrainStationDist !== undefined ? 'checked' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🚉</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Gare</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestAirportDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="aeroport" class="poi-transit-cb" ${poi.nearestAirportDist !== undefined ? 'checked' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">✈️</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Aéroport</span>
                                 </label>
                             </div>
@@ -3893,31 +3893,31 @@ export class UiRenderer {
 
                         <!-- Accessibilité sub-section -->
                         <div class="poi-transport-filter">
-                            <div class="poi-transport-filter__title">♿ Accessibilité</div>
+                            <div class="poi-transport-filter__title"> Accessibilité</div>
                             ${poi.tags.wheelchair ? `<div class="detail-info" style="padding:4px 0;">
-                                ${this._infoRow('PMR', poi.tags.wheelchair === 'yes' ? '<span style="color:#10b981;font-weight:bold;">Accessible PMR ♿</span>' :
-                                    poi.tags.wheelchair === 'limited' ? '<span style="color:#f59e0b;font-weight:bold;">Accès limité ⚠️</span>' :
-                                    '<span style="color:#ef4444;font-weight:bold;">Non accessible ❌</span>')}
+                                ${this._infoRow('PMR', poi.tags.wheelchair === 'yes' ? '<span style="color:#10b981;font-weight:bold;">Accessible PMR </span>' :
+                                    poi.tags.wheelchair === 'limited' ? '<span style="color:#f59e0b;font-weight:bold;">Accès limité </span>' :
+                                    '<span style="color:#ef4444;font-weight:bold;">Non accessible </span>')}
                             </div>` : '<div class="detail-info" style="padding:4px 0;"><div class="info-row"><span class="info-label">PMR</span><span class="info-value" style="color:var(--color-text-muted);opacity:0.6;">Non renseigné</span></div></div>'}
                         </div>
 
                         <!-- Voies d'accès filter toggles -->
                         <div class="poi-transport-filter">
-                            <div class="poi-transport-filter__title">🛤️ Voies d'accès — itinéraire vers :</div>
+                            <div class="poi-transport-filter__title"> Voies d'accès — itinéraire vers :</div>
                             <div class="poi-transport-filter__toggles">
                                 <label class="poi-transport-toggle ${poi.nearestRoadDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="route" class="poi-transit-cb" ${poi.nearestRoadDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🛣️</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Route</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestHikingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="rando" class="poi-transit-cb" ${poi.nearestHikingDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🥾</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Rando</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestCyclingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="cyclable" class="poi-transit-cb" ${poi.nearestCyclingDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🚴</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Cyclable</span>
                                 </label>
                             </div>
@@ -3926,21 +3926,21 @@ export class UiRenderer {
 
                         <!-- Services filter toggles -->
                         <div class="poi-transport-filter">
-                            <div class="poi-transport-filter__title">🔧 Services — le plus proche :</div>
+                            <div class="poi-transport-filter__title"> Services — le plus proche :</div>
                             <div class="poi-transport-filter__toggles">
                                 <label class="poi-transport-toggle ${poi.nearestServiceParkingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="service_parking" class="poi-transit-cb" ${poi.nearestServiceParkingDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🅿️</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Parking</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestServiceToiletsDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="service_toilets" class="poi-transit-cb" ${poi.nearestServiceToiletsDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🚻</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Toilettes</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestServiceChargingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="service_charging" class="poi-transit-cb" ${poi.nearestServiceChargingDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">⚡</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Recharge</span>
                                 </label>
                             </div>
@@ -3962,26 +3962,26 @@ export class UiRenderer {
 
                         <!-- Hébergement filter toggles -->
                         <div class="poi-transport-filter">
-                            <div class="poi-transport-filter__title">🛏️ Hébergement le plus proche :</div>
+                            <div class="poi-transport-filter__title"> Hébergement le plus proche :</div>
                             <div class="poi-transport-filter__toggles poi-transport-filter__toggles--wrap">
                                 <label class="poi-transport-toggle ${poi.nearestAccomHotelDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="accom_hotel" class="poi-transit-cb" ${poi.nearestAccomHotelDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🏨</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Hôtel</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestAccomCampingDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="accom_camping" class="poi-transit-cb" ${poi.nearestAccomCampingDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">⛺</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Camping</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestAccomRefugeDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="accom_refuge" class="poi-transit-cb" ${poi.nearestAccomRefugeDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🏔️</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Refuge</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestAccomGiteDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="accom_gite" class="poi-transit-cb" ${poi.nearestAccomGiteDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🏡</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Gîte</span>
                                 </label>
                             </div>
@@ -3990,16 +3990,16 @@ export class UiRenderer {
 
                         <!-- Environnement filter toggles -->
                         <div class="poi-transport-filter">
-                            <div class="poi-transport-filter__title">🌍 Environnement — le plus proche :</div>
+                            <div class="poi-transport-filter__title"> Environnement — le plus proche :</div>
                             <div class="poi-transport-filter__toggles poi-transport-filter__toggles--wrap">
                                 <label class="poi-transport-toggle ${poi.nearestWhcDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="env_whc" class="poi-transit-cb" ${poi.nearestWhcDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🏛️</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">UNESCO</span>
                                 </label>
                                 <label class="poi-transport-toggle ${poi.nearestNaturaDist !== undefined ? '' : 'poi-transport-toggle--disabled'}">
                                     <input type="checkbox" value="env_natura" class="poi-transit-cb" ${poi.nearestNaturaDist !== undefined ? '' : 'disabled'}>
-                                    <span class="poi-transport-toggle__icon">🌿</span>
+                                    <span class="poi-transport-toggle__icon"></span>
                                     <span class="poi-transport-toggle__label">Natura 2000</span>
                                 </label>
                             </div>
@@ -4225,7 +4225,7 @@ export class UiRenderer {
 
         widget.innerHTML = `
             <div class="poi-scores-widget__title">
-                📊 Complétude de la fiche
+                 Complétude de la fiche
                 <span class="poi-scores-widget__global" style="color:${col(s.global)};">${s.global}%</span>
             </div>
             ${bar('Infos générales', s.general)}
@@ -4269,14 +4269,14 @@ export class UiRenderer {
             }
             rows.push(`
                 <div class="info-row info-row--website">
-                    <span class="info-label">🌐 Site Web</span>
+                    <span class="info-label"> Site Web</span>
                     <a href="${this.escapeHtml(fullUrl)}" target="_blank" rel="noopener" class="info-value info-website-link" style="color:${color};" title="${this.escapeHtml(fullUrl)}">
                         ${this.escapeHtml(displayUrl)} ↗
                     </a>
                 </div>
             `);
         } else if (d.hasWebsite) {
-            rows.push(this._infoRow('🌐 Site Web', yesLabel));
+            rows.push(this._infoRow(' Site Web', yesLabel));
         }
 
         // --- MODIFICATIONS : Réseaux sociaux ---
@@ -4360,7 +4360,7 @@ export class UiRenderer {
             panel.innerHTML = `
                 <div class="ind-block" style="margin-top:6px;opacity:0.6;">
                     <div class="ind-block__header">
-                        <span class="ind-block__title">🌍 Wikivoyage</span>
+                        <span class="ind-block__title"> Wikivoyage</span>
                     </div>
                     <div style="padding:6px 0;font-size:0.82rem;color:var(--color-text-muted);font-style:italic;">
                         Aucun article Wikivoyage trouvé dans cette zone
@@ -4407,7 +4407,7 @@ export class UiRenderer {
             'el': { name: 'Ελληνικά', flag: '🇬🇷', color: '#0ea5e9' }
         };
 
-        const getLangInfo = (code) => langInfo[code] || { name: code.toUpperCase(), flag: '🌐', color: '#94a3b8' };
+        const getLangInfo = (code) => langInfo[code] || { name: code.toUpperCase(), flag: '', color: '#94a3b8' };
 
         const langBarsHtml = topLangs.map(l => {
             const info = getLangInfo(l.lang);
@@ -4448,7 +4448,7 @@ export class UiRenderer {
         panel.innerHTML = `
             <div class="ind-block" style="margin-top:6px;">
                 <div class="ind-block__header">
-                    <span class="ind-block__title">🌍 Wikivoyage</span>
+                    <span class="ind-block__title"> Wikivoyage</span>
                     <span class="ind-block__big">${data.totalUnique} <span class="ind-block__unit">article${data.totalUnique > 1 ? 's' : ''} unique${data.totalUnique > 1 ? 's' : ''}</span></span>
                 </div>
                 ${langBarsHtml}
@@ -4467,14 +4467,14 @@ export class UiRenderer {
             data-digital-filter="wikipedia"
             style="font-size:0.75rem;color:var(--color-text-muted);margin-top:2px;display:block;cursor:pointer;"
             title="Cliquer pour mettre en surbrillance les POIs avec une page Wikipedia">
-            📖 ${totalWikiPois} POI${totalWikiPois > 1 ? 's' : ''} avec page Wikipedia dans cette zone
+             ${totalWikiPois} POI${totalWikiPois > 1 ? 's' : ''} avec page Wikipedia dans cette zone
         </span>`;
 
         if (results.length === 0) {
             panel.innerHTML = `
                 <div class="ind-block" style="margin-top:6px;opacity:0.75;">
                     <div class="ind-block__header">
-                        <span class="ind-block__title">📊 Wikipedia Pageviews</span>
+                        <span class="ind-block__title"> Wikipedia Pageviews</span>
                     </div>
                     ${countLabel}
                     <div style="padding:6px 0;font-size:0.82rem;color:var(--color-text-muted);font-style:italic;">
@@ -4504,14 +4504,14 @@ export class UiRenderer {
             'ro': { name: 'Română', flag: '🇷🇴', color: '#3b82f6' },
             'el': { name: 'Ελληνικά', flag: '🇬🇷', color: '#0ea5e9' }
         };
-        const getLangInfo = (code) => langInfo[code] || { name: code.toUpperCase(), flag: '🌐', color: '#94a3b8' };
+        const getLangInfo = (code) => langInfo[code] || { name: code.toUpperCase(), flag: '', color: '#94a3b8' };
 
         const rows = results.slice(0, 5).map((item, idx) => {
             const pct = maxViews > 0 ? Math.min((item.views / maxViews) * 100, 100) : 0;
             const formattedViews = item.views.toLocaleString('fr-FR');
             const flag = getLangInfo(item.lang).flag;
             const url = `https://${item.lang}.wikipedia.org/wiki/${encodeURIComponent(item.articleTitle.replace(/ /g, '_'))}`;
-            const medal = idx === 0 ? '🥇' : idx === 1 ? '🥈' : idx === 2 ? '🥉' : `${idx + 1}.`;
+            const medal = idx === 0 ? '' : idx === 1 ? '' : idx === 2 ? '' : `${idx + 1}.`;
             return `
                 <div class="ind-row" style="margin-bottom:4px;">
                     <div class="ind-row__head">
@@ -4533,7 +4533,7 @@ export class UiRenderer {
         panel.innerHTML = `
             <div class="ind-block" style="margin-top:6px;">
                 <div class="ind-block__header">
-                    <span class="ind-block__title">📊 Wikipedia Pageviews</span>
+                    <span class="ind-block__title"> Wikipedia Pageviews</span>
                     <span class="ind-block__big">${totalViews.toLocaleString('fr-FR')} <span class="ind-block__unit">vues / 3 mois</span></span>
                 </div>
                 ${countLabel}
@@ -4584,12 +4584,12 @@ export class UiRenderer {
         const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
 
         if (poi.isInWhcSite) {
-            rows.push(this._infoRow('🏛️ World Heritage Site',
+            rows.push(this._infoRow(' World Heritage Site',
                 `<span style="color:#22c55e;font-weight:600;">✔ Oui</span> <span style="color:var(--color-text-muted);font-size:0.8em;">(${poi.nearestWhcName})</span>`));
         }
 
         if (poi.isInNaturaSite) {
-            rows.push(this._infoRow('🌿 Natura 2000',
+            rows.push(this._infoRow(' Natura 2000',
                 `<span style="color:#22c55e;font-weight:600;">✔ Oui</span> <span style="color:var(--color-text-muted);font-size:0.8em;">(${poi.nearestNaturaName})</span>`));
         }
 
@@ -4605,17 +4605,17 @@ export class UiRenderer {
         // Transport distances
         if (poi.nearestBusStopDist !== undefined) {
             const busName = poi.nearestBusStopName || 'Arrêt de bus';
-            rows.push(this._infoRow('🚌 Bus le plus proche',
+            rows.push(this._infoRow(' Bus le plus proche',
                 `<span style="color:${color};font-weight:600">${busName}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestBusStopDist)}</span>`));
         }
         if (poi.nearestTrainStationDist !== undefined) {
             const trainName = poi.nearestTrainStationName || 'Gare';
-            rows.push(this._infoRow('🚉 Gare la plus proche',
+            rows.push(this._infoRow(' Gare la plus proche',
                 `<span style="color:${color};font-weight:600">${trainName}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestTrainStationDist)}</span>`));
         }
         if (poi.nearestAirportDist !== undefined) {
             const airportName = poi.nearestAirportName || 'Aéroport';
-            rows.push(this._infoRow('✈️ Aéroport le plus proche',
+            rows.push(this._infoRow(' Aéroport le plus proche',
                 `<span style="color:${color};font-weight:600">${airportName}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAirportDist)}</span>`));
         }
 
@@ -4631,15 +4631,15 @@ export class UiRenderer {
         const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
 
         if (poi.nearestRoadDist !== undefined) {
-            rows.push(this._infoRow('🛣️ Route',
+            rows.push(this._infoRow(' Route',
                 `<span style="color:${color};font-weight:600">${poi.nearestRoadName || 'Route'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestRoadDist)}</span>`));
         }
         if (poi.nearestHikingDist !== undefined) {
-            rows.push(this._infoRow('🥾 Sentier rando',
+            rows.push(this._infoRow(' Sentier rando',
                 `<span style="color:${color};font-weight:600">${poi.nearestHikingName || 'Sentier'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestHikingDist)}</span>`));
         }
         if (poi.nearestCyclingDist !== undefined) {
-            rows.push(this._infoRow('🚴 Piste cyclable',
+            rows.push(this._infoRow(' Piste cyclable',
                 `<span style="color:${color};font-weight:600">${poi.nearestCyclingName || 'Piste cyclable'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestCyclingDist)}</span>`));
         }
 
@@ -4652,15 +4652,15 @@ export class UiRenderer {
         const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
 
         if (poi.nearestServiceParkingDist !== undefined) {
-            rows.push(this._infoRow('🅿️ Parking le plus proche',
+            rows.push(this._infoRow(' Parking le plus proche',
                 `<span style="color:${color};font-weight:600">${poi.nearestServiceParkingName || 'Parking'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestServiceParkingDist)}</span>`));
         }
         if (poi.nearestServiceToiletsDist !== undefined) {
-            rows.push(this._infoRow('🚻 Toilettes les plus proches',
+            rows.push(this._infoRow(' Toilettes les plus proches',
                 `<span style="color:${color};font-weight:600">${poi.nearestServiceToiletsName || 'Toilettes'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestServiceToiletsDist)}</span>`));
         }
         if (poi.nearestServiceChargingDist !== undefined) {
-            rows.push(this._infoRow('⚡ Borne de recharge la plus proche',
+            rows.push(this._infoRow(' Borne de recharge la plus proche',
                 `<span style="color:${color};font-weight:600">${poi.nearestServiceChargingName || 'Borne de recharge'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestServiceChargingDist)}</span>`));
         }
 
@@ -4673,11 +4673,11 @@ export class UiRenderer {
         const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
 
         if (poi.nearestWhcDist !== undefined) {
-            rows.push(this._infoRow('🏛️ Site UNESCO le plus proche',
+            rows.push(this._infoRow(' Site UNESCO le plus proche',
                 `<span style="color:${color};font-weight:600;">${poi.nearestWhcName}</span><br><span style="color:var(--color-text-muted);">${formatDist(poi.nearestWhcDist)}</span>`));
         }
         if (poi.nearestNaturaDist !== undefined) {
-            rows.push(this._infoRow('🌿 Site Natura 2000 le plus proche',
+            rows.push(this._infoRow(' Site Natura 2000 le plus proche',
                 `<span style="color:${color};font-weight:600;">${poi.nearestNaturaName}</span><br><span style="color:var(--color-text-muted);">${formatDist(poi.nearestNaturaDist)}</span>`));
         }
 
@@ -4690,19 +4690,19 @@ export class UiRenderer {
         const formatDist = (d) => d >= 1000 ? (d / 1000).toFixed(1) + ' km' : Math.round(d) + ' m';
 
         if (poi.nearestAccomHotelDist !== undefined) {
-            rows.push(this._infoRow('🏨 Hôtel',
+            rows.push(this._infoRow(' Hôtel',
                 `<span style="color:${color};font-weight:600">${poi.nearestAccomHotelName || 'Hôtel'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAccomHotelDist)}</span>`));
         }
         if (poi.nearestAccomCampingDist !== undefined) {
-            rows.push(this._infoRow('⛺ Camping',
+            rows.push(this._infoRow(' Camping',
                 `<span style="color:${color};font-weight:600">${poi.nearestAccomCampingName || 'Camping'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAccomCampingDist)}</span>`));
         }
         if (poi.nearestAccomRefugeDist !== undefined) {
-            rows.push(this._infoRow('🏔️ Refuge',
+            rows.push(this._infoRow(' Refuge',
                 `<span style="color:${color};font-weight:600">${poi.nearestAccomRefugeName || 'Refuge'}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAccomRefugeDist)}</span>`));
         }
         if (poi.nearestAccomGiteDist !== undefined) {
-            rows.push(this._infoRow("🏡 Maison d'hôtes",
+            rows.push(this._infoRow(" Maison d'hôtes",
                 `<span style="color:${color};font-weight:600">${poi.nearestAccomGiteName || "Maison d'hôtes"}</span><br><span style="color:var(--color-text-muted)">${formatDist(poi.nearestAccomGiteDist)}</span>`));
         }
 
@@ -4869,11 +4869,11 @@ export class UiRenderer {
     getCategoryEmoji(category) {
         return "";
         // const emojis = {
-        //     'tourism': '📷', 'sustenance': '🍴', 'accommodation': '🛏️', 'amenity': '🚻',
-        //     'natural': '🌳', 'historic': '🏛️', 'leisure': '🎡', 'shop': '🛒',
-        //     'transport': '🚌', 'craft': '🎨', 'office': '💼',
-        //     'place': '📍', 'sport': '⚽', 'healthcare': '⚕️',
-        //     'other': '❓'
+        //     'tourism': '', 'sustenance': '', 'accommodation': '', 'amenity': '',
+        //     'natural': '', 'historic': '', 'leisure': '', 'shop': '',
+        //     'transport': '', 'craft': '', 'office': '',
+        //     'place': '', 'sport': '', 'healthcare': '',
+        //     'other': ''
         // };
         // return emojis[category] || emojis['other'];
     }
@@ -5516,7 +5516,7 @@ export class UiRenderer {
 
         const locCard = `
             <div class="dashboard-kpi dashboard-kpi--loc dashboard-kpi--clickable" data-dashboard-target="section-info" data-dashboard-parent="section-info" role="button" tabindex="0" title="Ouvrir la section Informations générales">
-                <div class="dashboard-kpi__title">📍 Localisation</div>
+                <div class="dashboard-kpi__title"> Localisation</div>
                 <div class="dashboard-kpi__body">
                     <div class="dash-breadcrumb">${locHtml}</div>
                 </div>
@@ -5542,7 +5542,7 @@ export class UiRenderer {
 
         const infraCard = `
             <div class="dashboard-kpi dashboard-kpi--infra dashboard-kpi--clickable" data-dashboard-target="section-infra" data-dashboard-parent="section-infra" role="button" tabindex="0" title="Ouvrir la section Infrastructures & activités">
-                <div class="dashboard-kpi__title">🏗️ Infrastructures</div>
+                <div class="dashboard-kpi__title"> Infrastructures</div>
                 <div class="dashboard-kpi__body">
                     <div class="dash-badge-row">
                         <div class="dash-badge dash-badge--transport">
@@ -5588,7 +5588,7 @@ export class UiRenderer {
 
         const mobilityCard = `
             <div class="dashboard-kpi dashboard-kpi--mobility dashboard-kpi--clickable" data-dashboard-target="section-sentiers-pistes" data-dashboard-parent="section-infra" role="button" tabindex="0" title="Ouvrir la section Sentiers & pistes">
-                <div class="dashboard-kpi__title">🚶 Mobilité douce</div>
+                <div class="dashboard-kpi__title"> Mobilité douce</div>
                 <div class="dashboard-kpi__body">
                     ${dashBar('Sentiers piétons', pedDensity, maxDensity, '#34d399', ' km/km²')}
                     ${dashBar('Pistes cyclables', cycleDensity, maxDensity, '#60a5fa', ' km/km²')}
@@ -5620,7 +5620,7 @@ export class UiRenderer {
 
         const territoryCard = `
             <div class="dashboard-kpi dashboard-kpi--territory dashboard-kpi--clickable" data-dashboard-target="section-treemaps-density-services" data-dashboard-parent="section-infra" role="button" tabindex="0" title="Ouvrir la section Treemaps et densité des services">
-                <div class="dashboard-kpi__title">🗺️ Profil territorial</div>
+                <div class="dashboard-kpi__title"> Profil territorial</div>
                 <div class="dashboard-kpi__body">
                     ${territoryBars || '<span style="font-size:0.68rem;color:var(--color-text-muted);opacity:0.6;">Aucune donnée</span>'}
                 </div>
@@ -5753,7 +5753,7 @@ export class UiRenderer {
 
         const tourismCard = `
             <div class="dashboard-kpi dashboard-kpi--tourism dashboard-kpi--clickable" data-dashboard-target="section-tourisme" data-dashboard-parent="section-tourisme" role="button" tabindex="0" title="Ouvrir la section Tourisme">
-                <div class="dashboard-kpi__title">🏖️ Tourisme</div>
+                <div class="dashboard-kpi__title"> Tourisme</div>
                 <div class="dashboard-kpi__body" style="display:flex; flex-direction:column; gap:6px;">
                     ${tourismMetrics.join('')}
                 </div>
@@ -5768,7 +5768,7 @@ export class UiRenderer {
 
         const notorietyCard = `
             <div class="dashboard-kpi dashboard-kpi--notoriety dashboard-kpi--clickable" data-dashboard-target="section-marketing" data-dashboard-parent="section-marketing" role="button" tabindex="0" title="Ouvrir la section Marketing digital">
-                <div class="dashboard-kpi__title">🌍 Notoriété</div>
+                <div class="dashboard-kpi__title"> Notoriété</div>
                 <div class="dashboard-kpi__body">
                     <div class="dash-notoriety-big">
                         <span class="dash-notoriety-big__val" id="dash-wv-count">${wvCount}</span>

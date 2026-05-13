@@ -376,11 +376,11 @@ export class MapManager {
         };
 
         const emojis = {
-            bus: '🚌', gare: '🚉', aeroport: '✈️',
-            route: '🛣️', rando: '🥾', cyclable: '🚴',
-            accom_hotel: '🏨', accom_camping: '⛺', accom_refuge: '🏔️', accom_gite: '🏡',
-            service_parking: '🅿️', service_toilets: '🚻', service_charging: '⚡',
-            env_whc: '🏛️', env_natura: '🌿'
+            bus: '', gare: '', aeroport: '',
+            route: '', rando: '', cyclable: '',
+            accom_hotel: '', accom_camping: '', accom_refuge: '', accom_gite: '',
+            service_parking: '', service_toilets: '', service_charging: '',
+            env_whc: '', env_natura: ''
         };
 
         lines.forEach(line => {
@@ -394,7 +394,7 @@ export class MapManager {
             }).addTo(this.map);
 
             // Add a small marker at the destination
-            const emoji = emojis[line.type] || '📍';
+            const emoji = emojis[line.type] || '';
             const stopMarker = L.marker(line.to, {
                 icon: L.divIcon({
                     className: '',

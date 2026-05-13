@@ -64,8 +64,8 @@ class App {
         if (forceRefreshBtn) {
             forceRefreshBtn.addEventListener('click', async () => {
                 if (!this.currentLayer) {
-                    forceRefreshBtn.innerHTML = '⚠️ Aucune zone active';
-                    setTimeout(() => { forceRefreshBtn.innerHTML = '🔄 Rafraîchir cette zone'; }, 1500);
+                    forceRefreshBtn.innerHTML = ' Aucune zone active';
+                    setTimeout(() => { forceRefreshBtn.innerHTML = ' Rafraîchir cette zone'; }, 1500);
                     return;
                 }
                 forceRefreshBtn.innerHTML = '<span class="spinner" style="width:14px;height:14px;border-width:2px;"></span> Rafraîchissement...';
@@ -78,11 +78,11 @@ class App {
                 } else {
                     await this.handleAreaSelection(this.currentLayer);
                 }
-                forceRefreshBtn.innerHTML = '✅ Zone rafraîchie !';
+                forceRefreshBtn.innerHTML = ' Zone rafraîchie !';
                 forceRefreshBtn.style.borderColor = 'rgba(34,197,94,0.5)';
                 forceRefreshBtn.style.color = '#86efac';
                 setTimeout(() => {
-                    forceRefreshBtn.innerHTML = '🔄 Rafraîchir cette zone';
+                    forceRefreshBtn.innerHTML = ' Rafraîchir cette zone';
                     forceRefreshBtn.style.pointerEvents = 'auto';
                     forceRefreshBtn.style.borderColor = '';
                     forceRefreshBtn.style.color = '';
@@ -381,7 +381,7 @@ class App {
             });
 
             centerDot.bindPopup(
-                `<b>${type === 'whc' ? '🏛️ UNESCO' : '🌿 Natura 2000'}</b><br>${name}`,
+                `<b>${type === 'whc' ? ' UNESCO' : ' Natura 2000'}</b><br>${name}`,
                 { className: 'trail-tooltip' }
             );
 
@@ -776,10 +776,10 @@ class App {
 
                     if (!isAccom(poi)) {
                         const accomTypes = [
-                            { key: 'Hotel', filter: isHotel, emoji: '🏨' },
-                            { key: 'Camping', filter: isCamping, emoji: '⛺' },
-                            { key: 'Refuge', filter: isRefuge, emoji: '🏔️' },
-                            { key: 'Gite', filter: isGite, emoji: "🏡" }
+                            { key: 'Hotel', filter: isHotel, emoji: '' },
+                            { key: 'Camping', filter: isCamping, emoji: '' },
+                            { key: 'Refuge', filter: isRefuge, emoji: '' },
+                            { key: 'Gite', filter: isGite, emoji: "" }
                         ];
                         accomTypes.forEach(({ key, filter }) => {
                             const candidates = pois.filter(filter);
@@ -802,9 +802,9 @@ class App {
 
                     // Nearest services (parking, toilets, charging)
                     const serviceTypes = [
-                        { key: 'Parking', filter: isParking, candidates: parkings, emoji: '🅿️' },
-                        { key: 'Toilets', filter: isToilets, candidates: toilets, emoji: '🚻' },
-                        { key: 'Charging', filter: isCharging, candidates: chargingStations, emoji: '⚡' }
+                        { key: 'Parking', filter: isParking, candidates: parkings, emoji: '' },
+                        { key: 'Toilets', filter: isToilets, candidates: toilets, emoji: '' },
+                        { key: 'Charging', filter: isCharging, candidates: chargingStations, emoji: '' }
                     ];
                     serviceTypes.forEach(({ key, filter, candidates }) => {
                         if (!filter(poi) && candidates.length > 0) {
@@ -1065,7 +1065,7 @@ class App {
                                     // S'il n'y a absolument aucune donnée recensée (ni API, ni recherche), on met un encart gris au lieu d'un trou noir
                                     const fallbackHtml = `
                                         <div class="kpi-card glass-panel" style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 12px 16px; margin-bottom: 16px; text-align: center;">
-                                            <span style="font-size: 0.85rem; color: var(--color-text-muted); font-style: italic;">ℹ️ Aucune donnée démographique recensée pour cette zone.</span>
+                                            <span style="font-size: 0.85rem; color: var(--color-text-muted); font-style: italic;"> Aucune donnée démographique recensée pour cette zone.</span>
                                         </div>
                                     `;
 
@@ -1666,7 +1666,7 @@ class App {
                     if (id === 'All' || id === 'Total') {
                         isTreemapMatch = true;
                     } else if (parent === 'All' || parent === 'Total') { // Category
-                        // Check if it matches raw ID ('tourism'), translated ID ('Tourisme'), or label with emoji ('📸 Tourisme')
+                        // Check if it matches raw ID ('tourism'), translated ID ('Tourisme'), or label with emoji (' Tourisme')
                         const catDef = this.uiRenderer.categories ? this.uiRenderer.categories.find(c => c.id === poi.category) : null;
                         const labelNoEmoji = catDef ? catDef.label : poi.category;
                         const labelWithEmoji = catDef ? `${catDef.emoji} ${labelNoEmoji}` : poi.category;
@@ -2122,7 +2122,7 @@ class App {
 
         // ── Toast de confirmation ──
         this.uiRenderer.showToast(
-            `📥 Export terminé : 2 fichiers CSV (${allPOIs.length} POIs)`,
+            ` Export terminé : 2 fichiers CSV (${allPOIs.length} POIs)`,
             'success',
             4000
         );
