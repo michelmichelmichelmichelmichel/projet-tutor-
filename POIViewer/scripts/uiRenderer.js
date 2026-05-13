@@ -5538,62 +5538,24 @@ export class UiRenderer {
                 </div>
             </div>`;
 
-        // ── 5. TOURISM — Saturation Index ────────────────────────────────────
+        // ── 5. TOURISM — Adaptive indicators by data source ─────────────────
         let totalArrivals = 0;
-        let tiSource = '';
         let avgMonthlyBedsRo = null;
+        const pop = population || 0;
+        const inseeBeds = inseeStats
+            ? (inseeStats.hotel_beds || 0) + (inseeStats.camping_beds || 0) + (inseeStats.collective_beds || 0)
+            : 0;
+        const osmAccommodationCount = pois.filter(p => p.category === 'accommodation').length;
+        const hasRomaniaModel = !!romaniaStats?.data?.monthly_data;
+        const hasFranceModel = !hasRomaniaModel && !!inseeStats;
 
-        if (romaniaStats?.data?.monthly_data) {
+        if (hasRomaniaModel) {
             const roMonths = Object.keys(romaniaStats.data.monthly_data);
             if (roMonths.length > 0) {
-                totalArrivals = roMonths.reduce((s, m) => s + (romaniaStats.data.monthly_data[m]?.arrivals?.total || 0), 0);
-                const totBeds = roMonths.reduce((sum, m) => sum + (romaniaStats.data.monthly_data[m]?.bed_capacity?.total || 0), 0);
-                avgMonthlyBedsRo = totBeds / roMonths.length;
-                if (totalArrivals > 0) tiSource = 'INSSE';
+                totalArrivals = roMonths.reduce((sum, monthKey) => sum + (romaniaStats.data.monthly_data[monthKey]?.arrivals?.total || 0), 0);
+                const totalBedsRo = roMonths.reduce((sum, monthKey) => sum + (romaniaStats.data.monthly_data[monthKey]?.bed_capacity?.total || 0), 0);
+                avgMonthlyBedsRo = totalBedsRo / roMonths.length;
             }
-        }
-
-        // 1. Tourist Density = Arrivals / km²
-        const touristDensity = areaKm2 > 0 ? totalArrivals / areaKm2 : 0;
-        let tdRating = '';
-        if (touristDensity === 0) tdRating = 'N/A';
-        else if (touristDensity < 100) tdRating = 'Faible';
-        else if (touristDensity < 500) tdRating = 'Modérée';
-        else if (touristDensity < 2000) tdRating = 'Élevée';
-        else tdRating = 'Très élevée';
-
-        // 2. Accommodation Density = Beds / km²
-        let bestAccomBeds = 0;
-        if (inseeStats) {
-            bestAccomBeds = (inseeStats.hotel_beds || 0) + (inseeStats.camping_beds || 0) + (inseeStats.collective_beds || 0);
-        } else if (avgMonthlyBedsRo !== null) {
-            bestAccomBeds = avgMonthlyBedsRo;
-        } else {
-            // fallback OSM beds
-            pois.forEach(p => {
-                if (p.tags?.beds) bestAccomBeds += parseInt(p.tags.beds, 10) || 0;
-            });
-        }
-
-        const accomDensity = areaKm2 > 0 ? (bestAccomBeds / areaKm2) : 0;
-        let adRating = '';
-        if (accomDensity === 0) adRating = 'N/A';
-        else if (accomDensity < 500) adRating = 'Faible';
-        else if (accomDensity < 5000) adRating = 'Modérée';
-        else if (accomDensity < 20000) adRating = 'Élevée';
-        else adRating = 'Très élevée';
-
-        // 3. Tourist Intensity = Arrivals / population
-        let tiValue = 0, tiRating = '';
-        const pop = population || 0;
-        if (pop > 0 && totalArrivals > 0) {
-            tiValue = totalArrivals / pop;
-            if (tiValue < 1) tiRating = 'Faible';
-            else if (tiValue < 5) tiRating = 'Modérée';
-            else if (tiValue < 20) tiRating = 'Élevée';
-            else tiRating = 'Saturation';
-        } else if (pop > 0) {
-            tiRating = 'N/A';
         }
 
         const fmtDensity = (v) => {
@@ -5601,6 +5563,54 @@ export class UiRenderer {
             if (v >= 10) return v.toFixed(1);
             if (v >= 1) return v.toFixed(2);
             return v.toFixed(3);
+        };
+
+        const getTouristDensityRating = (value) => {
+            if (!Number.isFinite(value)) return 'N/A';
+            if (value < 100) return 'Faible';
+            if (value < 500) return 'Modérée';
+            if (value < 2000) return 'Élevée';
+            return 'Très élevée';
+        };
+
+        const getTouristIntensityRating = (value) => {
+            if (!Number.isFinite(value)) return 'N/A';
+            if (value < 1) return 'Faible';
+            if (value < 5) return 'Modérée';
+            if (value < 20) return 'Élevée';
+            return 'Saturation';
+        };
+
+        const getBedDensityRating = (value) => {
+            if (!Number.isFinite(value)) return 'N/A';
+            if (value < 500) return 'Faible';
+            if (value < 5000) return 'Modérée';
+            if (value < 20000) return 'Élevée';
+            return 'Très élevée';
+        };
+
+        const getBedIntensityRating = (value) => {
+            if (!Number.isFinite(value)) return 'N/A';
+            if (value < 0.05) return 'Faible';
+            if (value < 0.15) return 'Modérée';
+            if (value < 0.5) return 'Élevée';
+            return 'Très élevée';
+        };
+
+        const getAccommodationCountDensityRating = (value) => {
+            if (!Number.isFinite(value)) return 'N/A';
+            if (value < 0.1) return 'Faible';
+            if (value < 0.5) return 'Modérée';
+            if (value < 2) return 'Élevée';
+            return 'Très élevée';
+        };
+
+        const getAccommodationCountIntensityRating = (value) => {
+            if (!Number.isFinite(value)) return 'N/A';
+            if (value < 0.001) return 'Faible';
+            if (value < 0.01) return 'Modérée';
+            if (value < 0.05) return 'Élevée';
+            return 'Très élevée';
         };
 
         const buildProgressBar = (val, max, color) => {
@@ -5613,31 +5623,51 @@ export class UiRenderer {
             `;
         };
 
+        const buildTourismMetric = (label, rawValue, color, max, unitLabel, ratingLabel) => {
+            const hasValue = Number.isFinite(rawValue);
+            const displayValue = hasValue ? fmtDensity(rawValue) : 'N/A';
+            const suffix = hasValue ? `<span class="dash-metric__rating">${ratingLabel} · ${unitLabel}</span>` : `<span class="dash-metric__rating">N/A · ${unitLabel}</span>`;
+
+            return `
+                    <div style="display:flex; flex-direction:column;">
+                        <div class="dash-metric" style="padding-bottom:0;">
+                            <span class="dash-metric__label">${label}</span>
+                            <span class="dash-metric__val" style="color:${color};">${displayValue} ${suffix}</span>
+                        </div>
+                        ${buildProgressBar(hasValue ? rawValue : 0, max, color)}
+                    </div>`;
+        };
+
+        const tourismMetrics = [];
+        if (hasRomaniaModel) {
+            const touristDensity = areaKm2 > 0 ? totalArrivals / areaKm2 : null;
+            const touristIntensity = pop > 0 ? totalArrivals / pop : null;
+            const accommodationDensity = areaKm2 > 0 && avgMonthlyBedsRo !== null ? avgMonthlyBedsRo / areaKm2 : null;
+            const accommodationIntensity = pop > 0 && avgMonthlyBedsRo !== null ? avgMonthlyBedsRo / pop : null;
+
+            tourismMetrics.push(buildTourismMetric('Tourist Density', touristDensity, '#a78bfa', 5000, 'arrivals / km2', getTouristDensityRating(touristDensity)));
+            tourismMetrics.push(buildTourismMetric('Tourist Intensity', touristIntensity, '#8b5cf6', 30, 'arrivals / inhab', getTouristIntensityRating(touristIntensity)));
+            tourismMetrics.push(buildTourismMetric('Accommodation Density', accommodationDensity, '#c4b5fd', 50000, 'beds / km2', getBedDensityRating(accommodationDensity)));
+            tourismMetrics.push(buildTourismMetric('Accommodation Intensity', accommodationIntensity, '#ddd6fe', 1, 'beds / inhab', getBedIntensityRating(accommodationIntensity)));
+        } else if (hasFranceModel) {
+            const accommodationDensity = areaKm2 > 0 ? inseeBeds / areaKm2 : null;
+            const accommodationIntensity = pop > 0 ? inseeBeds / pop : null;
+
+            tourismMetrics.push(buildTourismMetric('Accommodation Density', accommodationDensity, '#a78bfa', 50000, 'beds / km2', getBedDensityRating(accommodationDensity)));
+            tourismMetrics.push(buildTourismMetric('Accommodation Intensity', accommodationIntensity, '#c4b5fd', 1, 'beds / inhab', getBedIntensityRating(accommodationIntensity)));
+        } else {
+            const accommodationDensity = areaKm2 > 0 ? osmAccommodationCount / areaKm2 : null;
+            const accommodationIntensity = pop > 0 ? osmAccommodationCount / pop : null;
+
+            tourismMetrics.push(buildTourismMetric('Accommodation Density', accommodationDensity, '#a78bfa', 5, 'accommodation / km2', getAccommodationCountDensityRating(accommodationDensity)));
+            tourismMetrics.push(buildTourismMetric('Accommodation Intensity', accommodationIntensity, '#c4b5fd', 0.1, 'accommodation / inhab', getAccommodationCountIntensityRating(accommodationIntensity)));
+        }
+
         const tourismCard = `
             <div class="dashboard-kpi dashboard-kpi--tourism dashboard-kpi--clickable" data-dashboard-target="section-tourisme" data-dashboard-parent="section-tourisme" role="button" tabindex="0" title="Ouvrir la section Tourisme">
                 <div class="dashboard-kpi__title">🏖️ Tourisme</div>
                 <div class="dashboard-kpi__body" style="display:flex; flex-direction:column; gap:6px;">
-                    <div style="display:flex; flex-direction:column;">
-                        <div class="dash-metric" style="padding-bottom:0;">
-                            <span class="dash-metric__label">Tourist Density</span>
-                            <span class="dash-metric__val" style="color:#a78bfa;">${touristDensity === 0 ? 'N/A' : fmtDensity(touristDensity)} <span class="dash-metric__rating">${tdRating}</span></span>
-                        </div>
-                        ${buildProgressBar(touristDensity, 5000, '#a78bfa')}
-                    </div>
-                    <div style="display:flex; flex-direction:column;">
-                        <div class="dash-metric" style="padding-bottom:0;">
-                            <span class="dash-metric__label">Accommodation Density</span>
-                            <span class="dash-metric__val" style="color:#c4b5fd;">${accomDensity === 0 ? 'N/A' : fmtDensity(accomDensity)} <span class="dash-metric__rating">${adRating}</span></span>
-                        </div>
-                        ${buildProgressBar(accomDensity, 50000, '#c4b5fd')}
-                    </div>
-                    ${pop > 0 ? `<div style="display:flex; flex-direction:column;">
-                        <div class="dash-metric" style="padding-bottom:0;">
-                            <span class="dash-metric__label">Tourist Intensity${tiSource ? ' (' + tiSource + ')' : ''}</span>
-                            <span class="dash-metric__val" style="color:#8b5cf6;">${tiValue === 0 ? 'N/A' : fmtDensity(tiValue)} <span class="dash-metric__rating">${tiRating}</span></span>
-                        </div>
-                        ${buildProgressBar(tiValue, 30, '#8b5cf6')}
-                    </div>` : ''}
+                    ${tourismMetrics.join('')}
                 </div>
             </div>`;
 
