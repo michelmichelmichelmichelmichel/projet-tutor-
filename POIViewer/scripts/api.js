@@ -1180,6 +1180,10 @@ export class ApiService {
                 const response = await fetch(url);
                 const data = await response.json();
                 return data.map(d => {
+
+                    
+
+
                     const bbox = d.boundingbox;
                     const minLat = parseFloat(bbox[0]);
                     const maxLat = parseFloat(bbox[1]);
@@ -1950,4 +1954,7 @@ out geom;`;
             totalWikiPois
         };
     }
+    
 }
+
+

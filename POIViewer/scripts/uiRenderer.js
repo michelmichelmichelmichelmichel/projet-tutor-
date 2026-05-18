@@ -2695,12 +2695,19 @@ export class UiRenderer {
             return 'Saturation';
         };
 
-        const getBedDensityRating = (value) => {
+        const getBedDensityRating = (value, isRomania = false) => {
             if (!Number.isFinite(value)) return 'N/A';
-            if (value < 500) return 'Faible';
-            if (value < 5000) return 'Modérée';
-            if (value < 20000) return 'Élevée';
-            return 'Très élevée';
+            if (isRomania) {
+                if (value < 30) return 'Faible';
+                if (value < 150) return 'Modérée';
+                if (value < 500) return 'Élevée';
+                return 'Très élevée';
+            } else {
+                if (value < 5) return 'Faible';
+                if (value < 20) return 'Modérée';
+                if (value < 80) return 'Élevée';
+                return 'Très élevée';
+            }
         };
 
         const getBedIntensityRating = (value) => {
@@ -2776,7 +2783,7 @@ export class UiRenderer {
 
             kpiHtml += buildDensityBar('Tourist Density', touristDensity, 'arrivées / km²', getTouristDensityRating(touristDensity), 5000, '#818cf8');
             kpiHtml += buildDensityBar('Tourist Intensity', touristIntensity, 'arrivées / hab', getTouristIntensityRating(touristIntensity), 30, '#f472b6');
-            kpiHtml += buildDensityBar('Accommodation Density', accommodationDensity, 'lits / km²', getBedDensityRating(accommodationDensity), 50000, '#a78bfa');
+            kpiHtml += buildDensityBar('Accommodation Density', accommodationDensity, 'lits / km²', getBedDensityRating(accommodationDensity, true), 2500, '#a78bfa');
             kpiHtml += buildDensityBar('Accommodation Intensity', accommodationIntensity, 'lits / hab', getBedIntensityRating(accommodationIntensity), 1, '#c4b5fd');
             kpiHtml += buildDensityBar('Average Length of Stays', avgStay, 'nuits / arrivée', avgStayRating, 7, '#22d3ee');
         } else if (hasFranceModel) {
@@ -2784,7 +2791,7 @@ export class UiRenderer {
             const accommodationDensity = areaKm2 > 0 ? inseeBeds / areaKm2 : null;
             const accommodationIntensity = pop > 0 ? inseeBeds / pop : null;
 
-            kpiHtml += buildDensityBar('Accommodation Density', accommodationDensity, 'lits / km²', getBedDensityRating(accommodationDensity), 50000, '#a78bfa');
+            kpiHtml += buildDensityBar('Accommodation Density', accommodationDensity, 'lits / km²', getBedDensityRating(accommodationDensity, false), 100, '#a78bfa');
             kpiHtml += buildDensityBar('Accommodation Intensity', accommodationIntensity, 'lits / hab', getBedIntensityRating(accommodationIntensity), 1, '#c4b5fd');
         } else {
             const accommodationDensity = areaKm2 > 0 ? osmAccommodationCount / areaKm2 : null;
@@ -5669,12 +5676,19 @@ export class UiRenderer {
             return 'Saturation';
         };
 
-        const getBedDensityRating = (value) => {
+        const getBedDensityRating = (value, isRomania = false) => {
             if (!Number.isFinite(value)) return 'N/A';
-            if (value < 500) return 'Faible';
-            if (value < 5000) return 'Modérée';
-            if (value < 20000) return 'Élevée';
-            return 'Très élevée';
+            if (isRomania) {
+                if (value < 30) return 'Faible';
+                if (value < 150) return 'Modérée';
+                if (value < 500) return 'Élevée';
+                return 'Très élevée';
+            } else {
+                if (value < 5) return 'Faible';
+                if (value < 20) return 'Modérée';
+                if (value < 80) return 'Élevée';
+                return 'Très élevée';
+            }
         };
 
         const getBedIntensityRating = (value) => {
@@ -5735,13 +5749,13 @@ export class UiRenderer {
 
             tourismMetrics.push(buildTourismMetric('Tourist Density', touristDensity, '#a78bfa', 5000, 'arrivals / km2', getTouristDensityRating(touristDensity)));
             tourismMetrics.push(buildTourismMetric('Tourist Intensity', touristIntensity, '#8b5cf6', 30, 'arrivals / inhab', getTouristIntensityRating(touristIntensity)));
-            tourismMetrics.push(buildTourismMetric('Accommodation Density', accommodationDensity, '#c4b5fd', 50000, 'beds / km2', getBedDensityRating(accommodationDensity)));
+            tourismMetrics.push(buildTourismMetric('Accommodation Density', accommodationDensity, '#c4b5fd', 2500, 'beds / km2', getBedDensityRating(accommodationDensity, true)));
             tourismMetrics.push(buildTourismMetric('Accommodation Intensity', accommodationIntensity, '#ddd6fe', 1, 'beds / inhab', getBedIntensityRating(accommodationIntensity)));
         } else if (hasFranceModel) {
             const accommodationDensity = areaKm2 > 0 ? inseeBeds / areaKm2 : null;
             const accommodationIntensity = pop > 0 ? inseeBeds / pop : null;
 
-            tourismMetrics.push(buildTourismMetric('Accommodation Density', accommodationDensity, '#a78bfa', 50000, 'beds / km2', getBedDensityRating(accommodationDensity)));
+            tourismMetrics.push(buildTourismMetric('Accommodation Density', accommodationDensity, '#a78bfa', 100, 'beds / km2', getBedDensityRating(accommodationDensity, false)));
             tourismMetrics.push(buildTourismMetric('Accommodation Intensity', accommodationIntensity, '#c4b5fd', 1, 'beds / inhab', getBedIntensityRating(accommodationIntensity)));
         } else {
             const accommodationDensity = areaKm2 > 0 ? osmAccommodationCount / areaKm2 : null;
