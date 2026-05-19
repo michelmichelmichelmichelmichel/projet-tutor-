@@ -1696,38 +1696,8 @@ export class UiRenderer {
                     </div>
                 </div>
             </div>`;
-        // ── Accommodation Intensity : beds / habitants (INSEE / INSSE / OSM) ──
+        // ── Accommodation Intensity card removed to avoid duplication with "Indicateurs de surtourisme" ──
         let accomIntensityHtml = '';
-        if (population && population > 0) {
-            let bestBeds = totalBeds; // fallback OSM
-            let bedSource = 'OSM';
-            if (inseeStats) {
-                bestBeds = inseeStats.hotel_beds + inseeStats.camping_beds + inseeStats.collective_beds;
-                bedSource = 'INSEE';
-            } else if (romaniaStats?.data?.annual_capacity?.total) {
-                const years = Object.keys(romaniaStats.data.annual_capacity.total).sort();
-                if (years.length > 0) {
-                    bestBeds = romaniaStats.data.annual_capacity.total[years[years.length - 1]];
-                    bedSource = 'INSSE';
-                }
-            }
-            const accomIntensity = bestBeds / population;
-            let accomRating = '';
-            if (accomIntensity < 0.05) accomRating = 'Faible';
-            else if (accomIntensity < 0.15) accomRating = 'Modérée';
-            else if (accomIntensity < 0.5) accomRating = 'Élevée';
-            else accomRating = 'Très élevée';
-
-            accomIntensityHtml = `
-                <div class="kpi-card kpi-card--col kpi-card--amber" style="margin-top:8px;">
-                    <div class="kpi-label">Accommodation Intensity (${bedSource})</div>
-                    <div style="display:flex;align-items:baseline;gap:6px;">
-                        <span class="kpi-value" style="color:#fb923c;">${accomIntensity.toFixed(3)}</span>
-                        <span class="kpi-sub">lits / hab.</span>
-                    </div>
-                    <div class="kpi-sub" style="margin-top:2px;">Intensité : <b>${accomRating}</b> · ${bestBeds.toLocaleString('fr-FR')} lits / ${population.toLocaleString('fr-FR')} hab.</div>
-                </div>`;
-        }
 
         const section3Html = accommodationHtml + accomIntensityHtml + `<div id="section-tourisme-content"></div>` + `<div id="romania-tourism-section"></div>`;
 
